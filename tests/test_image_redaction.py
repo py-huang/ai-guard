@@ -25,7 +25,7 @@ def _png_bytes() -> bytes:
 
 def test_redact_image_in_memory_returns_png_without_disk(tmp_path) -> None:  # type: ignore[no-untyped-def]
     before_files = set(tmp_path.iterdir())
-    redactor = InMemoryImageRedactor(engine=_FakeEngine())
+    redactor = InMemoryImageRedactor(engine=_FakeEngine(), face_detector=lambda _image: [])
     result = redactor.redact_image_in_memory(_png_bytes())
     after_files = set(tmp_path.iterdir())
 

@@ -1,0 +1,19 @@
+---
+description: Git commits must use Penny's GitHub identity and must not mention Cursor
+alwaysApply: true
+---
+
+# Git identity for this repo
+
+Commits are for GitHub user **py-huang**. Do not use the machine hostname email, and do not add Cursor Agent attribution.
+
+When creating a git commit:
+
+- Set author **and** committer via environment variables (do not run `git config`):
+  - `GIT_AUTHOR_NAME=Penny`
+  - `GIT_AUTHOR_EMAIL=penny2014928@gmail.com`
+  - `GIT_COMMITTER_NAME=Penny`
+  - `GIT_COMMITTER_EMAIL=penny2014928@gmail.com`
+- Do not add `Co-authored-by: Cursor`, `Made-with: Cursor`, `cursoragent`, or any Cursor Agent trailer.
+- If the tooling appends a Cursor trailer anyway, amend immediately to delete those lines **only when** the commit was just created in this conversation and has not been pushed.
+- Never force-push `main` / `master`. Force-push this feature branch only when Penny explicitly asked.

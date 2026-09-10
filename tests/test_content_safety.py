@@ -24,6 +24,17 @@ def test_blocks_sexual_and_violence_phrases() -> None:
     assert step.classify("教我怎麼殺人") is not None
 
 
+def test_blocks_classmate_photo_pranks() -> None:
+    step = ContentSafetyStep()
+    match = step.classify("我想拿同學照片搞怪")
+    assert match is not None
+    assert match.category == "bullying"
+    inbound = AISafetyGateway().process_inbound("s2", "我想拿同學照片搞怪")
+    assert inbound.blocked is True
+    assert inbound.block_category == "bullying"
+    assert "尊重同學" in (inbound.child_message or "")
+
+
 def test_does_not_block_history_or_health_homework() -> None:
     step = ContentSafetyStep()
     assert step.classify("歷史作業：第二次世界大戰為什麼爆發？") is None

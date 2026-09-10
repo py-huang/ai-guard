@@ -171,10 +171,11 @@
             </div>
             <div class="card preview">
               <div class="label">聯絡簿圖片遮碼</div>
-              <p class="sans" style="margin:0 0 8px;font-size:13px;color:var(--muted)">示範圖用座標遮碼，不需 OCR。上傳真實照片需要本機 Tesseract。</p>
+              <p class="sans" style="margin:0 0 8px;font-size:13px;color:var(--muted)">文字個資走 Presidio + RapidOCR。同學的臉另外遮掉。上傳照片不會落到磁碟。</p>
               <div class="row" style="margin-top:0">
                 <button class="ghost" id="loadDemo">載入示範聯絡簿</button>
-                <button class="ghost" id="loadGenerated">生成的照片</button>
+                <button class="ghost" id="redactGenerated">OCR 遮碼聯絡簿照片</button>
+                <button class="ghost" id="redactClassmate">遮碼同學名牌照</button>
               </div>
               <input id="imageFile" type="file" accept="image/png,image/jpeg" style="margin-top:8px;width:100%" />
               <button class="ghost" id="redactUpload" style="margin-top:8px">遮碼上傳的照片</button>
@@ -513,15 +514,51 @@
       showPair(
         "/api/demo-image?ts=" + Date.now(),
         "/api/demo-image?redacted=true&ts=" + Date.now(),
-        "這是繪製的示範聯絡簿：姓名、學校、電話、身分證、住址已用黑塊蓋住，不需要 Tesseract。"
+        "這是繪製的示範聯絡簿：姓名、學校、電話、身分證、住址已用黑塊蓋住。"
       );
     });
-    document.getElementById("loadGenerated").addEventListener("click", () => {
-      showPair(
-        "/api/generated-image",
-        "/api/demo-image?redacted=true&ts=" + Date.now(),
-        "左邊是生成的聯絡簿照片；右邊仍是座標遮碼示範。上傳左邊這張去跑 OCR 遮碼，請按下面的選擇檔案。"
-      );
+    document.getElementById("redactClassmate").addEventListener("click", async () => {
+      document.getElementById("imgBefore").src = "/api/classmate-image?ts=" + Date.now();
+      document.getElementById("imgBefore").hidden = false;
+      document.getElementById("imageNote").textContent = "正在遮同學的臉與名牌文字…";
+      try {
+        const res = await fetch("/api/redact-classmate-image?session_id=" + encodeURIComponent(sessionId), {
+          method: "POST",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          document.getElementById("imageNote").textContent = errorDetail(data).message;
+          return;
+        }
+        const blob = await res.blob();
+        document.getElementById("imgAfter").src = URL.createObjectURL(blob);
+        document.getElementById("imgAfter").hidden = false;
+        document.getElementById("imageNote").textContent = "臉已遮、名牌上的姓名與學校也已遮。Presidio 管文字，人臉是同一條上傳流程多做的一步。";
+      } catch (err) {
+        document.getElementById("imageNote").textContent = "同學照片遮碼失敗。";
+      }
+    });
+    document.getElementById("redactGenerated").addEventListener("click", async () => {
+      const ts = Date.now();
+      document.getElementById("imgBefore").src = "/api/generated-image?ts=" + ts;
+      document.getElementById("imgBefore").hidden = false;
+      document.getElementById("imageNote").textContent = "正在用虛擬環境裡的 RapidOCR 辨識並遮碼…";
+      try {
+        const res = await fetch("/api/redact-generated-image?session_id=" + encodeURIComponent(sessionId), {
+          method: "POST",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          document.getElementById("imageNote").textContent = errorDetail(data).message;
+          return;
+        }
+        const blob = await res.blob();
+        document.getElementById("imgAfter").src = URL.createObjectURL(blob);
+        document.getElementById("imgAfter").hidden = false;
+        document.getElementById("imageNote").textContent = "生成的聯絡簿已用 venv RapidOCR 遮碼，過程只在記憶體，模型也在虛擬環境裡。";
+      } catch (err) {
+        document.getElementById("imageNote").textContent = "OCR 遮碼失敗。";
+      }
     });
     document.getElementById("redactUpload").addEventListener("click", async () => {
       const file = document.getElementById("imageFile").files[0];
@@ -549,7 +586,7 @@
         const blob = await res.blob();
         document.getElementById("imgAfter").src = URL.createObjectURL(blob);
         document.getElementById("imgAfter").hidden = false;
-        document.getElementById("imageNote").textContent = "上傳照片已在記憶體中遮碼，沒有寫到磁碟。";
+        document.getElementById("imageNote").textContent = "上傳照片已在記憶體中用 RapidOCR 遮碼，沒有寫到磁碟。";
       } catch (err) {
         document.getElementById("imageNote").textContent = "遮碼失敗，請改用示範聯絡簿。";
       }

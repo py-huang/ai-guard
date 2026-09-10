@@ -37,7 +37,7 @@ FEATURES: list[dict[str, str]] = [
         "id": "image_redact",
         "status": "shipped",
         "title": "零落盤圖片遮碼",
-        "detail": "示範聯絡簿用繪製座標遮碼（不需 OCR）。上傳照片走 Presidio + Tesseract；沒裝 OCR 會說明原因。",
+        "detail": "Presidio 負責照片上的繁中文字個資。人臉另外用 OpenCV Haar 遮掉，避免拿同學照片搞怪。示範聯絡簿仍可用座標遮碼對照。",
     },
     {
         "id": "pipeline",
@@ -93,8 +93,8 @@ TUNABLES: list[dict[str, str]] = [
     },
     {
         "name": "圖片遮碼",
-        "where": "InMemoryImageRedactor OCR lang=chi_tra+eng；示範圖用 pii/demo_image.py 座標",
-        "detail": "可改填充色、OCR 語言、或改成雲端文件 AI。示範圖不依賴 Tesseract。",
+        "where": "pii/ocr.py RapidOcrEngine；模型在 .venv/lib/.../rapidocr_onnxruntime/models",
+        "detail": "OCR 與快取都關在虛擬環境。人臉敏感度在 pii/faces.py（Haar minSize、padding）。Presidio 不管臉，只管文字。",
     },
     {
         "name": "對話歷史長度",

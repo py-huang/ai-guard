@@ -168,7 +168,7 @@ class TaiwanLocationRecognizer(PatternRecognizer):
     _ROAD = rf"[{_CJK}0-9]{{1,10}}(?:路|街|大道)"
     _SECTION = r"[一二三四五六七八九十0-9]+段"
     _LANE = r"[0-9]+巷(?:[0-9]+弄)?"
-    _NUMBER = r"[0-9]+號(?:之[0-9]+)?"
+    _NUMBER = r"[0-9]+(?:號|号)(?:之[0-9]+)?"
     _FLOOR = r"(?:[0-9]+樓(?:之[0-9]+)?|[0-9]+[Ff])"
 
     PATTERNS: ClassVar[list[Pattern]] = [
@@ -194,7 +194,7 @@ class TaiwanLocationRecognizer(PatternRecognizer):
     def invalidate_result(self, pattern_text: str) -> bool:
         """Drop city-only hits; require district or a street-level component."""
         has_district = bool(re.search(r"(?:區|鄉|鎮)", pattern_text))
-        has_street = bool(re.search(r"(?:路|街|大道|段|巷|弄|號|樓)", pattern_text))
+        has_street = bool(re.search(r"(?:路|街|大道|段|巷|弄|號|号|樓)", pattern_text))
         return not (has_district or has_street)
 
 
@@ -232,7 +232,10 @@ class ChinesePersonRecognizer(EntityRecognizer):
         name = rf"(?P<name>{surname}{given})"
         self._patterns = (
             re.compile(rf"(?:我叫|我是|名叫|名字是|名字叫|我的名字是)\s*{name}"),
-            re.compile(rf"{name}(?=同學|小朋友|老師)"),
+            re.compile(rf"(?:姓名|學生姓名|名牌|名札)[:：]?\s*{name}"),
+            re.compile(rf"(?:這是|他是|她是|他叫|她叫|班上的|班上)\s*{name}"),
+            re.compile(rf"(?:把|拿)\s*{name}(?=的照片|的相片|來搞怪|的臉)"),
+            re.compile(rf"{name}(?=同學|小朋友|老師|的照片|的相片)"),
             re.compile(rf"(?:同學|小朋友)\s*{name}"),
         )
 

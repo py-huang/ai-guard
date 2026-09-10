@@ -26,3 +26,28 @@ def test_school_and_location_and_person() -> None:
     text = "我叫王小明，就讀中山國小，住在台北市中正區重慶南路一段122號2樓"
     types = _types(text)
     assert {"PERSON", "SCHOOL", "LOCATION"} <= types
+
+
+def test_contact_book_labels_and_simplified_hao() -> None:
+    types = _types("姓名：王小明，學校中山國小，台北市中正區重南路一段122号")
+    assert "PERSON" in types
+    assert "SCHOOL" in types
+    assert "LOCATION" in types
+
+
+def test_traditional_chinese_classmate_cues() -> None:
+    samples = (
+        "這是林小華",
+        "她叫林小華",
+        "班上的林小華今天沒來",
+        "這是同學林小華的照片",
+        "名牌：林小華",
+        "把林小華的照片拿來搞怪",
+    )
+    for text in samples:
+        assert "PERSON" in _types(text), text
+
+
+def test_does_not_treat_common_words_as_names() -> None:
+    types = _types("今天作業寫在黑板上，我們可以一起想")
+    assert "PERSON" not in types

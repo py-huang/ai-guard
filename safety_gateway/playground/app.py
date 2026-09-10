@@ -26,6 +26,7 @@ from safety_gateway.vault.memory import InMemorySessionVault
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 GENERATED_IMAGE = STATIC_DIR / "taiwan-contact-book-pii.png"
+CLASSMATE_IMAGE = STATIC_DIR / "classmate-nametag-portrait.png"
 
 
 class ChatRequest(StrictModel):
@@ -78,6 +79,8 @@ def create_app() -> FastAPI:
             "llm_backend": backend.name,
             "llm_model": backend.model,
             "env_key_configured": bool(key),
+            "ocr_backend": "rapidocr",
+            "ocr_scope": "venv",
         }
 
     @app.get("/api/features")
@@ -146,6 +149,44 @@ def create_app() -> FastAPI:
         if not GENERATED_IMAGE.is_file():
             raise _http_error(404, "還沒有生成的示範照片。", False)
         return FileResponse(GENERATED_IMAGE, media_type="image/png")
+
+    @app.get("/api/classmate-image")
+    def classmate_image() -> FileResponse:
+        if not CLASSMATE_IMAGE.is_file():
+            raise _http_error(404, "還沒有同學名牌示範照片。", False)
+        return FileResponse(CLASSMATE_IMAGE, media_type="image/png")
+
+    @app.post("/api/redact-classmate-image")
+    def redact_classmate_image(
+        session_id: str = Query(min_length=1, max_length=128),
+    ) -> Response:
+        if not CLASSMATE_IMAGE.is_file():
+            raise _http_error(404, "還沒有同學名牌示範照片。", False)
+        try:
+            result = gateway.redact_image(session_id, CLASSMATE_IMAGE.read_bytes())
+        except ImageOcrUnavailable as exc:
+            raise _http_error(503, str(exc), False) from exc
+        return Response(
+            content=result.image_bytes,
+            media_type="image/png",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.post("/api/redact-generated-image")
+    def redact_generated_image(
+        session_id: str = Query(min_length=1, max_length=128),
+    ) -> Response:
+        if not GENERATED_IMAGE.is_file():
+            raise _http_error(404, "還沒有生成的示範照片。", False)
+        try:
+            result = gateway.redact_image(session_id, GENERATED_IMAGE.read_bytes())
+        except ImageOcrUnavailable as exc:
+            raise _http_error(503, str(exc), False) from exc
+        return Response(
+            content=result.image_bytes,
+            media_type="image/png",
+            headers={"Cache-Control": "no-store"},
+        )
 
     @app.post("/api/redact-image")
     def redact_image(

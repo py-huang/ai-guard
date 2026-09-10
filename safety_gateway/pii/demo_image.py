@@ -69,6 +69,25 @@ def generated_fixture_path() -> Path | None:
     return path if path.is_file() else None
 
 
+def classmate_portrait_path() -> Path | None:
+    path = Path(__file__).resolve().parents[1] / "playground" / "static" / "classmate-nametag-portrait.png"
+    return path if path.is_file() else None
+
+
+def render_nametag_card() -> bytes:
+    """Traditional Chinese classmate caption + nametag, no OCR coordinates required."""
+    image = Image.new("RGB", (720, 260), color=(255, 255, 255))
+    draw = ImageDraw.Draw(image)
+    font = _load_font(32)
+    draw.rectangle([24, 24, 696, 236], outline=(47, 93, 74), width=4)
+    draw.text((48, 56), "這是同學林小華的照片", font=font, fill=(28, 25, 23))
+    draw.text((48, 120), "名牌：林小華", font=font, fill=(28, 25, 23))
+    draw.text((48, 176), "學校：中山國小", font=font, fill=(28, 25, 23))
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
 def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     for candidate in _FONT_CANDIDATES:
         path = Path(candidate)

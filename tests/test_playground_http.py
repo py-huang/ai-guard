@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from safety_gateway.pii.demo_image import render_contact_book
 from safety_gateway.playground.app import create_app
 from safety_gateway.playground.features import FEATURES
 from safety_gateway.playground.llm import LlmBusyError
@@ -29,6 +30,43 @@ def test_demo_image_endpoint_returns_png() -> None:
     assert original.content.startswith(b"\x89PNG")
     assert redacted.content.startswith(b"\x89PNG")
     assert original.content != redacted.content
+
+
+def test_upload_redact_uses_venv_ocr() -> None:
+    client = TestClient(create_app())
+    original, _boxes = render_contact_book()
+    response = client.post(
+        "/api/redact-image",
+        params={"session_id": "img-upload-1"},
+        files={"file": ("contact-book.png", original, "image/png")},
+    )
+    assert response.status_code == 200, response.text
+    assert response.content.startswith(b"\x89PNG")
+    assert response.content != original
+
+
+def test_classmate_photo_ocr_endpoint() -> None:
+    client = TestClient(create_app())
+    original = client.get("/api/classmate-image")
+    redacted = client.post(
+        "/api/redact-classmate-image",
+        params={"session_id": "img-classmate-1"},
+    )
+    assert original.status_code == 200
+    assert redacted.status_code == 200, redacted.text
+    assert original.content.startswith(b"\x89PNG")
+    assert redacted.content.startswith(b"\x89PNG")
+    assert redacted.content != original.content
+
+
+def test_generated_photo_ocr_endpoint() -> None:
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/redact-generated-image",
+        params={"session_id": "img-gen-1"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.content.startswith(b"\x89PNG")
 
 
 def test_chat_busy_returns_child_safe_json(monkeypatch) -> None:  # type: ignore[no-untyped-def]
