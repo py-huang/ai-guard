@@ -5,19 +5,27 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field
 
 from safety_gateway.gateway import AISafetyGateway
-from safety_gateway.playground.features import FEATURES
-from safety_gateway.playground.llm import resolve_backend
+from safety_gateway.pii.image import ImageOcrUnavailable
+from safety_gateway.playground.features import FEATURES, TUNABLES
+from safety_gateway.playground.llm import (
+    LlmBusyError,
+    LlmError,
+    child_safe_llm_message,
+    is_retryable_llm_error,
+    resolve_backend,
+)
 from safety_gateway.playground.service import PlaygroundChat
 from safety_gateway.schemas import StrictModel
 from safety_gateway.vault.memory import InMemorySessionVault
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+GENERATED_IMAGE = STATIC_DIR / "taiwan-contact-book-pii.png"
 
 
 class ChatRequest(StrictModel):
@@ -52,6 +60,10 @@ def _load_dotenv() -> None:
             os.environ[key.strip()] = cleaned
 
 
+def _http_error(status: int, message: str, retryable: bool) -> HTTPException:
+    return HTTPException(status_code=status, detail={"message": message, "retryable": retryable})
+
+
 def create_app() -> FastAPI:
     _load_dotenv()
     gateway = AISafetyGateway(vault=InMemorySessionVault())
@@ -70,7 +82,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/features")
     def features() -> dict[str, object]:
-        return {"features": FEATURES}
+        return {"features": FEATURES, "tunables": TUNABLES}
 
     @app.get("/api/evidence")
     def evidence(session_id: str = Query(min_length=1, max_length=128)) -> dict[str, object]:
@@ -82,20 +94,78 @@ def create_app() -> FastAPI:
             "leak_count": sum(1 for turn in turns if turn.pii_leaked_to_llm),
         }
 
+    @app.get("/api/audit")
+    def audit(
+        session_id: str = Query(min_length=1, max_length=128),
+        restore: bool = False,
+    ) -> dict[str, object]:
+        events = []
+        for event in gateway.audit_log.list_session(session_id):
+            payload = event.model_dump()
+            display = event.sanitized_text
+            if restore and not event.blocked:
+                display = gateway.deanonymize_text(session_id, event.sanitized_text)
+            payload["display_text"] = display
+            events.append(payload)
+        return {"session_id": session_id, "restore": restore, "events": events}
+
     @app.post("/api/chat")
     def chat(request: ChatRequest) -> dict[str, object]:
         key = _env_gemini_key() or request.gemini_api_key
         llm = resolve_backend(key)
         try:
             result = playground.chat(request.session_id, request.text, llm)
+        except LlmBusyError as exc:
+            raise _http_error(503, exc.child_message, True) from exc
+        except LlmError as exc:
+            raise _http_error(502, exc.child_message, False) from exc
         except Exception as exc:
-            raise HTTPException(status_code=502, detail=f"LLM 呼叫失敗：{exc}") from exc
+            raise _http_error(
+                503 if is_retryable_llm_error(exc) else 502,
+                child_safe_llm_message(exc),
+                is_retryable_llm_error(exc),
+            ) from exc
         return result.model_dump()
 
     @app.post("/api/reset")
     def reset(request: ResetRequest) -> dict[str, bool]:
         playground.reset(request.session_id)
         return {"ok": True}
+
+    @app.get("/api/demo-image")
+    def demo_image(redacted: bool = False) -> Response:
+        original, redacted_png = gateway.demo_contact_book()
+        return Response(
+            content=redacted_png if redacted else original,
+            media_type="image/png",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/api/generated-image")
+    def generated_image() -> FileResponse:
+        if not GENERATED_IMAGE.is_file():
+            raise _http_error(404, "還沒有生成的示範照片。", False)
+        return FileResponse(GENERATED_IMAGE, media_type="image/png")
+
+    @app.post("/api/redact-image")
+    def redact_image(
+        session_id: str = Query(min_length=1, max_length=128),
+        file: UploadFile = File(...),
+    ) -> Response:
+        raw = file.file.read()
+        if not raw:
+            raise _http_error(400, "請先選擇一張照片。", False)
+        try:
+            result = gateway.redact_image(session_id, raw)
+        except ImageOcrUnavailable as exc:
+            raise _http_error(503, str(exc), False) from exc
+        except Exception:
+            raise _http_error(400, "這張照片現在沒辦法遮碼，請改用示範聯絡簿。", False)
+        return Response(
+            content=result.image_bytes,
+            media_type="image/png",
+            headers={"Cache-Control": "no-store"},
+        )
 
     @app.get("/")
     def index() -> FileResponse:

@@ -16,6 +16,10 @@ PNG_CONTENT_TYPE = "image/png"
 _BLACK_FILL = (0, 0, 0)
 
 
+class ImageOcrUnavailable(RuntimeError):
+    """Raised when Presidio image redaction cannot run because OCR is missing."""
+
+
 class InMemoryImageRedactor:
     """Redact PII from uploaded photos without writing the source image to disk."""
 
@@ -37,13 +41,22 @@ class InMemoryImageRedactor:
             opened.load()
             working = opened.convert("RGB")
 
-        redacted = self._engine_instance().redact(
-            working,
-            fill=_BLACK_FILL,
-            ocr_kwargs={"lang": "chi_tra+eng"},
-            ad_hoc_recognizers=self._ad_hoc_recognizers,
-            language="zh",
-        )
+        try:
+            redacted = self._engine_instance().redact(
+                working,
+                fill=_BLACK_FILL,
+                ocr_kwargs={"lang": "chi_tra+eng"},
+                ad_hoc_recognizers=self._ad_hoc_recognizers,
+                language="zh",
+            )
+        except Exception as exc:
+            blob = str(exc).lower()
+            if "tesseract" in blob:
+                raise ImageOcrUnavailable(
+                    "這台電腦還沒裝 Tesseract OCR，無法辨識照片上的文字。"
+                    "請改用「示範聯絡簿」（不需 OCR），或安裝 tesseract 與 chi_tra 語言包。"
+                ) from exc
+            raise
 
         output = io.BytesIO()
         redacted.save(output, format="PNG", optimize=True)

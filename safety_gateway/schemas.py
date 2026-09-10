@@ -57,6 +57,9 @@ class SafetyProcessResult(StrictModel):
     processed_text: str
     entities: list[DetectedEntity]
     steps_executed: list[str]
+    blocked: bool = False
+    block_category: str | None = None
+    child_message: str | None = None
 
 
 class ImageRedactRequest(StrictModel):

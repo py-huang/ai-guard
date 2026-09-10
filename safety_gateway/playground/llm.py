@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import time
 from abc import ABC, abstractmethod
-from typing import Literal
+from typing import Callable, Literal
 
 SYSTEM_PROMPT = """你是台灣 K-12 的學習夥伴，不是搜尋引擎、也不是複誦機。
 
@@ -23,6 +24,39 @@ SYSTEM_PROMPT = """你是台灣 K-12 的學習夥伴，不是搜尋引擎、也�
 """
 
 _GEMINI_MODELS = ("gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.8-flash")
+_CHILD_BUSY = "老師現在有點忙，請稍等再按一次「送出」。過幾秒通常就好了。"
+_CHILD_FAIL = "這次沒能連上老師。請再試一次；如果一直不行，請告訴旁邊的大人。"
+_RETRYABLE_MARKERS = (
+    "503",
+    "unavailable",
+    "high demand",
+    "overloaded",
+    "try again later",
+    "429",
+    "resource_exhausted",
+    "resource exhausted",
+    "temporarily",
+    "deadline exceeded",
+    "504",
+    "timeout",
+    "503 unavailable",
+)
+_NOT_FOUND_MARKERS = ("404", "not_found", "not found", "no longer available")
+
+
+class LlmError(RuntimeError):
+    retryable: bool = False
+    child_message: str = _CHILD_FAIL
+
+
+class LlmBusyError(LlmError):
+    retryable = True
+    child_message = _CHILD_BUSY
+
+
+class LlmFatalError(LlmError):
+    retryable = False
+    child_message = _CHILD_FAIL
 
 
 class LlmBackend(ABC):
@@ -42,6 +76,11 @@ class EchoLlm(LlmBackend):
 
     def complete(self, messages: list[dict[str, str]]) -> str:
         last = next((item["content"] for item in reversed(messages) if item["role"] == "user"), "")
+        if last.startswith("【教學模式】"):
+            return (
+                "我們先不要看完整答案。你可以把題目拆成更小的一步，"
+                "再告訴我你會先從哪裡開始？"
+            )
         return (
             f"小朋友你好，我聽到你提到：{last}。"
             "如果句子裡有像 <PERSON_1> 這種記號，我會把它當成保護隱私的代號，"
@@ -53,29 +92,37 @@ class GeminiLlm(LlmBackend):
     name = "gemini"
     model = _GEMINI_MODELS[0]
 
-    def __init__(self, api_key: str, model: str = _GEMINI_MODELS[0]) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str = _GEMINI_MODELS[0],
+        max_attempts: int = 3,
+        backoff_seconds: float = 0.6,
+        sleeper: Callable[[float], None] = time.sleep,
+    ) -> None:
         from google import genai
         from google.genai import types
 
         self.model = model
+        self._max_attempts = max(1, max_attempts)
+        self._backoff_seconds = backoff_seconds
+        self._sleep = sleeper
         self._client = genai.Client(api_key=api_key, http_options={"timeout": 45_000})
         self._types = types
 
     def complete(self, messages: list[dict[str, str]]) -> str:
-        last_error: Exception | None = None
-        tried: list[str] = []
-        for model in (self.model, *_GEMINI_MODELS):
-            if model in tried:
-                continue
-            tried.append(model)
-            try:
-                text = self._generate(model, messages)
-                self.model = model
-                return text
-            except Exception as exc:  # pragma: no cover - network/model availability
-                last_error = exc
-                continue
-        raise RuntimeError(f"Gemini 無法完成回覆：{last_error}") from last_error
+        def generate(model: str) -> str:
+            return self._generate(model, messages)
+
+        text, model = complete_with_failover(
+            generate,
+            models=(self.model, *_GEMINI_MODELS),
+            max_attempts=self._max_attempts,
+            backoff_seconds=self._backoff_seconds,
+            sleeper=self._sleep,
+        )
+        self.model = model
+        return text
 
     def _generate(self, model: str, messages: list[dict[str, str]]) -> str:
         contents = []
@@ -99,6 +146,71 @@ class GeminiLlm(LlmBackend):
         if not text:
             raise RuntimeError("Gemini returned an empty response")
         return text
+
+
+def complete_with_failover(
+    generate: Callable[[str], str],
+    models: tuple[str, ...],
+    max_attempts: int = 3,
+    backoff_seconds: float = 0.6,
+    sleeper: Callable[[float], None] = time.sleep,
+) -> tuple[str, str]:
+    last_error: Exception | None = None
+    tried: list[str] = []
+    for model in models:
+        if model in tried:
+            continue
+        tried.append(model)
+        for attempt in range(max_attempts):
+            try:
+                return generate(model), model
+            except Exception as exc:
+                last_error = exc
+                if _is_not_found(exc):
+                    break
+                if _is_retryable(exc) and attempt < max_attempts - 1:
+                    sleeper(backoff_seconds * (2**attempt))
+                    continue
+                if not _is_retryable(exc):
+                    raise LlmFatalError(_CHILD_FAIL) from exc
+                break
+    raise LlmBusyError(_CHILD_BUSY) from last_error
+
+
+def is_retryable_llm_error(exc: BaseException) -> bool:
+    return isinstance(exc, LlmBusyError) or _is_retryable(exc)
+
+
+def child_safe_llm_message(exc: BaseException) -> str:
+    if isinstance(exc, LlmError):
+        return exc.child_message
+    if _is_retryable(exc):
+        return _CHILD_BUSY
+    return _CHILD_FAIL
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    blob = _error_blob(exc)
+    return any(marker in blob for marker in _RETRYABLE_MARKERS)
+
+
+def _is_not_found(exc: BaseException) -> bool:
+    blob = _error_blob(exc)
+    return any(marker in blob for marker in _NOT_FOUND_MARKERS)
+
+
+def _error_blob(exc: BaseException) -> str:
+    parts = [str(exc), type(exc).__name__]
+    cause = getattr(exc, "__cause__", None)
+    if cause is not None:
+        parts.append(str(cause))
+    code = getattr(exc, "code", None)
+    if code is not None:
+        parts.append(str(code))
+    status = getattr(exc, "status", None)
+    if status is not None:
+        parts.append(str(status))
+    return " ".join(parts).lower()
 
 
 def resolve_backend(api_key: str | None) -> LlmBackend:

@@ -17,9 +17,18 @@ class GuardContext:
     entities: list[DetectedEntity] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     steps_executed: list[str] = field(default_factory=list)
+    blocked: bool = False
+    block_category: str | None = None
+    child_message: str | None = None
 
     def mark_step(self, name: str) -> None:
         self.steps_executed.append(name)
+
+    def block(self, category: str, child_message: str) -> None:
+        self.blocked = True
+        self.block_category = category
+        self.child_message = child_message
+        self.text = "[BLOCKED]"
 
 
 class BaseGuardStep(ABC):

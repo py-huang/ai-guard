@@ -29,8 +29,13 @@ def test_full_lifecycle_inbound_llm_outbound() -> None:
     assert "<TW_ID_1>" in inbound.processed_text
     assert "<LOCATION_1>" in inbound.processed_text
     assert inbound.steps_executed[0] == "taiwan_pii"
-    assert "content_safety" in inbound.steps_executed
-    assert "socratic_pedagogy" in inbound.steps_executed
+    assert inbound.steps_executed == [
+        "taiwan_pii",
+        "content_safety",
+        "socratic_pedagogy",
+        "parent_audit",
+    ]
+    assert inbound.blocked is False
 
     llm_output = mock_llm_echo(inbound.processed_text)
     assert "王小明" not in llm_output
@@ -39,6 +44,12 @@ def test_full_lifecycle_inbound_llm_outbound() -> None:
     assert "王小明" in outbound.processed_text
     assert "<PERSON_1>" not in outbound.processed_text
     assert "parent_audit" in outbound.steps_executed
+    assert outbound.steps_executed == [
+        "content_safety",
+        "socratic_pedagogy",
+        "parent_audit",
+        "taiwan_pii",
+    ]
 
     second = gateway.process_inbound(session_id, "同學王小明明天去中山國小")
     assert "<PERSON_1>" in second.processed_text

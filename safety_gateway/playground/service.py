@@ -22,6 +22,8 @@ class ChatTurnResult(StrictModel):
     outbound_steps: list[str]
     pii_leaked_to_llm: bool
     leaked_values: list[str]
+    blocked: bool = False
+    block_category: str | None = None
 
 
 class PlaygroundChat:
@@ -37,6 +39,7 @@ class PlaygroundChat:
             self._histories.pop(session_id, None)
             self._evidence.pop(session_id, None)
         self._gateway.vault.clear_session(session_id)
+        self._gateway.audit_log.clear_session(session_id)
 
     def evidence(self, session_id: str) -> list[ChatTurnResult]:
         with self._lock:
@@ -44,14 +47,34 @@ class PlaygroundChat:
 
     def chat(self, session_id: str, text: str, llm: LlmBackend) -> ChatTurnResult:
         inbound = self._gateway.process_inbound(session_id, text)
+        if inbound.blocked:
+            result = ChatTurnResult(
+                session_id=session_id,
+                child_reply=inbound.child_message or "這件事不適合在這裡討論。",
+                original_text=inbound.original_text,
+                sent_to_llm=inbound.processed_text,
+                llm_raw="",
+                llm_backend="blocked",
+                llm_model="none",
+                entities=list(inbound.entities),
+                inbound_steps=list(inbound.steps_executed),
+                outbound_steps=[],
+                pii_leaked_to_llm=False,
+                leaked_values=[],
+                blocked=True,
+                block_category=inbound.block_category,
+            )
+            self._store_evidence(session_id, result)
+            return result
+
         with self._lock:
             history = list(self._histories.get(session_id, []))
-            history.append({"role": "user", "content": inbound.processed_text})
-            history = history[-self._max_history :]
-        llm_raw = llm.complete(history)
+            pending = history + [{"role": "user", "content": inbound.processed_text}]
+            pending = pending[-self._max_history :]
+        llm_raw = llm.complete(pending)
         with self._lock:
-            history.append({"role": "assistant", "content": llm_raw})
-            self._histories[session_id] = history[-self._max_history :]
+            pending.append({"role": "assistant", "content": llm_raw})
+            self._histories[session_id] = pending[-self._max_history :]
         outbound = self._gateway.process_outbound(session_id, llm_raw)
         originals = [entity.original for entity in inbound.entities]
         exposed = inbound.processed_text + "\n" + llm_raw
@@ -69,9 +92,16 @@ class PlaygroundChat:
             outbound_steps=list(outbound.steps_executed),
             pii_leaked_to_llm=bool(leaked),
             leaked_values=leaked,
+            blocked=outbound.blocked,
+            block_category=outbound.block_category,
         )
+        if outbound.blocked:
+            result.child_reply = outbound.child_message or result.child_reply
+        self._store_evidence(session_id, result)
+        return result
+
+    def _store_evidence(self, session_id: str, result: ChatTurnResult) -> None:
         with self._lock:
             turns = self._evidence.setdefault(session_id, [])
             turns.append(result)
             self._evidence[session_id] = turns[-20:]
-        return result
