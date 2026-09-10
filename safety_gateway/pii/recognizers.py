@@ -270,6 +270,257 @@ class ChinesePersonRecognizer(EntityRecognizer):
         return results
 
 
+class EnglishPersonRecognizer(EntityRecognizer):
+    """Latin-script names in a 繁中句子 — counterpart of Presidio's spaCy PERSON."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            supported_entities=["PERSON"],
+            name="EnglishPersonRecognizer",
+            supported_language="zh",
+        )
+        given = r"[A-Za-z][a-z]{1,20}"
+        full = rf"(?P<name>{given}(?:\s+{given}){{0,2}})"
+        self._patterns = (
+            re.compile(
+                rf"(?:我叫|名叫|名字是|名字叫|我的名字是|My name is)\s*{full}",
+                re.IGNORECASE,
+            ),
+            re.compile(rf"(?:同學|小朋友)\s*{full}"),
+            re.compile(rf"{full}(?=同學|小朋友)"),
+        )
+
+    def load(self) -> None:
+        return None
+
+    def analyze(
+        self,
+        text: str,
+        entities: list[str],
+        nlp_artifacts: NlpArtifacts | None = None,
+    ) -> list[RecognizerResult]:
+        if entities and "PERSON" not in entities:
+            return []
+        results: list[RecognizerResult] = []
+        seen: set[tuple[int, int]] = set()
+        for pattern in self._patterns:
+            for match in pattern.finditer(text):
+                start, end = match.span("name")
+                span = (start, end)
+                if span in seen or start == end:
+                    continue
+                seen.add(span)
+                results.append(
+                    RecognizerResult(
+                        entity_type="PERSON",
+                        start=start,
+                        end=end,
+                        score=0.8,
+                    )
+                )
+        return results
+
+
+class TaiwanDateRecognizer(PatternRecognizer):
+    """民國 / 西元年月日 — counterpart of Presidio DATE_TIME. Bare「3月」不算。"""
+
+    PATTERNS: ClassVar[list[Pattern]] = [
+        Pattern(
+            name="roc_date",
+            regex=r"民國\s*\d{2,3}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日",
+            score=0.75,
+        ),
+        Pattern(
+            name="cjk_gregorian_date",
+            regex=r"(?:19|20)\d{2}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日",
+            score=0.7,
+        ),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__(
+            supported_entity="DATE_TIME",
+            name="TaiwanDateRecognizer",
+            supported_language="zh",
+            patterns=self.PATTERNS,
+            context=["生日", "日期", "民國"],
+        )
+
+
+class _LabeledValueRecognizer(EntityRecognizer):
+    """Cue words in the regex; only the identifier span is emitted."""
+
+    def __init__(
+        self,
+        *,
+        entity_type: str,
+        name: str,
+        patterns: tuple[re.Pattern[str], ...],
+        score: float,
+    ) -> None:
+        super().__init__(
+            supported_entities=[entity_type],
+            name=name,
+            supported_language="zh",
+        )
+        self._entity_type = entity_type
+        self._patterns = patterns
+        self._score = score
+
+    def load(self) -> None:
+        return None
+
+    def analyze(
+        self,
+        text: str,
+        entities: list[str],
+        nlp_artifacts: NlpArtifacts | None = None,
+    ) -> list[RecognizerResult]:
+        if entities and self._entity_type not in entities:
+            return []
+        results: list[RecognizerResult] = []
+        seen: set[tuple[int, int]] = set()
+        for pattern in self._patterns:
+            for match in pattern.finditer(text):
+                start, end = match.span("value")
+                span = (start, end)
+                if span in seen or start == end:
+                    continue
+                seen.add(span)
+                results.append(
+                    RecognizerResult(
+                        entity_type=self._entity_type,
+                        start=start,
+                        end=end,
+                        score=self._score,
+                    )
+                )
+        return results
+
+
+class TaiwanPassportRecognizer(_LabeledValueRecognizer):
+    """護照號碼 — counterpart of US_PASSPORT. 9 chars, not the 10-char national ID."""
+
+    def __init__(self) -> None:
+        ident = r"(?P<value>[A-Z]{1,2}\d{7,8})"
+        super().__init__(
+            entity_type="TW_PASSPORT",
+            name="TaiwanPassportRecognizer",
+            score=0.9,
+            patterns=(
+                re.compile(rf"(?:護照號碼|護照號|護照)[:：是為]?\s*{ident}"),
+            ),
+        )
+
+
+class TaiwanDriverLicenseRecognizer(_LabeledValueRecognizer):
+    """駕照字號 — counterpart of US_DRIVER_LICENSE."""
+
+    def __init__(self) -> None:
+        ident = r"(?P<value>[A-Z0-9]{8,12})"
+        super().__init__(
+            entity_type="TW_DRIVER_LICENSE",
+            name="TaiwanDriverLicenseRecognizer",
+            score=0.88,
+            patterns=(
+                re.compile(rf"(?:駕照號碼|駕照字號|駕駛執照|駕照)[:：是為]?\s*{ident}"),
+            ),
+        )
+
+
+class TaiwanBankAccountRecognizer(_LabeledValueRecognizer):
+    """郵局/銀行帳號 — counterpart of US_BANK_NUMBER. Needs a label so raw digits pass."""
+
+    def __init__(self) -> None:
+        ident = r"(?P<value>\d{8,16})"
+        super().__init__(
+            entity_type="TW_BANK_ACCOUNT",
+            name="TaiwanBankAccountRecognizer",
+            score=0.9,
+            patterns=(
+                re.compile(rf"(?:郵局帳號|銀行帳號|匯款帳號|帳號)[:：是為]?\s*{ident}"),
+            ),
+        )
+
+
+class TaiwanOrganizationRecognizer(EntityRecognizer):
+    """公司／醫院／基金會 — counterpart of spaCy ORGANIZATION. Suffix-anchored like schools."""
+
+    SUFFIXES: ClassVar[tuple[str, ...]] = (
+        "股份有限公司",
+        "有限公司",
+        "醫院",
+        "基金會",
+        "協會",
+        "公司",
+    )
+    _STOP = set("的是在去到從與和及於讀念上來把被讓給跟向往就他她我你")
+    _GENERIC_PREFIXES: ClassVar[set[str]] = {
+        "我們",
+        "你們",
+        "他們",
+        "這間",
+        "那間",
+        "一間",
+        "某間",
+        "自己",
+        "其他",
+        "相關",
+        "什麼",
+    }
+
+    def __init__(self) -> None:
+        super().__init__(
+            supported_entities=["ORGANIZATION"],
+            name="TaiwanOrganizationRecognizer",
+            supported_language="zh",
+        )
+        self._suffix_re = re.compile("|".join(re.escape(item) for item in self.SUFFIXES))
+
+    def load(self) -> None:
+        return None
+
+    def analyze(
+        self,
+        text: str,
+        entities: list[str],
+        nlp_artifacts: NlpArtifacts | None = None,
+    ) -> list[RecognizerResult]:
+        if entities and "ORGANIZATION" not in entities:
+            return []
+        results: list[RecognizerResult] = []
+        seen: set[tuple[int, int]] = set()
+        for match in self._suffix_re.finditer(text):
+            suffix = match.group(0)
+            min_prefix = 3 if suffix == "公司" else 2
+            taken = 0
+            cursor = match.start()
+            prefix_start = match.start()
+            while cursor > 0 and taken < 12:
+                previous = text[cursor - 1]
+                if previous in self._STOP or not re.match(rf"[{_CJK}]", previous):
+                    break
+                cursor -= 1
+                taken += 1
+                prefix_start = cursor
+            prefix = text[prefix_start : match.start()]
+            if taken < min_prefix or prefix in self._GENERIC_PREFIXES:
+                continue
+            span = (prefix_start, match.end())
+            if span in seen:
+                continue
+            seen.add(span)
+            results.append(
+                RecognizerResult(
+                    entity_type="ORGANIZATION",
+                    start=prefix_start,
+                    end=match.end(),
+                    score=0.7,
+                )
+            )
+        return results
+
+
 def build_taiwan_recognizers() -> list[EntityRecognizer]:
     return [
         TaiwanPhoneRecognizer(),
@@ -277,4 +528,10 @@ def build_taiwan_recognizers() -> list[EntityRecognizer]:
         TaiwanSchoolRecognizer(),
         TaiwanLocationRecognizer(),
         ChinesePersonRecognizer(),
+        EnglishPersonRecognizer(),
+        TaiwanDateRecognizer(),
+        TaiwanPassportRecognizer(),
+        TaiwanDriverLicenseRecognizer(),
+        TaiwanBankAccountRecognizer(),
+        TaiwanOrganizationRecognizer(),
     ]

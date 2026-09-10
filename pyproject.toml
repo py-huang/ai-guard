@@ -16,6 +16,8 @@ dependencies = [
   "pillow>=10.0",
   "numpy>=1.26",
   "rapidocr-onnxruntime>=1.4.4",
+  "spacy>=3.8,<3.9",
+  "zh-core-web-md==3.8.0",
 ]
 
 [project.optional-dependencies]

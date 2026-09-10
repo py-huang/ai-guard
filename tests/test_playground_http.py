@@ -12,6 +12,16 @@ from safety_gateway.playground.service import PlaygroundChat
 def test_all_inventory_features_are_shipped() -> None:
     assert FEATURES
     assert all(item["status"] == "shipped" for item in FEATURES)
+    assert "presidio_defaults_zh" in {item["id"] for item in FEATURES}
+
+
+def test_chat_page_exposes_new_pii_chips() -> None:
+    client = TestClient(create_app())
+    page = client.get("/")
+    assert page.status_code == 200
+    assert "信箱 + 卡號" in page.text
+    assert "健康教育（應放行）" in page.text
+    assert "presidio_defaults_zh" in client.get("/api/features").text
 
 
 def test_generated_photo_is_served() -> None:

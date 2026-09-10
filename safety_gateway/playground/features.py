@@ -7,7 +7,13 @@ FEATURES: list[dict[str, str]] = [
         "id": "taiwan_pii",
         "status": "shipped",
         "title": "台灣在地個資偵測與代號化",
-        "detail": "姓名、學校、手機/市話、身分證（含 checksum）、地址：進模型前換成 <TYPE_N>。",
+        "detail": "姓名、學校、手機/市話、身分證 checksum、地址，以及民國日期、護照、駕照、帳號、機構：進模型前換成 <TYPE_N>。",
+    },
+    {
+        "id": "presidio_defaults_zh",
+        "status": "shipped",
+        "title": "Presidio 預設個資（掛在繁中句子上）",
+        "detail": "Email、信用卡（Luhn）、美國 SSN、網址、IP、MAC、加密貨幣位址、IBAN、英文日期與電話以 language=zh 註冊。有 zh_core_web_md 時再掛 spaCy 人名 NER（忽略今天/3月這類日期，避免誤殺作業）。",
     },
     {
         "id": "session_vault",
@@ -49,7 +55,7 @@ FEATURES: list[dict[str, str]] = [
         "id": "content_safety",
         "status": "shipped",
         "title": "內容安全（ContentSafetyStep）",
-        "detail": "色情 / 自傷 / 暴力用語分類；命中則不呼叫 Gemini，改回兒童安全句。歷史與健康教育作業不在封鎖詞內。",
+        "detail": "對齊台灣兒少保護／影視出版分級的兒童不宜：色情、血腥暴力、恐怖驚嚇、自傷與危險挑戰、毒品菸酒檳榔、仇恨言語、賭博，加上既有的同學照片惡搞。進站出站都會擋；歷史與健康教育作業不在封鎖詞內。Gemini 另開低門檻安全濾網當第二層。",
     },
     {
         "id": "socratic",
@@ -74,7 +80,7 @@ TUNABLES: list[dict[str, str]] = [
     {
         "name": "內容安全詞表",
         "where": "steps/content_safety.py → DEFAULT_CATALOG、CHILD_MESSAGES",
-        "detail": "可加類別或改成外部模型分數門檻。目前是明確片語，避免「性教育」「二次大戰」誤殺。",
+        "detail": "可加類別或改成外部模型分數門檻。目前是明確片語，避免「性教育」「二次大戰」「菸害防制」誤殺。",
     },
     {
         "name": "蘇格拉底強度",
@@ -100,5 +106,10 @@ TUNABLES: list[dict[str, str]] = [
         "name": "對話歷史長度",
         "where": "PlaygroundChat(max_history=12)",
         "detail": "越長越能連貫，但也越容易把舊回合的代號上下文送進模型。",
+    },
+    {
+        "name": "繁中 spaCy 模型",
+        "where": "safety_gateway/nlp.py → ZH_SPACY_MODEL、NLP_CONFIGURATION",
+        "detail": "預設 zh_core_web_md（OntoNotes，簡繁字都能切，但日期 NER 會誤殺作業所以關掉）。沒裝模型時退回 regex-only。安裝：python -m spacy download zh_core_web_md",
     },
 ]

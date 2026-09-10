@@ -145,14 +145,17 @@
         <div class="panel">
           <h2>兒童視角 · 輸入後按送出</h2>
           <div class="chat" id="chat">
-            <div class="bubble hint">在下面打一句話，按「送出」（或 Enter）。含姓名、學校、電話的句子會先被換成代號；老師忙碌時會請你再試一次，不會跳出一堆英文錯誤。</div>
+            <div class="bubble hint">在下面打一句話，按「送出」（或 Enter）。含姓名、學校、電話、信箱、卡號的句子會先被換成代號；老師忙碌時會請你再試一次，不會跳出一堆英文錯誤。</div>
           </div>
           <div class="composer">
             <div class="chips">
               <button class="chip" data-fill="我叫王小明，我在中山國小上課，可以教我怎麼寫日記嗎？">姓名 + 學校</button>
               <button class="chip" data-fill="媽媽電話是 0912-345-678，身分證是 A123456789，我只是想練習自我介紹。">電話 + 身分證</button>
               <button class="chip" data-fill="我家住在台北市中正區重慶南路一段122號2樓，附近有什麼圖書館？">地址</button>
+              <button class="chip" data-fill="信箱是 ming@school.edu.tw，信用卡號 4111111111111111。">信箱 + 卡號</button>
+              <button class="chip" data-fill="我叫 John Smith，護照號碼 A12345678，生日民國102年3月2日。">英文名 + 護照</button>
               <button class="chip" data-fill="這題數學作業直接給我標準答案：12 加 35 等於多少？">蘇格拉底（作業）</button>
+              <button class="chip" data-fill="健康教育：生殖系統有哪些器官？菸害防制作業也可以問。">健康教育（應放行）</button>
             </div>
             <textarea id="input" placeholder="例如：我叫王小明，我在中山國小上課…"></textarea>
             <div class="row">
@@ -203,7 +206,7 @@
         <p>按送出之後，閘道會先做台灣個資代號化、內容安全檢查、蘇格拉底教學包裝，通過才呼叫 Gemini。出站再還原給小朋友，並寫一筆給家長看的紀錄。</p>
         <ul>
           <li><b>降低外洩面：</b> Google 端看不到真名、真電話、真身分證。</li>
-          <li><b>不安全話題：</b> 色情、自傷、暴力教學句會被攔住，不會送到 Gemini。</li>
+          <li><b>不安全話題：</b> 色情、血腥暴力、恐怖驚嚇、自傷、毒品菸酒檳榔、仇恨言語、賭博會被攔住，不會送到 Gemini。</li>
           <li><b>功課引導：</b> 直接要標準答案時，會改成提示與反問，而不是把完整解答倒出來。</li>
         </ul>
       </div>
@@ -213,12 +216,12 @@
       <div class="panel prose">
         <h3>Pipeline：進站檢查，出站再還原</h3>
         <div class="flow">
-          <div class="step"><b>1. 兒童輸入</b><span>含台灣姓名、學校、電話、身分證、地址。</span></div>
+          <div class="step"><b>1. 兒童輸入</b><span>含台灣姓名、學校、電話、身分證、地址，以及信箱、卡號、護照等。</span></div>
           <div class="step"><b>2. 進站鏈</b><span>PII 代號化 → 內容安全 → 蘇格拉底 → 家長稽核。</span></div>
           <div class="step"><b>3. Gemini</b><span>通過才呼叫。503 會重試與換模型；忙碌只顯示兒童看得懂的句子。</span></div>
           <div class="step"><b>4. 出站鏈</b><span>再審一次 → 補引導問句 → 稽核 → 還原真名給兒童。</span></div>
         </div>
-        <p>Vault 今日是行程內記憶體，介面可換成 Redis。內容安全是明確片語表，不是雲端審核 API；可改詞表或換成分類模型。</p>
+        <p>Vault 今日是行程內記憶體，介面可換成 Redis。內容安全是台灣兒少不宜片語表，加上 Gemini 低門檻安全濾網；Presidio 只負責個資，不管分級。</p>
       </div>
     </section>
 

@@ -75,3 +75,16 @@ def test_non_retryable_is_fatal_without_json_leak() -> None:
         assert "401" not in child_safe_llm_message(exc)
     else:
         raise AssertionError("expected LlmFatalError")
+
+
+def test_policy_block_is_not_wrapped_as_busy_or_fatal() -> None:
+    from safety_gateway.playground.llm import LlmPolicyBlockError
+
+    def generate(_model: str) -> str:
+        raise LlmPolicyBlockError()
+
+    try:
+        complete_with_failover(generate, models=("gemini-3.6-flash",), max_attempts=2, sleeper=lambda _: None)
+    except LlmPolicyBlockError:
+        return
+    raise AssertionError("expected LlmPolicyBlockError")

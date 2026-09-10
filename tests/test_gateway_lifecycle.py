@@ -70,3 +70,18 @@ def test_deanonymize_text_passthrough_without_mappings() -> None:
     gateway = AISafetyGateway()
     restored = gateway.deanonymize_text("missing", "hello <PERSON_1>")
     assert restored == "hello <PERSON_1>"
+
+
+def test_presidio_and_taiwan_counterparts_are_tokenized() -> None:
+    vault = InMemorySessionVault()
+    gateway = AISafetyGateway(vault=vault)
+    inbound = gateway.process_inbound(
+        "child-session-pii-mix",
+        "信箱是 ming@school.edu.tw，信用卡 4111111111111111，護照號碼 A12345678",
+    )
+    assert "ming@school.edu.tw" not in inbound.processed_text
+    assert "4111111111111111" not in inbound.processed_text
+    assert "A12345678" not in inbound.processed_text
+    assert "<EMAIL_ADDRESS_1>" in inbound.processed_text
+    assert "<CREDIT_CARD_1>" in inbound.processed_text
+    assert "<TW_PASSPORT_1>" in inbound.processed_text

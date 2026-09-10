@@ -11,14 +11,6 @@ from presidio_anonymizer.entities import RecognizerResult as AnonymizerRecognize
 
 from safety_gateway.vault.base import BaseSessionVault
 
-ENTITY_OPERATOR_TYPES: tuple[str, ...] = (
-    "PERSON",
-    "PHONE_NUMBER",
-    "TW_ID",
-    "SCHOOL",
-    "LOCATION",
-)
-
 
 def select_non_overlapping(results: Sequence[RecognizerResult]) -> list[RecognizerResult]:
     """Keep highest-score, then longest, then leftmost spans; drop overlaps."""
@@ -52,7 +44,9 @@ def anonymize_with_vault(
 
         return OperatorConfig("custom", {"lambda": _replace})
 
-    operators = {entity_type: make_operator(entity_type) for entity_type in ENTITY_OPERATOR_TYPES}
+    operators = {
+        result.entity_type: make_operator(result.entity_type) for result in results
+    }
     anonymizer_results = [
         AnonymizerRecognizerResult(
             entity_type=result.entity_type,

@@ -5,7 +5,7 @@ from __future__ import annotations
 from threading import Lock
 
 from safety_gateway.gateway import AISafetyGateway
-from safety_gateway.playground.llm import LlmBackend
+from safety_gateway.playground.llm import LlmBackend, LlmPolicyBlockError
 from safety_gateway.schemas import DetectedEntity, StrictModel
 
 
@@ -71,7 +71,27 @@ class PlaygroundChat:
             history = list(self._histories.get(session_id, []))
             pending = history + [{"role": "user", "content": inbound.processed_text}]
             pending = pending[-self._max_history :]
-        llm_raw = llm.complete(pending)
+        try:
+            llm_raw = llm.complete(pending)
+        except LlmPolicyBlockError as exc:
+            result = ChatTurnResult(
+                session_id=session_id,
+                child_reply=exc.child_message,
+                original_text=inbound.original_text,
+                sent_to_llm=inbound.processed_text,
+                llm_raw="",
+                llm_backend="blocked",
+                llm_model=llm.model,
+                entities=list(inbound.entities),
+                inbound_steps=list(inbound.steps_executed),
+                outbound_steps=[],
+                pii_leaked_to_llm=False,
+                leaked_values=[],
+                blocked=True,
+                block_category="llm_safety",
+            )
+            self._store_evidence(session_id, result)
+            return result
         with self._lock:
             pending.append({"role": "assistant", "content": llm_raw})
             self._histories[session_id] = pending[-self._max_history :]
