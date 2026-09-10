@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Guard Prototype</title>
+  <style>
+    :root {
+      --ink: #1c1917;
+      --muted: #57534e;
+      --line: #e7e5e4;
+      --paper: #f7f4ee;
+      --card: #fffdf9;
+      --sage: #2f5d4a;
+      --sage-soft: #e7f0ea;
+      --amber: #9a3412;
+      --amber-soft: #ffedd5;
+      --rose: #9f1239;
+      --rose-soft: #ffe4e6;
+      --navy: #1e3a5f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Iowan Old Style", "Songti TC", "PMingLiU", Georgia, serif;
+    }
+    button, textarea, input, nav, .sans {
+      font-family: "PingFang TC", "Noto Sans TC", "Helvetica Neue", sans-serif;
+    }
+    .shell { max-width: 1120px; margin: 0 auto; padding: 20px 18px 40px; }
+    header { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+    header h1 { margin: 0 0 4px; font-size: 30px; letter-spacing: -0.03em; }
+    header p { margin: 0; color: var(--muted); font-size: 14px; }
+    .badge { padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 650; background: var(--sage-soft); color: var(--sage); }
+    .badge.echo { background: var(--amber-soft); color: var(--amber); }
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .tab[aria-selected="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .view { display: none; }
+    .view.active { display: block; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    .panel h2, .block h2 {
+      margin: 0;
+      padding: 14px 16px;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+    }
+    .chat { min-height: 380px; max-height: 520px; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .bubble { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; }
+    .bubble.child { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-right-radius: 5px; }
+    .bubble.bot { align-self: flex-start; background: var(--sage-soft); border-bottom-left-radius: 5px; }
+    .bubble.hint { align-self: stretch; max-width: none; background: #f5f5f4; color: var(--muted); font-size: 13px; }
+    .composer { padding: 12px 14px 16px; border-top: 1px solid var(--line); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .chip, .ghost {
+      border: 1px solid var(--line); background: #fff; border-radius: 999px;
+      padding: 6px 10px; font-size: 12px; cursor: pointer;
+    }
+    textarea {
+      width: 100%; min-height: 74px; resize: vertical; border: 1px solid var(--line);
+      border-radius: 12px; padding: 11px; font-size: 15px;
+    }
+    .row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+    .send { background: var(--sage); color: #fff; border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 650; cursor: pointer; }
+    .send:disabled { opacity: 0.5; }
+    .side { padding: 14px; display: grid; gap: 10px; }
+    .card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fff; }
+    .card.ok { background: var(--sage-soft); border-color: #bbf7d0; }
+    .card.danger { background: var(--rose-soft); border-color: #fecdd3; }
+    .label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .prose { padding: 18px 20px 24px; font-size: 16px; line-height: 1.7; }
+    .prose h3 { font-size: 20px; margin: 0 0 10px; }
+    .prose ul { margin: 0; padding-left: 1.2em; }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
+    @media (max-width: 800px) { .flow { grid-template-columns: 1fr 1fr; } }
+    .step { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+    .step b { display: block; font-family: "PingFang TC", sans-serif; font-size: 13px; margin-bottom: 6px; }
+    .step span { color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 3px 7px; border-radius: 999px; }
+    .tag.shipped { background: var(--sage-soft); color: var(--sage); }
+    .tag.stub { background: #f5f5f4; color: var(--muted); }
+    .tag.api_only { background: var(--amber-soft); color: var(--amber); }
+    .stat { font-size: 28px; margin: 0; letter-spacing: -0.04em; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>AI Guard Prototype</h1>
+        <p class="sans">給台灣 K-12 的個資閘道：兒童只看到自然對話，模型只看到代號。這是可操作的 prototype，不是投影片。</p>
+      </div>
+      <div id="backendBadge" class="badge echo sans">檢查 LLM…</div>
+    </header>
+    <nav class="tabs" aria-label="Prototype 分頁">
+      <button class="tab" data-view="chat" aria-selected="true">兒童對話</button>
+      <button class="tab" data-view="help">為什麼對兒童有幫助</button>
+      <button class="tab" data-view="how">運作原理</button>
+      <button class="tab" data-view="proof">實驗證明</button>
+      <button class="tab" data-view="status">真正做到的功能</button>
+    </nav>
+
+    <section id="view-chat" class="view active">
+      <div class="layout">
+        <div class="panel">
+          <h2>兒童視角 · 這頁給使用者</h2>
+          <div class="chat" id="chat">
+            <div class="bubble hint">這頁模擬小朋友看到的畫面。請打一句含姓名、學校、電話或地址的話；模型不會看到真名。</div>
+          </div>
+          <div class="composer">
+            <div class="chips">
+              <button class="chip" data-fill="我叫王小明，我在中山國小上課，可以教我怎麼寫日記嗎？">姓名 + 學校</button>
+              <button class="chip" data-fill="媽媽電話是 0912-345-678，身分證是 A123456789，我只是想練習自我介紹。">電話 + 身分證</button>
+              <button class="chip" data-fill="我家住在台北市中正區重慶南路一段122號2樓，附近有什麼圖書館？">地址</button>
+              <button class="chip" data-fill="同學王小明明天還要去中山國小嗎？我忘記作業寫在哪。">第二輪（同名）</button>
+            </div>
+            <textarea id="input" placeholder="例如：我叫王小明，我在中山國小上課…"></textarea>
+            <div class="row">
+              <button class="send" id="send">送出</button>
+              <button class="ghost" id="reset">清空這段對話</button>
+            </div>
+          </div>
+        </div>
+        <aside class="panel">
+          <h2>這一輪保護了什麼</h2>
+          <div class="side" id="liveSummary">
+            <div class="card">
+              <div class="label">說明</div>
+              <p class="sans" style="margin:0;font-size:14px;line-height:1.55;color:var(--muted)">對話進行時，這裡只摘要「擋下幾筆個資」。完整對照在「實驗證明」分頁，避免把真名一直攤在兒童畫面旁。</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="view-help" class="view" hidden>
+      <div class="panel prose">
+        <h3>這不是「AI 比較會聊天」，而是「兒童的真名進不了模型」</h3>
+        <p>生成式模型一旦看到姓名、電話、身分證或住址，就可能寫進訓練對話、日誌，或在後續回合講出來。K-12 場景裡，小孩很常主動報上這些資料。</p>
+        <p>AI Guard 在呼叫 Gemini <em>之前</em> 把台灣格式的個資換成穩定代號。模型若要提到這個人，它只能說 <code>&lt;PERSON_1&gt;</code>；出站時再還原給小朋友聽。對兒童的幫助是可檢查的：打開「實驗證明」，對照「原文」與「實際送到 LLM」。</p>
+        <ul>
+          <li><b>降低外洩面：</b> Google 端看不到真名、真電話、真身分證。</li>
+          <li><b>仍能對話：</b> 代號在同一 session 固定，所以「王小明」連續兩句仍是同一個人。</li>
+          <li><b>不過度承諾：</b> 內容審核、家長稽核、完整蘇格拉底教學引擎尚未實作，見「真正做到的功能」。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="view-how" class="view" hidden>
+      <div class="panel prose">
+        <h3>Pipeline：進站代號化，出站再還原</h3>
+        <div class="flow">
+          <div class="step"><b>1. 兒童輸入</b><span>含台灣姓名、學校、電話、身分證、地址。</span></div>
+          <div class="step"><b>2. TaiwanPII</b><span>Presidio 自訂 recognizer + 身分證 checksum。寫入 Session Vault。</span></div>
+          <div class="step"><b>3. Gemini</b><span>只收到 &lt;PERSON_1&gt; 這類記號。System prompt 禁止猜真名。</span></div>
+          <div class="step"><b>4. 還原</b><span>用同一份 vault 把記號換回原文，給兒童看。</span></div>
+        </div>
+        <p>預設鏈：inbound 為 PII → ContentSafety（stub）→ Socratic（stub）；outbound 為 ContentSafety → ParentAudit（stub）→ PII 還原。Stub 會留下步驟名稱，但不會改寫內容。</p>
+        <p>Vault 今日是行程內記憶體（<code>InMemorySessionVault</code>），介面可換成 Redis，避免個資落地。</p>
+      </div>
+    </section>
+
+    <section id="view-proof" class="view" hidden>
+      <div class="panel">
+        <h2>實驗證明 · 同一 session 的真實封包</h2>
+        <div class="prose" id="proof">
+          <p>還沒有對話。請到「兒童對話」送一句含個資的話，再回到這裡。我們會標示：原文裡的個資是否出現在送給 Gemini 的字串中。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-status" class="view" hidden>
+      <div class="panel">
+        <h2>功能現況 · 只列出程式裡真的有的東西</h2>
+        <div class="prose" id="features"></div>
+      </div>
+    </section>
+  </div>
+  <script>
+    const sessionId = localStorage.getItem("ai-guard-session") || crypto.randomUUID();
+    localStorage.setItem("ai-guard-session", sessionId);
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function showView(name) {
+      document.querySelectorAll(".view").forEach((el) => {
+        const on = el.id === "view-" + name;
+        el.classList.toggle("active", on);
+        el.hidden = !on;
+      });
+      document.querySelectorAll(".tab").forEach((el) => el.setAttribute("aria-selected", el.dataset.view === name ? "true" : "false"));
+      location.hash = name;
+      if (name === "proof") refreshProof();
+    }
+
+    document.querySelectorAll(".tab").forEach((btn) => {
+      btn.addEventListener("click", () => showView(btn.dataset.view));
+    });
+    const initial = (location.hash || "#chat").slice(1);
+    if (["chat", "help", "how", "proof", "status"].includes(initial)) showView(initial);
+
+    function addBubble(role, text) {
+      const el = document.createElement("div");
+      el.className = "bubble " + role;
+      el.textContent = text;
+      chat.appendChild(el);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function renderLive(payload) {
+      const n = (payload.entities || []).length;
+      const leak = payload.pii_leaked_to_llm;
+      document.getElementById("liveSummary").innerHTML = `
+        <div class="card ${leak ? "danger" : "ok"}">
+          <p class="stat">${n}</p>
+          <div class="label">${leak ? "偵測到外洩" : "本輪攔截個資"}</div>
+          <p class="sans" style="margin:8px 0 0;font-size:13px;color:var(--muted)">${escapeHtml(payload.llm_backend)} · ${escapeHtml(payload.llm_model)}</p>
+        </div>
+        <div class="card">
+          <div class="label">兒童看得到</div>
+          <div class="mono">${escapeHtml(payload.child_reply).slice(0, 180)}${payload.child_reply.length > 180 ? "…" : ""}</div>
+        </div>
+        <div class="card">
+          <div class="label">完整對照</div>
+          <p class="sans" style="margin:0;font-size:13px">請切到「實驗證明」看原文 vs 送給 LLM 的字串。</p>
+        </div>`;
+    }
+
+    async function refreshStatus() {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+      const badge = document.getElementById("backendBadge");
+      if (data.llm_backend === "gemini") {
+        badge.className = "badge";
+        badge.textContent = "真實 LLM · Gemini · " + data.llm_model;
+      } else {
+        badge.className = "badge echo";
+        badge.textContent = "示範回音 · 尚未讀到 GEMINI_API_KEY";
+      }
+    }
+
+    async function refreshProof() {
+      const res = await fetch("/api/evidence?session_id=" + encodeURIComponent(sessionId));
+      const data = await res.json();
+      const root = document.getElementById("proof");
+      if (!data.turns.length) {
+        root.innerHTML = "<p>還沒有對話。請到「兒童對話」送一句含個資的話。</p>";
+        return;
+      }
+      const rows = data.turns.map((turn, index) => `
+        <div class="card ${turn.pii_leaked_to_llm ? "danger" : "ok"}" style="margin-bottom:12px">
+          <div class="label">第 ${index + 1} 輪 · ${turn.pii_leaked_to_llm ? "失敗：個資出現在模型封包" : "通過：送給 LLM 的字串不含已偵測個資"} · ${escapeHtml(turn.llm_backend)}</div>
+          <div class="grid2">
+            <div>
+              <div class="label">小朋友原文</div>
+              <div class="mono">${escapeHtml(turn.original_text)}</div>
+            </div>
+            <div>
+              <div class="label">實際送到 LLM</div>
+              <div class="mono">${escapeHtml(turn.sent_to_llm)}</div>
+            </div>
+          </div>
+          <div class="label" style="margin-top:10px">LLM 原始回覆（還原前）</div>
+          <div class="mono">${escapeHtml(turn.llm_raw)}</div>
+        </div>`).join("");
+      root.innerHTML = `
+        <div class="grid2" style="margin-bottom:16px">
+          <div class="card ok"><p class="stat">${data.protected_entity_count}</p><div class="label">已攔截實體次數</div></div>
+          <div class="card ${data.leak_count ? "danger" : "ok"}"><p class="stat">${data.leak_count}</p><div class="label">外洩回合（應為 0）</div></div>
+        </div>
+        ${rows}`;
+    }
+
+    async function refreshFeatures() {
+      const res = await fetch("/api/features");
+      const data = await res.json();
+      const labels = { shipped: "已上線", stub: "僅介面", api_only: "API 有、UI 還沒" };
+      document.getElementById("features").innerHTML = `
+        <table>
+          <thead><tr><th>狀態</th><th>功能</th><th>實際範圍</th></tr></thead>
+          <tbody>
+            ${data.features.map((item) => `
+              <tr>
+                <td><span class="tag ${item.status}">${labels[item.status] || item.status}</span></td>
+                <td>${escapeHtml(item.title)}</td>
+                <td>${escapeHtml(item.detail)}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
+    }
+
+    async function submit() {
+      const text = input.value.trim();
+      if (!text) return;
+      addBubble("child", text);
+      input.value = "";
+      send.disabled = true;
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId, text }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          addBubble("bot", "這一句沒成功：" + (data.detail || res.statusText));
+          return;
+        }
+        addBubble("bot", data.child_reply);
+        renderLive(data);
+        const badge = document.getElementById("backendBadge");
+        if (data.llm_backend === "gemini") {
+          badge.className = "badge";
+          badge.textContent = "真實 LLM · Gemini · " + data.llm_model;
+        }
+      } catch (err) {
+        addBubble("bot", "連不到本機 prototype。");
+      } finally {
+        send.disabled = false;
+        await refreshStatus();
+      }
+    }
+
+    document.querySelectorAll(".chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        input.value = btn.getAttribute("data-fill") || "";
+        input.focus();
+      });
+    });
+    send.addEventListener("click", submit);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        submit();
+      }
+    });
+    document.getElementById("reset").addEventListener("click", async () => {
+      await fetch("/api/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      localStorage.removeItem("ai-guard-session");
+      location.hash = "chat";
+      location.reload();
+    });
+
+    refreshStatus();
+    refreshFeatures();
+  </script>
+</body>
+</html>
