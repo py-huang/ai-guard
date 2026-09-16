@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { AiHelper } from "@/components/pages/ai-helper";
+import { Chat } from "@/components/pages/chat";
 import { ChatHistory } from "@/components/pages/chat-history";
 import { DiscoverHome } from "@/components/pages/discover-home";
 import { DiscoverTheme } from "@/components/pages/discover-theme";
@@ -54,8 +55,9 @@ export function AppShell({
   activeItem = "探索首頁",
   accountName = "小小",
 }: AppShellProps) {
-  const [selectedItem, setSelectedItem] = useState(activeItem);
-  const ActivePage = pageComponents[selectedItem];
+  const [selectedItem, setSelectedItem] = useState<PageName | null>(activeItem);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const ActivePage = selectedItem ? pageComponents[selectedItem] : null;
 
   return (
     <div className="min-h-dvh bg-[#fffcf7] text-[#13221b]">
@@ -85,7 +87,14 @@ export function AppShell({
 
       <div className="flex min-h-[calc(100dvh-72px)]">
         <aside className="hidden w-[220px] shrink-0 flex-col bg-white px-4 py-6 lg:flex">
-          <Button className="h-12 w-full justify-start rounded-2xl bg-[#d63a37] px-4 text-sm hover:bg-[#bd2e2c]" size="lg">
+          <Button
+            className="h-12 w-full justify-start rounded-2xl bg-[#d63a37] px-4 text-sm hover:bg-[#bd2e2c]"
+            onClick={() => {
+              setSelectedItem(null);
+              setIsChatOpen(true);
+            }}
+            size="lg"
+          >
             <Plus className="size-4" aria-hidden="true" />
             新對話
           </Button>
@@ -103,7 +112,10 @@ export function AppShell({
                       : "text-[#506058] hover:bg-[#f7f8f7]"
                   )}
                   key={label}
-                  onClick={() => setSelectedItem(label)}
+                  onClick={() => {
+                    setSelectedItem(label);
+                    setIsChatOpen(false);
+                  }}
                   type="button"
                 >
                   <Icon className={cn("size-4", isActive ? "text-[#177049]" : "text-[#8a968f]")} aria-hidden="true" />
@@ -131,7 +143,7 @@ export function AppShell({
           <p className="mt-auto px-1 text-xs font-medium text-[#8a968f]">低年級模式 · 7 歲</p>
         </aside>
 
-        <main className="min-w-0 flex-1 bg-[#fffcf7]">{children ?? <ActivePage />}</main>
+        <main className="min-w-0 flex-1 bg-[#fffcf7]">{children ?? (isChatOpen ? <Chat /> : ActivePage && <ActivePage />)}</main>
       </div>
     </div>
   );
