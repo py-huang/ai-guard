@@ -10,7 +10,7 @@
 * 狀態管理: `React Context`
 * UI 元件庫: `Shadcn UI`
 * 外部服務: 暫定無
-* 部署平台: `Vercel`
+* 部署平台: 暫定本機執行，透過 Cloudflare Tunnel 提供對外服務
 
 ## 架構
 
@@ -36,6 +36,15 @@ graph LR
 | `/safety` | 靜態 | AI 安全小幫手 |
 | `/safety/[slug]` | 動態 | 個別 AI 安全主題頁面 |
 | `/parent` | 靜態 | 家長頁面（尚待實作） |
+
+安全課程：
+
+| 路由 | 主題 |
+|------|------|
+| `/safety/privacy-lesson` | 個人資料保護 |
+| `/safety/ai-truth-lesson` | 查證 AI 回答 |
+| `/safety/stranger-lesson` | 與陌生人互動 |
+| `/safety/image-lesson` | 圖片上傳安全 |
 
 ### API 規格
 
