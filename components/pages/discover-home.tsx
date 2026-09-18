@@ -95,7 +95,7 @@ export function DiscoverHome() {
               type="button"
             >
               <span className="grid size-12 shrink-0 place-items-center overflow-hidden">
-                <span className="grid size-[42px] place-items-center rounded-[14px] bg-white">
+                <span className="grid size-[42px] place-items-center overflow-hidden rounded-[14px] bg-white">
                   <img className="size-11 drop-shadow-[0_2px_3px_rgba(20,33,26,0.06)]" src={topic.icon} alt="" aria-hidden="true" />
                 </span>
               </span>

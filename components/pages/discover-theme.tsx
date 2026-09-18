@@ -13,25 +13,25 @@ const topics: Topic[] = [
   {
     title: "自然探索",
     color: "bg-[#ecf9f3]",
-    icon: "/discover/topic-dinosaur.svg",
+    icon: "/discover/topic-dinosaur-clean.svg",
     questions: ["恐龍為什麼會滅絕？", "植物為什麼需要陽光？", "火山怎麼形成？"],
   },
   {
     title: "太空世界",
     color: "bg-[#f4f0ff]",
-    icon: "/discover/topic-planet.svg",
+    icon: "/discover/topic-planet-clean.svg",
     questions: ["月亮為什麼會變形？", "宇宙有多大？", "人能住在火星嗎？"],
   },
   {
     title: "寫作靈感",
     color: "bg-[#ffe7d7]",
-    icon: "/discover/topic-writing.svg",
+    icon: "/discover/topic-writing-clean.svg",
     questions: ["怎麼寫第一次看雪？", "讓角色更有個性的方法？", "一句話怎麼變成一段？"],
   },
   {
     title: "數位安全",
     color: "bg-[#ecf6ff]",
-    icon: "/discover/safety-shield.svg",
+    icon: "/discover/safety-shield-clean.svg",
     questions: ["怎麼設定安全密碼？", "網友問地址怎麼辦？", "遊戲帳號被盜怎麼做？"],
   },
 ];
@@ -62,7 +62,7 @@ export function DiscoverTheme() {
               {topic.questions.map((question) => (
                 <button
                   aria-pressed={selectedQuestion === question}
-                  className="flex h-[38px] w-full items-center justify-between rounded-xl bg-white px-[14px] text-left text-[13px] leading-[21px] font-medium text-[#13221b] transition-shadow hover:shadow-[0_2px_6px_rgba(20,33,26,0.06)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
+                  className="flex h-[38px] w-full items-center justify-between rounded-xl bg-white px-[14px] text-left text-[13px] leading-[21px] font-medium text-[#13221b] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(20,33,26,0.06)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
                   key={question}
                   onClick={() => setSelectedQuestion(question)}
                   type="button"
@@ -80,7 +80,7 @@ export function DiscoverTheme() {
         <p className="text-[13px] leading-5 text-[#506058]">找不到想問的？直接開始一個新問題。</p>
         <button
           aria-label="問自己的問題"
-          className="h-12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
+          className="h-12 overflow-hidden rounded-2xl transition-[filter] hover:brightness-[.875] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
           onClick={() => setSelectedQuestion(null)}
           type="button"
         >

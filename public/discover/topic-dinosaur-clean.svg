@@ -1,0 +1,10 @@
+<svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g filter="url(#shadow)">
+    <path d="M64 8H32C18.745 8 8 18.745 8 32V64C8 77.255 18.745 88 32 88H64C77.255 88 88 77.255 88 64V32C88 18.745 77.255 8 64 8Z" fill="#E5F6EE"/>
+    <path d="M22 60C30 38 44 26 61 32C70 35 74 43 72 51L82 59L70 66H35L28 74L21 71L27 58L22 60Z" fill="#1B8A63"/>
+    <path d="M60 42C61.657 42 63 40.657 63 39C63 37.343 61.657 36 60 36C58.343 36 57 37.343 57 39C57 40.657 58.343 42 60 42Z" fill="white"/>
+    <path d="M39 64V76M58 64V76" stroke="#166B4F" stroke-width="6" stroke-linecap="round"/>
+    <path d="M33 36L29 28L38 32M45 31L46 22L53 30" fill="#FFB25B"/>
+  </g>
+  <defs><filter id="shadow" x="-6" y="-4" width="108" height="108" filterUnits="userSpaceOnUse"><feDropShadow dy="2" stdDeviation="3" flood-color="#14211A" flood-opacity=".06"/></filter></defs>
+</svg>
