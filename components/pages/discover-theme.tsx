@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { useWritingStore } from "@/components/writing-store";
+import type { GenerateWritingResponse } from "@/lib/writing";
 
 type Topic = {
   title: string;
@@ -38,6 +42,48 @@ const topics: Topic[] = [
 
 export function DiscoverTheme() {
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [writingSubject, setWritingSubject] = useState("");
+  const [writingError, setWritingError] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const router = useRouter();
+  const { addDraft } = useWritingStore();
+
+  async function startWriting(subject: string) {
+    const input = subject.trim();
+
+    if (!input) {
+      setWritingError("請先輸入想寫的主題。 ");
+      return;
+    }
+
+    setIsGenerating(true);
+    setWritingError("");
+
+    try {
+      const response = await fetch("/api/theme/writing/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input }),
+      });
+      const data = (await response.json()) as GenerateWritingResponse | { error?: string };
+
+      if (!response.ok || !("theme_id" in data)) {
+        throw new Error("error" in data ? data.error : "暫時無法開始寫作。 ");
+      }
+
+      addDraft(data, input);
+      router.push(`/theme/writing/${data.theme_id}`);
+    } catch (error) {
+      setWritingError(error instanceof Error ? error.message : "暫時無法開始寫作。 ");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function submitWritingSubject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void startWriting(writingSubject);
+  }
 
   return (
     <section className="px-5 py-9 sm:px-8 lg:px-12 lg:pt-10">
@@ -64,7 +110,8 @@ export function DiscoverTheme() {
                   aria-pressed={selectedQuestion === question}
                   className="flex h-[38px] w-full items-center justify-between rounded-xl bg-white px-[14px] text-left text-[13px] leading-[21px] font-medium text-[#13221b] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(20,33,26,0.06)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
                   key={question}
-                  onClick={() => setSelectedQuestion(question)}
+                  onClick={() => (topic.title === "寫作靈感" ? void startWriting(question) : setSelectedQuestion(question))}
+                  disabled={isGenerating && topic.title === "寫作靈感"}
                   type="button"
                 >
                   <span className="truncate">{question}</span>
@@ -77,15 +124,23 @@ export function DiscoverTheme() {
       </div>
 
       <div className="mt-8 flex max-w-[1064px] flex-wrap items-center justify-between gap-4 lg:mt-8">
-        <p className="text-[13px] leading-5 text-[#506058]">找不到想問的？直接開始一個新問題。</p>
-        <button
-          aria-label="問自己的問題"
-          className="h-12 overflow-hidden rounded-2xl transition-[filter] hover:brightness-[.875] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
-          onClick={() => setSelectedQuestion(null)}
-          type="button"
-        >
-          <img className="block h-12 w-auto" src="/discover/explore-ask.svg" alt="" aria-hidden="true" />
-        </button>
+        <div>
+          <p className="text-[13px] leading-5 text-[#506058]">有自己的寫作題目嗎？從一個回憶開始。</p>
+          {writingError ? <p className="mt-1 text-[13px] text-[#c02d32]">{writingError}</p> : null}
+        </div>
+        <form className="flex h-12 w-full max-w-[440px] items-center gap-2 rounded-2xl border border-[#dde3df] bg-white p-1.5 sm:w-[440px]" onSubmit={submitWritingSubject}>
+          <label className="sr-only" htmlFor="writing-subject">想寫的主題</label>
+          <input
+            id="writing-subject"
+            className="min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-[#8a968f]"
+            value={writingSubject}
+            onChange={(event) => setWritingSubject(event.target.value)}
+            placeholder="例如：暑假回憶"
+          />
+          <button className="h-9 shrink-0 rounded-xl bg-[#d63a37] px-3 text-sm font-medium text-white hover:bg-[#bd2e2c] disabled:opacity-50" disabled={isGenerating} type="submit">
+            {isGenerating ? "準備中" : "開始寫作"}
+          </button>
+        </form>
       </div>
     </section>
   );
