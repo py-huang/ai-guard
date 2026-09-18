@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>注音樣式比較</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1c1917;
+      --muted: #57534e;
+      --line: #e7e5e4;
+      --paper: #f7f4ee;
+      --card: #fffdf9;
+      --sage: #2f5d4a;
+      --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+    .shell { max-width: 1120px; margin: 0 auto; padding: 24px 18px 48px; }
+    header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    h1 { margin: 0 0 4px; font-size: 26px; font-weight: 700; }
+    p { margin: 0; color: var(--muted); font-size: 14px; }
+    a.ghost, button.ghost, .send {
+      font-family: inherit; border: 1px solid var(--line); background: #fff;
+      border-radius: 999px; padding: 8px 12px; cursor: pointer; font-size: 13px;
+      text-decoration: none; color: inherit; display: inline-block;
+    }
+    .send { background: var(--sage); color: #fff; border: 0; font-weight: 600; }
+    textarea {
+      width: 100%; min-height: 72px; margin-top: 14px; border: 1px solid var(--line);
+      border-radius: 12px; padding: 10px; font: 16px/1.6 var(--sans);
+    }
+    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
+    }
+    .panel h2 {
+      margin: 0; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--line);
+    }
+    .panel h2 small { display: block; font-weight: 400; color: var(--muted); margin-top: 4px; }
+    .sample {
+      padding: 18px 16px 20px; font-size: 28px; line-height: 2.1;
+      white-space: pre-wrap; min-height: 140px;
+    }
+    .style-mixed.sample { line-height: 2.05; }
+    ruby { ruby-align: center; }
+    rt { font-weight: 500; color: var(--sage); font-family: var(--sans); }
+    .style-over ruby { ruby-position: over; }
+    .style-over rt { font-size: 0.42em; }
+    .style-side ruby { ruby-position: over; }
+    @supports (ruby-position: inter-character) {
+      .style-side ruby { ruby-position: inter-character; }
+    }
+    .style-side rt { font-size: 0.42em; }
+    .style-current ruby { ruby-position: over; }
+    @supports (ruby-position: inter-character) {
+      .style-current ruby { ruby-position: inter-character; }
+    }
+    .style-current rt { font-size: 0.42em; }
+    .style-mixed .zy-unit {
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+      margin: 0 0.14em 0 0;
+    }
+    .style-mixed .zy-han { line-height: 1; }
+    .style-mixed .zy-cluster {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: stretch;
+      margin-left: 0.1em;
+      color: var(--sage);
+      font-size: 0.36em;
+      font-weight: 500;
+      line-height: 1;
+    }
+    .style-mixed .zy-cluster.light {
+      flex-direction: column;
+      align-items: center;
+    }
+    .style-mixed .zy-letters {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .style-mixed .zy-letters span { line-height: 1.05; }
+    .style-mixed .zy-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .style-mixed .zy-mark.mid {
+      min-width: 1em;
+      margin-left: 0.06em;
+    }
+    .style-mixed .zy-mark.top {
+      width: 100%;
+      height: 0.72em;
+      margin: 0;
+      font-size: 0;
+      line-height: 0;
+    }
+    .style-mixed .zy-mark.top::before {
+      content: "";
+      display: block;
+      width: 0.28em;
+      height: 0.28em;
+      margin: 0.1em auto 0;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .note { margin-top: 16px; font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>注音樣式比較</h1>
+        <p>同一句話、四種排法。D 改成國字旁邊直書注音：ˊ ˇ ˋ 在右側垂直置中，輕聲 ˙ 在直書注音最上方正中間。</p>
+      </div>
+      <div>
+        <a class="ghost" href="/">回兒童對話</a>
+        <a class="ghost" href="/test">測試頁</a>
+      </div>
+    </header>
+    <textarea id="input">今天的天空為什麼是藍色的？你好，小宇。</textarea>
+    <div class="row">
+      <button class="send" id="render" type="button">更新比較</button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="grid">
+      <article class="panel">
+        <h2>A. 現況（對話頁）<small>能 inter-character 就在旁，否則全部在上</small></h2>
+        <div class="sample style-current" id="style-current"></div>
+      </article>
+      <article class="panel">
+        <h2>B. 全部在上<small>ruby-position: over</small></h2>
+        <div class="sample style-over" id="style-over"></div>
+      </article>
+      <article class="panel">
+        <h2>C. 全部在旁<small>ruby-position: inter-character</small></h2>
+        <div class="sample style-side" id="style-side"></div>
+      </article>
+      <article class="panel">
+        <h2>D. 輕聲在上、其他在旁<small>注音直書在字右；ˊ ˇ ˋ 在右側中間；˙ 在直書注音最上方正中間</small></h2>
+        <div class="sample style-mixed" id="style-mixed"></div>
+      </article>
+    </div>
+    <p class="note">句號、逗號、問號維持正文，不標音。D 不靠瀏覽器 ruby：字母直書；ˊ ˇ ˋ 在右；˙ 疊在字母正上方。</p>
+  </div>
+  <script>
+    const input = document.getElementById("input");
+    const status = document.getElementById("status");
+    const ids = ["style-current", "style-over", "style-side", "style-mixed"];
+
+    function appendPlain(el, parts) {
+      (parts || []).forEach((part) => {
+        if (part.zhuyin) {
+          const ruby = document.createElement("ruby");
+          ruby.appendChild(document.createTextNode(part.text || ""));
+          const rt = document.createElement("rt");
+          rt.textContent = part.zhuyin;
+          ruby.appendChild(rt);
+          el.appendChild(ruby);
+        } else {
+          el.appendChild(document.createTextNode(part.text || ""));
+        }
+      });
+    }
+
+    function appendMixed(el, parts) {
+      (parts || []).forEach((part) => {
+        if (!part.zhuyin) {
+          el.appendChild(document.createTextNode(part.text || ""));
+          return;
+        }
+        const unit = document.createElement("span");
+        unit.className = "zy-unit";
+        const han = document.createElement("span");
+        han.className = "zy-han";
+        han.textContent = part.text || "";
+        const cluster = document.createElement("span");
+        cluster.className = "zy-cluster" + (part.tone === "˙" ? " light" : "");
+        const letters = document.createElement("span");
+        letters.className = "zy-letters";
+        Array.from(part.letters || "").forEach((ch) => {
+          const glyph = document.createElement("span");
+          glyph.textContent = ch;
+          letters.appendChild(glyph);
+        });
+        if (part.tone === "˙") {
+          const mark = document.createElement("span");
+          mark.className = "zy-mark top";
+          mark.textContent = "˙";
+          cluster.appendChild(mark);
+          cluster.appendChild(letters);
+        } else {
+          cluster.appendChild(letters);
+          if (part.tone) {
+            const mark = document.createElement("span");
+            mark.className = "zy-mark mid";
+            mark.textContent = part.tone;
+            cluster.appendChild(mark);
+          }
+        }
+        unit.appendChild(han);
+        unit.appendChild(cluster);
+        el.appendChild(unit);
+      });
+    }
+
+    async function render() {
+      const text = input.value.trim() || "今天的天空為什麼是藍色的？";
+      status.textContent = "轉換中…";
+      const res = await fetch("/api/zhuyin?text=" + encodeURIComponent(text));
+      const data = await res.json();
+      if (!res.ok) {
+        status.textContent = "轉換失敗";
+        return;
+      }
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        el.replaceChildren();
+        if (id === "style-mixed") appendMixed(el, data.parts);
+        else appendPlain(el, data.parts);
+      });
+      status.textContent = "已更新";
+    }
+
+    document.getElementById("render").addEventListener("click", () => render());
+    render();
+  </script>
+</body>
+</html>

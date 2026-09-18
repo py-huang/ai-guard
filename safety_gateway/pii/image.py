@@ -91,3 +91,13 @@ class InMemoryImageRedactor:
         )
         self._engine = ImageRedactorEngine(image_analyzer_engine=image_analyzer)
         return self._engine
+
+
+def images_differ(left: bytes, right: bytes) -> bool:
+    """True when RGB pixels differ; used to decide whether chat should show a redacted preview."""
+    if not left or not right or left == right:
+        return bool(left) != bool(right)
+    with Image.open(io.BytesIO(left)) as first, Image.open(io.BytesIO(right)) as second:
+        if first.size != second.size:
+            return True
+        return list(first.convert("RGB").getdata()) != list(second.convert("RGB").getdata())

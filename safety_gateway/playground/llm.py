@@ -24,12 +24,25 @@ SYSTEM_PROMPT = """你是台灣 K-12 的學習夥伴，不是搜尋引擎、也�
   自殺自殘與危險挑戰的做法、毒品菸酒檳榔、仇恨歧視言語、真錢賭博。
 - 健康教育、性教育、歷史、反毒、菸害防制作業可以討論觀念，但不要給做法或影片來源。
 - 若話題不適合兒童，溫柔轉到安全的學習主題，不要複述不當內容。
+
+照片
+- 你可能會看到一張已經遮過臉與文字個資的照片。黑塊是保護兒童，不要還原、不要猜那是誰。
+- 可以看圖回答功課（植物、題目、地圖），但不要依照片去生成或改真人外貌。
 """
 
 _GEMINI_MODELS = ("gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.8-flash")
+_IMAGE_GEN_MODELS = (
+    "gemini-3.1-flash-lite-image",
+    "gemini-3.1-flash-image",
+    "gemini-2.5-flash-image",
+)
 _CHILD_BUSY = "老師現在有點忙，請稍等再按一次「送出」。過幾秒通常就好了。"
 _CHILD_FAIL = "這次沒能連上老師。請再試一次；如果一直不行，請告訴旁邊的大人。"
 _CHILD_POLICY = "這次的內容不適合在這裡討論。我們可以改聊功課或今天發生的好事。"
+_CHILD_IMAGE_QUOTA = (
+    "目前這把 Gemini 金鑰沒有生圖配額（免費方案是 0 次）。"
+    "文字聊天可以用。真的要畫圖，請到 Google AI Studio 幫這個專案綁定帳單再試。"
+)
 _RETRYABLE_MARKERS = (
     "503",
     "unavailable",
@@ -70,13 +83,31 @@ class LlmPolicyBlockError(LlmError):
     child_message = _CHILD_POLICY
 
 
+class LlmQuotaError(LlmError):
+    """Paid image models are listed, but this key's free-tier quota is zero."""
+
+    retryable = False
+    child_message = _CHILD_IMAGE_QUOTA
+
+
 class LlmBackend(ABC):
     name: str
     model: str
 
     @abstractmethod
-    def complete(self, messages: list[dict[str, str]]) -> str:
-        """messages: {role: user|assistant, content: str}, already PII-tokenized."""
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        image_bytes: bytes | None = None,
+    ) -> str:
+        """messages: {role: user|assistant, content: str}, already PII-tokenized.
+
+        image_bytes is an optional already-redacted PNG for the latest user turn.
+        """
+
+    def generate_image(self, prompt: str) -> tuple[bytes, str]:
+        """Return (png_bytes, model_name). Backends that cannot draw raise LlmError."""
+        raise LlmFatalError(_CHILD_FAIL)
 
 
 class EchoLlm(LlmBackend):
@@ -85,18 +116,28 @@ class EchoLlm(LlmBackend):
     name = "echo"
     model = "echo-demo"
 
-    def complete(self, messages: list[dict[str, str]]) -> str:
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        image_bytes: bytes | None = None,
+    ) -> str:
         last = next((item["content"] for item in reversed(messages) if item["role"] == "user"), "")
         if last.startswith("【教學模式】"):
             return (
                 "我們先不要看完整答案。你可以把題目拆成更小的一步，"
                 "再告訴我你會先從哪裡開始？"
             )
+        seen = "我有看到你附的照片（系統已先遮掉臉和個資）。" if image_bytes else ""
         return (
-            f"小朋友你好，我聽到你提到：{last}。"
+            f"小朋友你好，{seen}我聽到你提到：{last}。"
             "如果句子裡有像 <PERSON_1> 這種記號，我會把它當成保護隱私的代號，"
             "不會去猜真正的名字或電話喔。我們可以一起想下一步。"
         )
+
+    def generate_image(self, prompt: str) -> tuple[bytes, str]:
+        from safety_gateway.steps.homework_image import render_echo_homework_png
+
+        return render_echo_homework_png(), "echo-demo-image"
 
 
 class GeminiLlm(LlmBackend):
@@ -118,12 +159,16 @@ class GeminiLlm(LlmBackend):
         self._max_attempts = max(1, max_attempts)
         self._backoff_seconds = backoff_seconds
         self._sleep = sleeper
-        self._client = genai.Client(api_key=api_key, http_options={"timeout": 45_000})
+        self._client = genai.Client(api_key=api_key, http_options={"timeout": 60_000})
         self._types = types
 
-    def complete(self, messages: list[dict[str, str]]) -> str:
+    def complete(
+        self,
+        messages: list[dict[str, str]],
+        image_bytes: bytes | None = None,
+    ) -> str:
         def generate(model: str) -> str:
-            return self._generate(model, messages)
+            return self._generate(model, messages, image_bytes=image_bytes)
 
         text, model = complete_with_failover(
             generate,
@@ -135,16 +180,25 @@ class GeminiLlm(LlmBackend):
         self.model = model
         return text
 
-    def _generate(self, model: str, messages: list[dict[str, str]]) -> str:
+    def _generate(
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        image_bytes: bytes | None = None,
+    ) -> str:
+        last_user = max(
+            (index for index, item in enumerate(messages) if item["role"] == "user"),
+            default=-1,
+        )
         contents = []
-        for item in messages:
+        for index, item in enumerate(messages):
             role = "user" if item["role"] == "user" else "model"
-            contents.append(
-                self._types.Content(
-                    role=role,
-                    parts=[self._types.Part(text=item["content"])],
+            parts = [self._types.Part(text=item["content"])]
+            if image_bytes and index == last_user:
+                parts.append(
+                    self._types.Part.from_bytes(data=image_bytes, mime_type="image/png")
                 )
-            )
+            contents.append(self._types.Content(role=role, parts=parts))
         response = self._client.models.generate_content(
             model=model,
             contents=contents,
@@ -163,6 +217,42 @@ class GeminiLlm(LlmBackend):
         if not text:
             raise RuntimeError("Gemini returned an empty response")
         return text
+
+    def generate_image(self, prompt: str) -> tuple[bytes, str]:
+        def generate(model: str) -> bytes:
+            return self._generate_image(model, prompt)
+
+        png, model = complete_with_failover(
+            generate,  # type: ignore[arg-type]
+            models=_IMAGE_GEN_MODELS,
+            max_attempts=self._max_attempts,
+            backoff_seconds=self._backoff_seconds,
+            sleeper=self._sleep,
+        )
+        return png, model  # type: ignore[return-value]
+
+    def _generate_image(self, model: str, prompt: str) -> bytes:
+        response = self._client.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=self._types.GenerateContentConfig(
+                system_instruction=(
+                    "Create a child-safe educational illustration. "
+                    "No people, no faces, no photorealistic humans, no violence."
+                ),
+                response_modalities=["IMAGE"],
+                image_config=self._types.ImageConfig(
+                    aspect_ratio="1:1",
+                ),
+                safety_settings=_gemini_child_safety_settings(self._types),
+            ),
+        )
+        if _gemini_blocked(response):
+            raise LlmPolicyBlockError(_CHILD_POLICY)
+        blob = _inline_image_bytes(response)
+        if not blob:
+            raise LlmPolicyBlockError(_CHILD_POLICY)
+        return blob
 
 
 def complete_with_failover(
@@ -185,6 +275,8 @@ def complete_with_failover(
                 last_error = exc
                 if isinstance(exc, LlmError):
                     raise
+                if _is_zero_quota(exc):
+                    raise LlmQuotaError(_CHILD_IMAGE_QUOTA) from exc
                 if _is_not_found(exc):
                     break
                 if _is_retryable(exc) and attempt < max_attempts - 1:
@@ -193,6 +285,8 @@ def complete_with_failover(
                 if not _is_retryable(exc):
                     raise LlmFatalError(_CHILD_FAIL) from exc
                 break
+    if last_error is not None and _is_not_found(last_error):
+        raise LlmFatalError(_CHILD_FAIL) from last_error
     raise LlmBusyError(_CHILD_BUSY) from last_error
 
 
@@ -216,6 +310,11 @@ def _is_retryable(exc: BaseException) -> bool:
 def _is_not_found(exc: BaseException) -> bool:
     blob = _error_blob(exc)
     return any(marker in blob for marker in _NOT_FOUND_MARKERS)
+
+
+def _is_zero_quota(exc: BaseException) -> bool:
+    blob = _error_blob(exc)
+    return "limit: 0" in blob and ("free_tier" in blob or "quota" in blob)
 
 
 def _error_blob(exc: BaseException) -> str:
@@ -245,6 +344,19 @@ def _gemini_child_safety_settings(types: object) -> list[object]:
         types.SafetySetting(category=category, threshold=threshold)  # type: ignore[attr-defined]
         for category in categories
     ]
+
+
+def _inline_image_bytes(response: object) -> bytes | None:
+    candidates = getattr(response, "candidates", None) or ()
+    for candidate in candidates:
+        content = getattr(candidate, "content", None)
+        parts = getattr(content, "parts", None) or ()
+        for part in parts:
+            inline = getattr(part, "inline_data", None)
+            data = getattr(inline, "data", None) if inline is not None else None
+            if data:
+                return bytes(data)
+    return None
 
 
 def _gemini_blocked(response: object) -> bool:

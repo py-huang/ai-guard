@@ -41,6 +41,10 @@ CHILD_MESSAGES: dict[str, str] = {
         "不可以拿同學的照片來開玩笑或惡搞。請尊重同學。"
         "如果只是想聊天，我們可以改談功課或今天發生的好事。"
     ),
+    "image_abuse": (
+        "不可以拿別人的照片去改圖，或想像不適當的畫面。請尊重同學。"
+        "如果只是想聊天，我們可以改談功課或今天發生的好事。"
+    ),
 }
 
 # Explicit instructional / help-seeking phrases. Short tokens like 「性」or「戰爭」
@@ -162,7 +166,58 @@ DEFAULT_CATALOG: dict[str, tuple[str, ...]] = {
         "把同學的臉P",
         "拿同學的照片開玩笑",
     ),
+    "image_abuse": (
+        "上廁所的照片",
+        "在廁所的照片",
+        "廁所照",
+        "上廁所照",
+        "換衣服的照片",
+        "在換衣服的照片",
+        "脫衣服的照片",
+        "洗澡的照片",
+        "在洗澡的照片",
+        "廁所自拍",
+        "換衣服自拍",
+        "畫他上廁所",
+        "畫她上廁所",
+        "畫這個人上廁所",
+        "生成上廁所",
+        "p成上廁所",
+        "畫一個小朋友",
+        "畫一個小孩",
+        "畫同學的臉",
+        "畫人像",
+        "生成人像",
+        "畫一張臉",
+        "畫一個男生",
+        "畫一個女生",
+    ),
 }
+
+# Only when a face was found on an attached photo: refuse likeness edit / generation.
+# Bare 「這張照片」or「上廁所」are omitted so homework and identity questions can pass.
+IMAGE_ABUSE_WITH_FACE: tuple[str, ...] = (
+    "p圖",
+    "p成",
+    "換臉",
+    "deepfake",
+    "生成這個人",
+    "畫出這個人",
+    "畫這個人",
+    "這個人的照片",
+    "修這張照片",
+    "改這張照片",
+    "用這張照片生成",
+    "用這張照片畫",
+    "把這張照片變成",
+    "把這個人變成",
+    "讓他脫",
+    "讓她脫",
+    "讓這個人脫",
+    "讓他上廁所",
+    "讓她上廁所",
+    "讓這個人上廁所",
+)
 
 # If these appear, we still allow the turn unless an explicit catalog phrase also matches.
 HOMEWORK_ALLOWLIST = (
@@ -215,7 +270,7 @@ class ContentSafetyStep(BaseGuardStep):
         context.mark_step(self.name)
         return context
 
-    def classify(self, text: str) -> SafetyMatch | None:
+    def classify(self, text: str, *, faces_detected: int = 0) -> SafetyMatch | None:
         if not self._enabled or not text or text == "[BLOCKED]":
             return None
         haystack = text.casefold()
@@ -223,12 +278,17 @@ class ContentSafetyStep(BaseGuardStep):
             for phrase in phrases:
                 if phrase.casefold() in haystack:
                     return SafetyMatch(category=category, phrase=phrase)
+        if faces_detected > 0:
+            for phrase in IMAGE_ABUSE_WITH_FACE:
+                if phrase.casefold() in haystack:
+                    return SafetyMatch(category="image_abuse", phrase=phrase)
         return None
 
     def _apply(self, context: GuardContext) -> None:
         if context.blocked:
             return
-        match = self.classify(context.text)
+        faces = int(context.metadata.get("faces_detected") or 0)
+        match = self.classify(context.text, faces_detected=faces)
         context.metadata["homework_context"] = any(item in context.text for item in HOMEWORK_ALLOWLIST)
         if match is None:
             context.metadata["content_safety"] = "allow"

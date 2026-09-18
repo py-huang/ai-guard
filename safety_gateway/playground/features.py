@@ -40,10 +40,22 @@ FEATURES: list[dict[str, str]] = [
         "detail": "格式對但 checksum 錯的字串不會被當成 TW_ID，降低誤殺。",
     },
     {
+        "id": "homework_image_gen",
+        "status": "shipped",
+        "title": "對話生圖（僅 /test）",
+        "detail": "正式頁只走文字對話。測試頁偵測到「畫／產生圖片」才走 flash-image。金鑰必須有付費生圖配額；免費方案額度是 0 時會直接說明，不會用假圖冒充。內容安全與 IMAGE_GEN_DENY 先擋真人、同學、證件。",
+    },
+    {
+        "id": "image_abuse",
+        "status": "shipped",
+        "title": "人像改圖／隱私姿勢攔截",
+        "detail": "不適當的改圖／廁所照進模型前就擋。文字攔截在正式頁也生效。附圖看功課、遮臉再送 vision 只在 /test。",
+    },
+    {
         "id": "image_redact",
         "status": "shipped",
         "title": "零落盤圖片遮碼",
-        "detail": "Presidio 負責照片上的繁中文字個資。人臉另外用 OpenCV Haar 遮掉，避免拿同學照片搞怪。示範聯絡簿仍可用座標遮碼對照。",
+        "detail": "Presidio 負責照片上的繁中文字個資。人臉另外用 OpenCV Haar 遮掉。測試頁把示範聯絡簿／同學名牌／上傳照片接到兒童對話：偵測到機敏資訊就在氣泡顯示遮碼前後，原圖不落盤。",
     },
     {
         "id": "pipeline",
@@ -55,13 +67,19 @@ FEATURES: list[dict[str, str]] = [
         "id": "content_safety",
         "status": "shipped",
         "title": "內容安全（ContentSafetyStep）",
-        "detail": "對齊台灣兒少保護／影視出版分級的兒童不宜：色情、血腥暴力、恐怖驚嚇、自傷與危險挑戰、毒品菸酒檳榔、仇恨言語、賭博，加上既有的同學照片惡搞。進站出站都會擋；歷史與健康教育作業不在封鎖詞內。Gemini 另開低門檻安全濾網當第二層。",
+        "detail": "對齊台灣兒少保護／影視出版分級的兒童不宜：色情、血腥暴力、恐怖驚嚇、自傷與危險挑戰、毒品菸酒檳榔、仇恨言語、賭博，加上同學照片惡搞與人像改圖。進站出站都會擋；歷史與健康教育作業不在封鎖詞內。Gemini 另開低門檻安全濾網當第二層。",
     },
     {
         "id": "socratic",
         "status": "shipped",
         "title": "蘇格拉底教學（SocraticPedagogyStep）",
         "detail": "偵測「直接給答案」時，進站加上教學約束、出站若沒有引導問句會補一句。不是只靠 system prompt。",
+    },
+    {
+        "id": "zhuyin_ruby",
+        "status": "shipped",
+        "title": "兒童回覆注音（HTML Ruby）",
+        "detail": "漢字轉注音用 pypinyin Style.BOPOMOFO（Python 最穩的開源轉換）。畫面用 W3C <ruby>，個資代號不標音。可在對話區開關。",
     },
     {
         "id": "parent_audit",
@@ -80,7 +98,7 @@ TUNABLES: list[dict[str, str]] = [
     {
         "name": "內容安全詞表",
         "where": "steps/content_safety.py → DEFAULT_CATALOG、CHILD_MESSAGES",
-        "detail": "可加類別或改成外部模型分數門檻。目前是明確片語，避免「性教育」「二次大戰」「菸害防制」誤殺。",
+        "detail": "可加類別或改成外部模型分數門檻。目前是明確片語，避免「性教育」「二次大戰」「菸害防制」誤殺。人像改圖另見 IMAGE_ABUSE_WITH_FACE。生圖攔截詞在 steps/homework_image.py → IMAGE_GEN_DENY。",
     },
     {
         "name": "蘇格拉底強度",
@@ -111,5 +129,15 @@ TUNABLES: list[dict[str, str]] = [
         "name": "繁中 spaCy 模型",
         "where": "safety_gateway/nlp.py → ZH_SPACY_MODEL、NLP_CONFIGURATION",
         "detail": "預設 zh_core_web_md（OntoNotes，簡繁字都能切，但日期 NER 會誤殺作業所以關掉）。沒裝模型時退回 regex-only。安裝：python -m spacy download zh_core_web_md",
+    },
+    {
+        "name": "兒童注音",
+        "where": "playground/zhuyin.py → pypinyin Style.BOPOMOFO；畫面 HTML Ruby",
+        "detail": "預設全標漢字。個資代號不標。多音字靠 pypinyin 詞組；要更準可換成教育部／萌典詞庫。",
+    },
+    {
+        "name": "本機分享通行碼",
+        "where": "PLAYGROUND_SHARE_PASSWORD；python -m safety_gateway.playground.share",
+        "detail": "設了密碼才打 HTTPS 隧道。瀏覽器帳號填 demo。不接受前端送來的 Gemini key。聊天每分鐘最多約 40 次。",
     },
 ]

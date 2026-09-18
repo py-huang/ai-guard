@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import io
 from collections.abc import Sequence
+
+from PIL import Image
 
 from safety_gateway.audit.memory import InMemoryAuditLog
 from safety_gateway.pii.demo_image import render_redacted_contact_book
+from safety_gateway.pii.faces import (
+    FaceDetector,
+    count_faces_in_bytes,
+    detect_faces_opencv,
+    redact_face_boxes,
+)
 from safety_gateway.pii.image import InMemoryImageRedactor
 from safety_gateway.schemas import (
     ImageRedactRequest,
@@ -38,6 +47,7 @@ class AISafetyGateway:
         outbound_steps: Sequence[BaseGuardStep] | None = None,
         image_redactor: InMemoryImageRedactor | None = None,
         audit_log: InMemoryAuditLog | None = None,
+        face_detector: FaceDetector | None = None,
     ) -> None:
         self._vault = vault or InMemorySessionVault()
         pii = _find_pii_step(inbound_steps) or TaiwanPIIGuardStep(vault=self._vault)
@@ -63,6 +73,7 @@ class AISafetyGateway:
         self._image_redactor = image_redactor or InMemoryImageRedactor(
             analyzer_engine=pii.analyzer
         )
+        self._face_detector = face_detector or detect_faces_opencv
 
     @property
     def vault(self) -> BaseSessionVault:
@@ -72,13 +83,21 @@ class AISafetyGateway:
     def audit_log(self) -> InMemoryAuditLog:
         return self._parent.log
 
-    def process_inbound(self, session_id: str, text: str) -> SafetyProcessResult:
+    def process_inbound(
+        self,
+        session_id: str,
+        text: str,
+        image_bytes: bytes | None = None,
+    ) -> SafetyProcessResult:
         request = InboundRequest(session_id=session_id, text=text)
         normalized = _normalize_fullwidth_alnum(request.text)
+        had_image = bool(image_bytes)
+        faces = count_faces_in_bytes(image_bytes or b"", self._face_detector) if had_image else 0
         context = GuardContext(
             session_id=request.session_id,
             text=normalized,
             original_text=normalized,
+            metadata={"had_image": had_image, "faces_detected": faces},
         )
         for step in self._inbound_steps:
             context = step.process_inbound(context)
@@ -101,6 +120,13 @@ class AISafetyGateway:
     def redact_image_in_memory(self, image_bytes: bytes) -> bytes:
         """Black out detected PII in an uploaded photo using RAM buffers only."""
         return self._image_redactor.redact_image_in_memory(image_bytes)
+
+    def prepare_llm_image(self, image_bytes: bytes) -> bytes:
+        """Face + OCR redact before Gemini. Never send the child's original pixels."""
+        try:
+            return self.redact_image_in_memory(image_bytes)
+        except Exception:
+            return _face_redact_png(image_bytes, self._face_detector)
 
     def redact_image(self, session_id: str, image_bytes: bytes) -> ImageRedactResult:
         request = ImageRedactRequest(session_id=session_id, image_bytes=image_bytes)
@@ -132,6 +158,8 @@ def _result(context: GuardContext, direction: str) -> SafetyProcessResult:
         blocked=context.blocked,
         block_category=context.block_category,
         child_message=context.child_message,
+        had_image=bool(context.metadata.get("had_image")),
+        faces_detected=int(context.metadata.get("faces_detected") or 0),
     )
 
 
@@ -164,6 +192,16 @@ _FULLWIDTH_ALNUM = str.maketrans(
         0xFF0D: "-",
     }
 )
+
+
+def _face_redact_png(image_bytes: bytes, detector: FaceDetector) -> bytes:
+    with Image.open(io.BytesIO(image_bytes)) as opened:
+        opened.load()
+        working = opened.convert("RGB")
+    working = redact_face_boxes(working, detector(working))
+    output = io.BytesIO()
+    working.save(output, format="PNG", optimize=True)
+    return output.getvalue()
 
 
 def _normalize_fullwidth_alnum(text: str) -> str:

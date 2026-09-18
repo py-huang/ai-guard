@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 from collections.abc import Callable, Sequence
 
 import numpy as np
@@ -45,6 +46,22 @@ def detect_faces_opencv(image: Image.Image) -> list[FaceBox]:
             seen.add(box)
             found.append(box)
     return _nms(found)
+
+
+def count_faces_in_bytes(
+    image_bytes: bytes,
+    detector: FaceDetector | None = None,
+) -> int:
+    """How many faces Haar (or an injected detector) sees. Invalid images count as 0."""
+    if not image_bytes:
+        return 0
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as opened:
+            rgb = opened.convert("RGB")
+            finder = detector or detect_faces_opencv
+            return len(finder(rgb))
+    except Exception:
+        return 0
 
 
 def redact_face_boxes(image: Image.Image, boxes: Sequence[FaceBox]) -> Image.Image:

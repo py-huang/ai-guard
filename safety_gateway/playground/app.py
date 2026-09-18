@@ -5,13 +5,20 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field
 
 from safety_gateway.gateway import AISafetyGateway
 from safety_gateway.pii.image import ImageOcrUnavailable
+from safety_gateway.playground.access import (
+    MAX_UPLOAD_BYTES,
+    ChatRateLimiter,
+    SecurityHeadersMiddleware,
+    SharePasswordMiddleware,
+    share_mode_enabled,
+)
 from safety_gateway.playground.features import FEATURES, TUNABLES
 from safety_gateway.playground.llm import (
     LlmBusyError,
@@ -21,6 +28,7 @@ from safety_gateway.playground.llm import (
     resolve_backend,
 )
 from safety_gateway.playground.service import PlaygroundChat
+from safety_gateway.playground.zhuyin import to_zhuyin_parts
 from safety_gateway.schemas import StrictModel
 from safety_gateway.vault.memory import InMemorySessionVault
 
@@ -32,7 +40,7 @@ CLASSMATE_IMAGE = STATIC_DIR / "classmate-nametag-portrait.png"
 class ChatRequest(StrictModel):
     session_id: str = Field(min_length=1, max_length=128)
     text: str = Field(min_length=1, max_length=4000)
-    gemini_api_key: str | None = Field(default=None, max_length=256)
+    lab: bool = False
 
 
 class ResetRequest(StrictModel):
@@ -65,11 +73,26 @@ def _http_error(status: int, message: str, retryable: bool) -> HTTPException:
     return HTTPException(status_code=status, detail={"message": message, "retryable": retryable})
 
 
+def _read_upload(request: Request, file: UploadFile) -> bytes:
+    length = request.headers.get("content-length")
+    if length and length.isdigit() and int(length) > MAX_UPLOAD_BYTES + 64_000:
+        raise _http_error(413, "照片太大，請用較小的檔案。", False)
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if not raw:
+        raise _http_error(400, "請先選擇一張照片。", False)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise _http_error(413, "照片太大，請用較小的檔案。", False)
+    return raw
+
+
 def create_app() -> FastAPI:
     _load_dotenv()
     gateway = AISafetyGateway(vault=InMemorySessionVault())
     playground = PlaygroundChat(gateway)
+    rate_limiter = ChatRateLimiter()
     app = FastAPI(title="AI Guard Prototype", docs_url=None, redoc_url=None)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(SharePasswordMiddleware)
 
     @app.get("/api/status")
     def status() -> dict[str, str | bool]:
@@ -81,7 +104,12 @@ def create_app() -> FastAPI:
             "env_key_configured": bool(key),
             "ocr_backend": "rapidocr",
             "ocr_scope": "venv",
+            "share_password_required": share_mode_enabled(),
         }
+
+    @app.get("/api/zhuyin")
+    def zhuyin(text: str = Query(min_length=1, max_length=500)) -> dict[str, object]:
+        return {"text": text, "parts": [part.model_dump() for part in to_zhuyin_parts(text)]}
 
     @app.get("/api/features")
     def features() -> dict[str, object]:
@@ -114,10 +142,38 @@ def create_app() -> FastAPI:
 
     @app.post("/api/chat")
     def chat(request: ChatRequest) -> dict[str, object]:
-        key = _env_gemini_key() or request.gemini_api_key
-        llm = resolve_backend(key)
+        return _chat_turn(request.session_id, request.text, None, request.lab)
+
+    @app.post("/api/chat-with-image")
+    def chat_with_image(
+        request: Request,
+        session_id: str = Form(..., min_length=1, max_length=128),
+        text: str = Form(..., min_length=1, max_length=4000),
+        lab: bool = Form(False),
+        file: UploadFile = File(...),
+    ) -> dict[str, object]:
+        if not lab:
+            raise _http_error(400, "附照片請到測試頁再試。", False)
+        raw = _read_upload(request, file)
+        return _chat_turn(session_id, text, raw, True)
+
+    def _chat_turn(
+        session_id: str,
+        text: str,
+        image_bytes: bytes | None,
+        lab: bool,
+    ) -> dict[str, object]:
+        if not rate_limiter.allow():
+            raise _http_error(429, "現在太多人在問，請稍等再試。", True)
+        llm = resolve_backend(_env_gemini_key())
         try:
-            result = playground.chat(request.session_id, request.text, llm)
+            result = playground.chat(
+                session_id,
+                text,
+                llm,
+                image_bytes=image_bytes,
+                enable_images=lab,
+            )
         except LlmBusyError as exc:
             raise _http_error(503, exc.child_message, True) from exc
         except LlmError as exc:
@@ -190,12 +246,11 @@ def create_app() -> FastAPI:
 
     @app.post("/api/redact-image")
     def redact_image(
+        request: Request,
         session_id: str = Query(min_length=1, max_length=128),
         file: UploadFile = File(...),
     ) -> Response:
-        raw = file.file.read()
-        if not raw:
-            raise _http_error(400, "請先選擇一張照片。", False)
+        raw = _read_upload(request, file)
         try:
             result = gateway.redact_image(session_id, raw)
         except ImageOcrUnavailable as exc:
@@ -208,12 +263,31 @@ def create_app() -> FastAPI:
             headers={"Cache-Control": "no-store"},
         )
 
-    @app.get("/")
-    def index() -> FileResponse:
+    def _html(name: str) -> FileResponse:
         return FileResponse(
-            STATIC_DIR / "index.html",
+            STATIC_DIR / name,
             headers={"Cache-Control": "no-store"},
         )
+
+    @app.get("/")
+    def index() -> FileResponse:
+        return _html("index.html")
+
+    @app.get("/intro")
+    def intro() -> FileResponse:
+        return _html("intro.html")
+
+    @app.get("/chat")
+    def chat_alias() -> RedirectResponse:
+        return RedirectResponse(url="/", status_code=307)
+
+    @app.get("/zhuyin")
+    def zhuyin_lab() -> FileResponse:
+        return _html("zhuyin.html")
+
+    @app.get("/test")
+    def test_index() -> FileResponse:
+        return _html("index.html")
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     return app

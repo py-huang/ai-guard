@@ -34,7 +34,7 @@ def test_playground_skips_llm_when_blocked() -> None:
         def __init__(self) -> None:
             self.calls = 0
 
-        def complete(self, messages: list[dict[str, str]]) -> str:
+        def complete(self, messages: list[dict[str, str]], image_bytes: bytes | None = None) -> str:
             self.calls += 1
             return super().complete(messages)
 

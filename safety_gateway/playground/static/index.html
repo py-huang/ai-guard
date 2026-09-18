@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Guard Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
       --ink: #1c1917;
@@ -17,22 +20,26 @@
       --amber-soft: #ffedd5;
       --rose: #9f1239;
       --rose-soft: #ffe4e6;
+      --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
     body {
       color: var(--ink);
       background: var(--paper);
-      font-family: "Iowan Old Style", "Songti TC", "PMingLiU", Georgia, serif;
+      font-family: var(--sans);
+      font-weight: 400;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
     }
     button, textarea, input, nav, .sans {
-      font-family: "PingFang TC", "Noto Sans TC", "Helvetica Neue", sans-serif;
+      font-family: var(--sans);
     }
     .shell { max-width: 1120px; margin: 0 auto; padding: 20px 18px 40px; }
     header { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
-    header h1 { margin: 0 0 4px; font-size: 30px; letter-spacing: -0.03em; }
+    header h1 { margin: 0 0 4px; font-size: 30px; letter-spacing: 0.02em; font-weight: 600; }
     header p { margin: 0; color: var(--muted); font-size: 14px; }
-    .badge { padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 650; background: var(--sage-soft); color: var(--sage); }
+    .badge { padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--sage-soft); color: var(--sage); }
     .badge.echo { background: var(--amber-soft); color: var(--amber); }
     .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
     .tab {
@@ -65,7 +72,7 @@
       border-bottom: 1px solid var(--line);
     }
     .chat { min-height: 380px; max-height: 520px; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-    .bubble { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; }
+    .bubble { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 15px; line-height: 1.65; white-space: pre-wrap; }
     .bubble.child { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-right-radius: 5px; }
     .bubble.bot { align-self: flex-start; background: var(--sage-soft); border-bottom-left-radius: 5px; }
     .bubble.hint { align-self: stretch; max-width: none; background: #f5f5f4; color: var(--muted); font-size: 13px; }
@@ -93,7 +100,7 @@
     }
     textarea:disabled, .send:disabled, .chip:disabled { opacity: 0.55; cursor: wait; }
     .row { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
-    .send { background: var(--sage); color: #fff; border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 650; cursor: pointer; }
+    .send { background: var(--sage); color: #fff; border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
     .side { padding: 14px; display: grid; gap: 10px; }
     .card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fff; }
     .card.ok { background: var(--sage-soft); border-color: #bbf7d0; }
@@ -101,12 +108,12 @@
     .label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
     .mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
     .prose { padding: 18px 20px 24px; font-size: 16px; line-height: 1.7; }
-    .prose h3 { font-size: 20px; margin: 0 0 10px; }
+    .prose h3 { font-size: 20px; font-weight: 600; margin: 0 0 10px; }
     .prose ul { margin: 0; padding-left: 1.2em; }
     .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
     @media (max-width: 800px) { .flow { grid-template-columns: 1fr 1fr; } }
     .step { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
-    .step b { display: block; font-family: "PingFang TC", sans-serif; font-size: 13px; margin-bottom: 6px; }
+    .step b { display: block; font-family: var(--sans); font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     .step span { color: var(--muted); font-size: 13px; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -119,18 +126,80 @@
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
     .preview img { width: 100%; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+    .bubble img.preview-img {
+      display: block;
+      max-width: min(280px, 100%);
+      margin-top: 8px;
+      border-radius: 12px;
+    }
+    .bubble .pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .bubble .pair img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .bubble .pair .cap {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+      color: var(--muted);
+    }
+    .bubble.child .pair .cap { color: #d6d3d1; }
     .status { font-size: 13px; color: var(--muted); }
+    .lab-banner {
+      background: var(--amber-soft);
+      color: var(--amber);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    a.ghost { display: inline-block; text-decoration: none; color: inherit; }
+    html:not(.lab) .lab-only { display: none !important; }
+    html.lab .stable-only { display: none !important; }
+    html.lab .side-redact { display: none !important; }
+    html.zhuyin-off rt { display: none; }
+    .bubble ruby {
+      ruby-position: over;
+      ruby-align: center;
+    }
+    @supports (ruby-position: inter-character) {
+      .bubble ruby { ruby-position: inter-character; }
+    }
+    .bubble rt {
+      font-size: 0.4em;
+      font-weight: 500;
+      line-height: 1.1;
+    }
+    .bubble.child rt { color: #e7e5e4; }
   </style>
+  <script>document.documentElement.classList.toggle("lab", /^\/test\/?$/.test(location.pathname));</script>
 </head>
 <body>
   <div class="shell">
     <header>
       <div>
         <h1>AI Guard Prototype</h1>
-        <p class="sans">給台灣 K-12 的安全閘道：輸入後按送出就開始互動。個資進不了模型，不安全話題會被攔住。</p>
+        <p class="sans stable-only">輸入後按送出就開始互動。個資進不了模型，不安全話題會被攔住。</p>
+        <p class="sans lab-only">測試頁：生圖與附圖還在實驗。這頁的對話和正式頁分開。</p>
       </div>
-      <div id="backendBadge" class="badge echo sans">檢查 LLM…</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <a class="ghost" href="/intro">產品介紹</a>
+        <a class="ghost" href="/zhuyin">注音樣式</a>
+        <a class="ghost stable-only" href="/test">測試頁</a>
+        <a class="ghost lab-only" href="/">回正式頁</a>
+        <div id="backendBadge" class="badge echo sans">檢查 LLM…</div>
+      </div>
     </header>
+    <div class="lab-banner lab-only sans">這是測試頁。生圖需要 Gemini 付費配額；這把免費金鑰目前額度是 0，失敗時會直接告訴你，不會用假圖冒充。給別人用請開正式頁。</div>
     <nav class="tabs" aria-label="Prototype 分頁">
       <button class="tab" data-view="chat" aria-selected="true">兒童對話</button>
       <button class="tab" data-view="help">為什麼對兒童有幫助</button>
@@ -145,7 +214,8 @@
         <div class="panel">
           <h2>兒童視角 · 輸入後按送出</h2>
           <div class="chat" id="chat">
-            <div class="bubble hint">在下面打一句話，按「送出」（或 Enter）。含姓名、學校、電話、信箱、卡號的句子會先被換成代號；老師忙碌時會請你再試一次，不會跳出一堆英文錯誤。</div>
+            <div class="bubble hint stable-only">在下面打一句話，按「送出」。含姓名、學校、電話的句子會先被換成代號。請用假資料，不要打真實身分證。</div>
+            <div class="bubble hint lab-only">測試頁可以附照片。聯絡簿、同學名牌或上傳的圖若有姓名、電話或臉，會在你送出的那則訊息裡顯示遮碼前後，再把遮過的圖給老師看。也可以請老師畫圖（天氣、植物）。請用假資料。</div>
           </div>
           <div class="composer">
             <div class="chips">
@@ -156,11 +226,27 @@
               <button class="chip" data-fill="我叫 John Smith，護照號碼 A12345678，生日民國102年3月2日。">英文名 + 護照</button>
               <button class="chip" data-fill="這題數學作業直接給我標準答案：12 加 35 等於多少？">蘇格拉底（作業）</button>
               <button class="chip" data-fill="健康教育：生殖系統有哪些器官？菸害防制作業也可以問。">健康教育（應放行）</button>
+              <button class="chip lab-only" id="chipContactBook">示範聯絡簿（應遮碼）</button>
+              <button class="chip lab-only" id="chipContactOcr">聯絡簿 OCR（應遮碼）</button>
+              <button class="chip lab-only" id="chipImageAbuse">人像改圖（應攔截）</button>
+              <button class="chip lab-only" id="chipImageAsk">看圖問功課（應放行）</button>
+              <button class="chip lab-only" id="chipClassmateRedact">同學名牌照（應遮碼）</button>
+              <button class="chip lab-only" data-fill="請幫我畫一朵花，自然課要用。">畫功課圖（應放行）</button>
+              <button class="chip lab-only" data-fill="幫我產生今天天氣的圖片">天氣圖（應放行）</button>
+              <button class="chip lab-only" data-fill="請幫我畫一個小朋友的臉。">畫人像（應攔截）</button>
             </div>
             <textarea id="input" placeholder="例如：我叫王小明，我在中山國小上課…"></textarea>
+            <div class="row lab-only" style="margin-top:8px;align-items:center">
+              <label class="ghost" for="chatImage" style="cursor:pointer">選擇照片</label>
+              <input id="chatImage" type="file" accept="image/*" />
+              <button class="ghost" type="button" id="clearChatImage">拿掉照片</button>
+              <img id="chatThumb" alt="" hidden style="height:48px;width:48px;object-fit:cover;border-radius:10px;border:1px solid var(--line)" />
+              <span class="status" id="chatImageLabel">可附照片。有姓名、臉等機敏資訊時，對話會顯示遮碼後的圖。</span>
+            </div>
             <div class="row">
               <button class="send" id="send">送出</button>
               <button class="ghost" id="reset">清空這段對話</button>
+              <button class="ghost" id="zhuyinToggle" type="button" aria-pressed="true">注音</button>
               <span class="status" id="sendStatus"></span>
             </div>
           </div>
@@ -172,7 +258,7 @@
               <div class="label">說明</div>
               <p class="sans" style="margin:0;font-size:14px;line-height:1.55;color:var(--muted)">對話進行時，這裡只摘要攔截結果。完整對照在「實驗證明」，家長紀錄在「家長檢視」。</p>
             </div>
-            <div class="card preview">
+            <div class="card preview side-redact">
               <div class="label">聯絡簿圖片遮碼</div>
               <p class="sans" style="margin:0 0 8px;font-size:13px;color:var(--muted)">文字個資走 Presidio + RapidOCR。同學的臉另外遮掉。上傳照片不會落到磁碟。</p>
               <div class="row" style="margin-top:0">
@@ -207,6 +293,7 @@
         <ul>
           <li><b>降低外洩面：</b> Google 端看不到真名、真電話、真身分證。</li>
           <li><b>不安全話題：</b> 色情、血腥暴力、恐怖驚嚇、自傷、毒品菸酒檳榔、仇恨言語、賭博會被攔住，不會送到 Gemini。</li>
+          <li class="lab-only"><b>對話生圖（測試頁）：</b> 說「畫」或「產生圖片」就會生圖。真人、同學、證件、廁所照會先攔截。天氣、植物、車子等一般主題會畫。</li>
           <li><b>功課引導：</b> 直接要標準答案時，會改成提示與反問，而不是把完整解答倒出來。</li>
         </ul>
       </div>
@@ -216,12 +303,12 @@
       <div class="panel prose">
         <h3>Pipeline：進站檢查，出站再還原</h3>
         <div class="flow">
-          <div class="step"><b>1. 兒童輸入</b><span>含台灣姓名、學校、電話、身分證、地址，以及信箱、卡號、護照等。</span></div>
+          <div class="step"><b>1. 兒童輸入</b><span class="stable-only">文字送出後先進閘道。</span><span class="lab-only">文字，加上可選的照片。有人臉只記數量，原圖不送進模型。</span></div>
           <div class="step"><b>2. 進站鏈</b><span>PII 代號化 → 內容安全 → 蘇格拉底 → 家長稽核。</span></div>
-          <div class="step"><b>3. Gemini</b><span>通過才呼叫。503 會重試與換模型；忙碌只顯示兒童看得懂的句子。</span></div>
+          <div class="step"><b>3. Gemini</b><span class="stable-only">通過才呼叫文字模型。</span><span class="lab-only">通過才呼叫。生圖走 flash-image（禁止真人）；允許的照片會先遮碼再當圖片送出。</span></div>
           <div class="step"><b>4. 出站鏈</b><span>再審一次 → 補引導問句 → 稽核 → 還原真名給兒童。</span></div>
         </div>
-        <p>Vault 今日是行程內記憶體，介面可換成 Redis。內容安全是台灣兒少不宜片語表，加上 Gemini 低門檻安全濾網；Presidio 只負責個資，不管分級。</p>
+        <p>Vault 今日是行程內記憶體，介面可換成 Redis。內容安全是台灣兒少不宜片語表，人像改圖要「有臉 + 改圖意圖」才額外攔截；Presidio 只負責個資，不管分級。</p>
       </div>
     </section>
 
@@ -253,15 +340,24 @@
     </section>
   </div>
   <script>
-    const sessionId = localStorage.getItem("ai-guard-session") || crypto.randomUUID();
-    localStorage.setItem("ai-guard-session", sessionId);
+    const isLab = document.documentElement.classList.contains("lab");
+    const SESSION_KEY = isLab ? "ai-guard-session-test" : "ai-guard-session";
+    const sessionId = localStorage.getItem(SESSION_KEY) || crypto.randomUUID();
+    localStorage.setItem(SESSION_KEY, sessionId);
+    if (isLab) document.title = "AI Guard Prototype · 測試頁";
     const chat = document.getElementById("chat");
     const input = document.getElementById("input");
     const send = document.getElementById("send");
     const sendStatus = document.getElementById("sendStatus");
     let busy = false;
     let lastText = "";
+    let lastImageFile = null;
+    let pendingFile = null;
+    let pendingThumbUrl = "";
     let pendingBubble = null;
+    const chatImage = document.getElementById("chatImage");
+    const chatImageLabel = document.getElementById("chatImageLabel");
+    const chatThumb = document.getElementById("chatThumb");
 
     function escapeHtml(value) {
       return String(value)
@@ -289,19 +385,128 @@
     const initial = (location.hash || "#chat").slice(1);
     if (VIEWS.includes(initial)) showView(initial);
 
-    function addBubble(role, text) {
+    const ZHUYIN_KEY = "ai-guard-zhuyin";
+    const zhuyinToggle = document.getElementById("zhuyinToggle");
+    function setZhuyin(on) {
+      document.documentElement.classList.toggle("zhuyin-off", !on);
+      zhuyinToggle.setAttribute("aria-pressed", on ? "true" : "false");
+      zhuyinToggle.textContent = on ? "注音（開）" : "注音（關）";
+      localStorage.setItem(ZHUYIN_KEY, on ? "1" : "0");
+    }
+    setZhuyin(localStorage.getItem(ZHUYIN_KEY) !== "0");
+    zhuyinToggle.addEventListener("click", () => {
+      setZhuyin(document.documentElement.classList.contains("zhuyin-off"));
+    });
+
+    function appendZhuyin(el, parts) {
+      (parts || []).forEach((part) => {
+        const text = part.text || "";
+        if (part.zhuyin) {
+          const ruby = document.createElement("ruby");
+          ruby.appendChild(document.createTextNode(text));
+          const rt = document.createElement("rt");
+          rt.textContent = part.zhuyin;
+          ruby.appendChild(rt);
+          el.appendChild(ruby);
+        } else {
+          el.appendChild(document.createTextNode(text));
+        }
+      });
+    }
+
+    function addPairCell(label, src) {
+      const cell = document.createElement("div");
+      const cap = document.createElement("span");
+      cap.className = "cap";
+      cap.textContent = label;
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = label;
+      cell.appendChild(cap);
+      cell.appendChild(img);
+      return cell;
+    }
+
+    function showRedactionOnBubble(el, originalUrl, redactedB64) {
+      el.querySelectorAll(".preview-img, .pair, .redact-note").forEach((node) => node.remove());
+      const note = document.createElement("div");
+      note.className = "redact-note";
+      note.style.marginTop = "8px";
+      note.style.fontSize = "13px";
+      note.textContent = "照片裡有臉或文字個資，已經先遮掉再給老師看。";
+      el.appendChild(note);
+      const pair = document.createElement("div");
+      pair.className = "pair";
+      if (originalUrl) pair.appendChild(addPairCell("遮碼前", originalUrl));
+      if (redactedB64) {
+        pair.appendChild(addPairCell("遮碼後", "data:image/png;base64," + redactedB64));
+      }
+      el.appendChild(pair);
+    }
+
+    function addBubble(role, text, extras) {
+      extras = extras || {};
+      if (typeof extras === "string") extras = { generated: extras };
       const el = document.createElement("div");
       el.className = "bubble " + role;
-      el.textContent = text;
+      if (extras.zhuyinParts && extras.zhuyinParts.length) {
+        appendZhuyin(el, extras.zhuyinParts);
+      } else if (text) {
+        el.appendChild(document.createTextNode(text));
+      }
+      if (role === "child" && extras.originalUrl) {
+        const img = document.createElement("img");
+        img.className = "preview-img";
+        img.src = extras.originalUrl;
+        img.alt = "附上的照片";
+        el.appendChild(img);
+      }
+      if (extras.generated) {
+        const img = document.createElement("img");
+        img.className = "preview-img";
+        img.src = "data:image/png;base64," + extras.generated;
+        img.alt = "生成的圖";
+        el.appendChild(img);
+      }
       chat.appendChild(el);
       chat.scrollTop = chat.scrollHeight;
       return el;
+    }
+
+    function updateChatImageLabel() {
+      const file = pendingFile;
+      if (pendingThumbUrl) URL.revokeObjectURL(pendingThumbUrl);
+      pendingThumbUrl = "";
+      if (file) {
+        chatImageLabel.textContent = "已附照片：" + file.name + "（允許時先遮臉再給老師看）";
+        pendingThumbUrl = URL.createObjectURL(file);
+        chatThumb.src = pendingThumbUrl;
+        chatThumb.hidden = false;
+      } else {
+        chatImageLabel.textContent = "可附照片。有姓名、臉等機敏資訊時，對話會顯示遮碼後的圖。";
+        chatThumb.removeAttribute("src");
+        chatThumb.hidden = true;
+      }
+    }
+
+    function assignChatFile(file) {
+      pendingFile = file;
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        chatImage.files = dt.files;
+      } catch (err) {
+        /* iOS Safari often blocks assigning input.files; pendingFile still submits. */
+      }
+      updateChatImageLabel();
     }
 
     function setBusy(on) {
       busy = on;
       send.disabled = on;
       input.disabled = on;
+      chatImage.disabled = on;
+      document.getElementById("clearChatImage").disabled = on;
       document.querySelectorAll(".chip").forEach((el) => { el.disabled = on; });
       send.textContent = on ? "老師正在想…" : "送出";
       sendStatus.textContent = on ? "已送出，請稍等。" : "";
@@ -325,6 +530,7 @@
         btn.textContent = "再試一次";
         btn.addEventListener("click", () => {
           input.value = lastText;
+          if (lastImageFile) assignChatFile(lastImageFile);
           submit();
         });
         el.appendChild(document.createElement("br"));
@@ -341,8 +547,8 @@
       document.getElementById("liveSummary").querySelector(".card").outerHTML = `
         <div class="card ${leak || blocked ? "danger" : "ok"}">
           <p class="stat">${blocked ? "攔截" : n}</p>
-          <div class="label">${blocked ? "內容安全已攔住，沒呼叫模型" : leak ? "偵測到外洩" : "本輪攔截個資"}</div>
-          <p class="sans" style="margin:8px 0 0;font-size:13px;color:var(--muted)">${escapeHtml(payload.llm_backend)} · ${escapeHtml(payload.llm_model)}</p>
+          <div class="label">${blocked ? (payload.block_category === "image_abuse" ? "人像改圖已攔住，沒呼叫模型" : "內容安全已攔住，沒呼叫模型") : leak ? "偵測到外洩" : "本輪攔截個資"}</div>
+          <p class="sans" style="margin:8px 0 0;font-size:13px;color:var(--muted)">${escapeHtml(payload.llm_backend)} · ${escapeHtml(payload.llm_model)}${payload.image_generated ? " · 已生成圖片" : payload.image_redacted ? " · 已遮碼附圖" : payload.had_image ? (payload.image_sent_to_llm ? " · 已送遮碼後的圖給老師" : " · 附圖未送出（攔截或讀不到）") : ""}</p>
         </div>`;
     }
 
@@ -369,7 +575,7 @@
       }
       const rows = data.turns.map((turn, index) => `
         <div class="card ${turn.pii_leaked_to_llm || turn.blocked ? "danger" : "ok"}" style="margin-bottom:12px">
-          <div class="label">第 ${index + 1} 輪 · ${turn.blocked ? "內容安全攔截（未呼叫 LLM）" : turn.pii_leaked_to_llm ? "失敗：個資出現在模型封包" : "通過：送給 LLM 的字串不含已偵測個資"} · ${escapeHtml(turn.llm_backend)}</div>
+          <div class="label">第 ${index + 1} 輪 · ${turn.blocked ? "內容安全攔截（未呼叫 LLM）" : turn.pii_leaked_to_llm ? "失敗：個資出現在模型封包" : "通過：送給 LLM 的字串不含已偵測個資"} · ${escapeHtml(turn.llm_backend)}${turn.image_sent_to_llm ? " · 已送遮碼圖" : turn.had_image ? " · 附圖未送出" : ""}</div>
           <div class="grid2">
             <div>
               <div class="label">小朋友原文</div>
@@ -441,18 +647,31 @@
     async function submit(textOverride) {
       const text = (textOverride || input.value).trim();
       if (!text || busy) return;
+      const file = pendingFile || (chatImage.files && chatImage.files[0]) || null;
       lastText = text;
-      addBubble("child", text);
+      lastImageFile = file || null;
+      const originalUrl = file ? URL.createObjectURL(file) : "";
+      const childBubble = addBubble("child", text, originalUrl ? { originalUrl } : {});
       input.value = "";
       if (pendingBubble) pendingBubble.remove();
       pendingBubble = addBubble("bot pending", "老師正在想…");
       setBusy(true);
       try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: sessionId, text }),
-        });
+        let res;
+        if (file) {
+          const body = new FormData();
+          body.append("session_id", sessionId);
+          body.append("text", text);
+          body.append("lab", isLab ? "true" : "false");
+          body.append("file", file, file.name);
+          res = await fetch("/api/chat-with-image", { method: "POST", body });
+        } else {
+          res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId, text, lab: isLab }),
+          });
+        }
         const data = await res.json().catch(() => ({}));
         if (pendingBubble) pendingBubble.remove();
         pendingBubble = null;
@@ -461,8 +680,18 @@
           addError(err.message || "這一次沒送成功，請再試一次。", Boolean(err.retryable));
           return;
         }
-        addBubble("bot", data.child_reply);
+        if (data.image_redacted && data.redacted_image_base64) {
+          showRedactionOnBubble(childBubble, originalUrl, data.redacted_image_base64);
+        }
+        addBubble("bot", data.child_reply, {
+          generated: data.generated_image_base64 || "",
+          zhuyinParts: data.zhuyin_parts || [],
+        });
         renderLive(data);
+        chatImage.value = "";
+        pendingFile = null;
+        lastImageFile = null;
+        updateChatImageLabel();
         const badge = document.getElementById("backendBadge");
         if (data.llm_backend === "gemini") {
           badge.className = "badge";
@@ -480,9 +709,56 @@
 
     document.querySelectorAll(".chip").forEach((btn) => {
       btn.addEventListener("click", () => {
-        input.value = btn.getAttribute("data-fill") || "";
+        const fill = btn.getAttribute("data-fill");
+        if (!fill) return;
+        input.value = fill;
         input.focus();
       });
+    });
+    document.getElementById("chipImageAbuse").addEventListener("click", async () => {
+      input.value = "我想要這個人上廁所的照片";
+      await attachNamedPhoto("/api/classmate-image", "classmate-nametag-portrait.png");
+      input.focus();
+    });
+    document.getElementById("chipImageAsk").addEventListener("click", async () => {
+      input.value = "這張照片裡還看不看得清楚名字？";
+      await attachNamedPhoto("/api/classmate-image", "classmate-nametag-portrait.png");
+      input.focus();
+    });
+    document.getElementById("chipClassmateRedact").addEventListener("click", async () => {
+      input.value = "這張同學名牌照上的名字還看不看得清楚？";
+      await attachNamedPhoto("/api/classmate-image", "classmate-nametag-portrait.png");
+      input.focus();
+    });
+    document.getElementById("chipContactBook").addEventListener("click", async () => {
+      input.value = "這張聯絡簿上的姓名和電話還看不看得清楚？";
+      await attachNamedPhoto("/api/demo-image", "contact-book.png");
+      input.focus();
+    });
+    document.getElementById("chipContactOcr").addEventListener("click", async () => {
+      input.value = "請遮掉這張聯絡簿照片上的文字個資。";
+      await attachNamedPhoto("/api/generated-image", "taiwan-contact-book-pii.png");
+      input.focus();
+    });
+    async function attachNamedPhoto(url, filename) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("demo image");
+        const blob = await res.blob();
+        assignChatFile(new File([blob], filename, { type: blob.type || "image/png" }));
+      } catch (err) {
+        chatImageLabel.textContent = "示範照片載入失敗，請改按「選擇照片」。";
+      }
+    }
+    chatImage.addEventListener("change", () => {
+      pendingFile = (chatImage.files && chatImage.files[0]) || null;
+      updateChatImageLabel();
+    });
+    document.getElementById("clearChatImage").addEventListener("click", () => {
+      chatImage.value = "";
+      pendingFile = null;
+      lastImageFile = null;
+      updateChatImageLabel();
     });
     send.addEventListener("click", () => submit());
     input.addEventListener("keydown", (event) => {
@@ -497,7 +773,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId }),
       });
-      localStorage.removeItem("ai-guard-session");
+      localStorage.removeItem(SESSION_KEY);
       location.hash = "chat";
       location.reload();
     });

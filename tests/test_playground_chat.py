@@ -52,7 +52,7 @@ def test_playground_treats_gemini_safety_block_as_child_turn() -> None:
     from safety_gateway.playground.llm import LlmPolicyBlockError
 
     class PolicyLlm(EchoLlm):
-        def complete(self, messages: list[dict[str, str]]) -> str:
+        def complete(self, messages: list[dict[str, str]], image_bytes: bytes | None = None) -> str:
             raise LlmPolicyBlockError()
 
     chat = PlaygroundChat(AISafetyGateway(vault=InMemorySessionVault()))

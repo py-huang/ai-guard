@@ -64,7 +64,19 @@ def test_failover_skips_missing_model_then_busy_raises_child_safe() -> None:
         raise AssertionError("expected LlmBusyError")
 
 
-def test_non_retryable_is_fatal_without_json_leak() -> None:
+def test_all_missing_models_are_fatal() -> None:
+    def generate(_model: str) -> str:
+        raise _Missing()
+
+    try:
+        complete_with_failover(
+            generate, models=("gone", "also-gone"), max_attempts=1, sleeper=lambda _: None
+        )
+    except LlmFatalError as exc:
+        assert exc.retryable is False
+        assert "404" not in child_safe_llm_message(exc)
+    else:
+        raise AssertionError("expected LlmFatalError")
     def generate(_model: str) -> str:
         raise _Auth()
 
@@ -75,6 +87,39 @@ def test_non_retryable_is_fatal_without_json_leak() -> None:
         assert "401" not in child_safe_llm_message(exc)
     else:
         raise AssertionError("expected LlmFatalError")
+
+
+class _ZeroQuota(RuntimeError):
+    def __str__(self) -> str:
+        return (
+            "429 RESOURCE_EXHAUSTED. Quota exceeded for metric: "
+            "generativelanguage.googleapis.com/generate_content_free_tier_requests, "
+            "limit: 0, model: gemini-3.1-flash-image"
+        )
+
+
+def test_zero_image_quota_fails_fast_without_retry() -> None:
+    from safety_gateway.playground.llm import LlmQuotaError
+
+    calls: list[str] = []
+
+    def generate(model: str) -> str:
+        calls.append(model)
+        raise _ZeroQuota()
+
+    try:
+        complete_with_failover(
+            generate,
+            models=("gemini-3.1-flash-lite-image", "gemini-2.5-flash-image"),
+            max_attempts=3,
+            sleeper=lambda _: None,
+        )
+    except LlmQuotaError as exc:
+        assert exc.retryable is False
+        assert "配額" in exc.child_message
+        assert calls == ["gemini-3.1-flash-lite-image"]
+    else:
+        raise AssertionError("expected LlmQuotaError")
 
 
 def test_policy_block_is_not_wrapped_as_busy_or_fatal() -> None:

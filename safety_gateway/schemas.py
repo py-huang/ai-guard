@@ -60,6 +60,8 @@ class SafetyProcessResult(StrictModel):
     blocked: bool = False
     block_category: str | None = None
     child_message: str | None = None
+    had_image: bool = False
+    faces_detected: int = Field(default=0, ge=0)
 
 
 class ImageRedactRequest(StrictModel):
