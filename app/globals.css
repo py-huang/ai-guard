@@ -133,3 +133,43 @@
     @apply font-sans;
   }
 }
+
+/* cmex-30/Bopomofo_on_Web — tone-mark font + W3C ruby
+   https://github.com/cmex-30/Bopomofo_on_Web */
+@font-face {
+  font-family: BopomofoRuby;
+  src: url("/fonts/BopomofoRuby1909-v1-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+html.zhuyin-on {
+  font-variant-east-asian: salt;
+  -moz-font-feature-settings: "salt";
+  -webkit-font-feature-settings: "salt";
+  font-feature-settings: "salt";
+}
+
+html.zhuyin-on ruby {
+  ruby-align: center;
+  padding-right: 5px;
+  ruby-position: over;
+}
+
+@supports (ruby-position: inter-character) {
+  html.zhuyin-on ruby {
+    ruby-position: inter-character;
+  }
+}
+
+html.zhuyin-on rt {
+  font-family: BopomofoRuby, var(--font-noto-sans-tc), sans-serif;
+  font-size: 30%;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+  ruby-align: center;
+  text-align: center;
+  text-orientation: upright;
+}

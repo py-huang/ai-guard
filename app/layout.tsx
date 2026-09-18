@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_TC } from "next/font/google";
 
 import { WritingStoreProvider } from "@/store/writing-store";
-
+import { ReadingAssistProvider } from "@/components/reading-assist-provider";
 import "./globals.css";
 
 const notoSansTc = Noto_Sans_TC({
@@ -22,7 +22,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${notoSansTc.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <WritingStoreProvider>{children}</WritingStoreProvider>
+        <ReadingAssistProvider>
+          <WritingStoreProvider>{children}</WritingStoreProvider>
+        </ReadingAssistProvider>
       </body>
     </html>
   );

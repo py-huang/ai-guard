@@ -1,0 +1,5 @@
+BopomofoRuby1909-v1-Regular.ttf
+Copyright (c) 2018, But Ko (buttaiwan@gmail.com).
+Source: https://github.com/cmex-30/Bopomofo_on_Web
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+See https://scripts.sil.org/OFL

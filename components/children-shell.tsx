@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
+import { ReadingAssistToggle } from "@/components/reading-assist-toggle";
+import { ZhuyinScope } from "@/components/zhuyin-scope";
 import { cn } from "@/lib/utils";
 
 type PageName = "探索首頁" | "探索主題" | "對話紀錄" | "AI 安全小幫手";
@@ -61,16 +63,14 @@ export function ChildrenShell({
         </Link>
 
         <div className="flex h-12 shrink-0 items-center gap-4">
-          <button className="hidden h-[34px] w-[92px] rounded-[17px] bg-[#ecf6ff] text-xs font-medium text-[#25324a] sm:block">
-            閱讀輔助
-          </button>
+          <ReadingAssistToggle />
           <button className="grid h-12 w-[46px] place-items-center rounded-[22px] bg-[#dceeff] text-[15px] font-bold text-[#25324a]">
             {accountName.slice(0, 1)}
           </button>
         </div>
       </header>
 
-      <div className="flex min-h-[calc(100dvh-72px)]">
+      <ZhuyinScope className="flex min-h-[calc(100dvh-72px)]">
         <aside className="hidden w-[220px] shrink-0 flex-col bg-white px-4 pt-6 pb-7 lg:flex">
           <Link
             className="flex h-12 w-[180px] self-center items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#bd2e2c]"
@@ -132,7 +132,7 @@ export function ChildrenShell({
         </aside>
 
         <main className="min-w-0 flex-1 bg-[#fffcf7]">{children}</main>
-      </div>
+      </ZhuyinScope>
     </div>
   );
 }
