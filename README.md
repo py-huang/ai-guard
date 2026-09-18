@@ -16,13 +16,26 @@
 
 ```mermaid
 graph LR
-    User["User"] --> ChatPage["Chat Page"]
-    User --> VoicePage["Voice Page"]
-    ChatPage --> ChatAPI["/api/chat"]
-    VoicePage --> VoiceAPI["/api/realtime"]
+    User["User"] --> Page["Page"]
+    Page --> ChatAPI["/api/chat"]
+    Page --> VoiceAPI["/api/realtime"]
     ChatAPI --> Model["AI Model\nPII + Content Filter"]
     VoiceAPI --> Model
 ```
+
+### 頁面路由
+
+| 路由 | 類型 | 用途 |
+|------|------|------|
+| `/` | 靜態 | 探索首頁 |
+| `/theme` | 靜態 | 探索主題 |
+| `/theme/[slug]` | 動態 | 個別探索主題頁面 |
+| `/history` | 靜態 | 對話紀錄 |
+| `/chat` | 靜態 | 建立新對話 |
+| `/chat/[slug]` | 動態 | 指定對話頁面 |
+| `/safety` | 靜態 | AI 安全小幫手 |
+| `/safety/[slug]` | 動態 | 個別 AI 安全主題頁面 |
+| `/parent` | 靜態 | 家長頁面（尚待實作） |
 
 ### API 規格
 

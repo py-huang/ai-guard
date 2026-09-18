@@ -1,20 +1,13 @@
-"use client";
-
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 
-import { AiHelper } from "@/components/pages/ai-helper";
-import { Chat } from "@/components/pages/chat";
-import { ChatHistory } from "@/components/pages/chat-history";
-import { DiscoverHome } from "@/components/pages/discover-home";
-import { DiscoverTheme } from "@/components/pages/discover-theme";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type PageName = "探索首頁" | "探索主題" | "對話紀錄" | "AI 安全小幫手";
 
 type NavigationItem = {
   label: PageName;
+  href: string;
   iconSrc: string;
   activeIconSrc: string;
 };
@@ -22,34 +15,31 @@ type NavigationItem = {
 const navigationItems: NavigationItem[] = [
   {
     label: "探索首頁",
+    href: "/",
     iconSrc: "/navigation/sidebar-home.svg",
     activeIconSrc: "/navigation/sidebar-home-active.svg",
   },
   {
     label: "探索主題",
+    href: "/theme",
     iconSrc: "/navigation/sidebar-explore.svg",
     activeIconSrc: "/navigation/sidebar-explore-active.svg",
   },
   {
     label: "對話紀錄",
+    href: "/history",
     iconSrc: "/navigation/sidebar-history.svg",
     activeIconSrc: "/navigation/sidebar-history-active.svg",
   },
   {
     label: "AI 安全小幫手",
+    href: "/safety",
     iconSrc: "/navigation/sidebar-safety.svg",
     activeIconSrc: "/navigation/sidebar-safety-active.svg",
   },
 ];
 
 const recentConversations = ["恐龍為什麼會滅絕？", "夏天作文怎麼開始？"];
-
-const pageComponents = {
-  探索首頁: DiscoverHome,
-  探索主題: DiscoverTheme,
-  對話紀錄: ChatHistory,
-  "AI 安全小幫手": AiHelper,
-};
 
 type ChildrenShellProps = {
   children?: ReactNode;
@@ -62,10 +52,6 @@ export function ChildrenShell({
   activeItem = "探索首頁",
   accountName = "小小",
 }: ChildrenShellProps) {
-  const [selectedItem, setSelectedItem] = useState<PageName | null>(activeItem);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const ActivePage = selectedItem ? pageComponents[selectedItem] : null;
-
   return (
     <div className="min-h-dvh bg-[#fffcf7] text-[#13221b]">
       <header className="flex h-[72px] items-center justify-between bg-white px-4 py-[10px] sm:pl-6 sm:pr-8 sm:pt-[14px] xl:pr-[130px]">
@@ -86,36 +72,28 @@ export function ChildrenShell({
 
       <div className="flex min-h-[calc(100dvh-72px)]">
         <aside className="hidden w-[220px] shrink-0 flex-col bg-white px-4 pt-6 pb-7 lg:flex">
-          <Button
-            className="h-12 w-[180px] self-center rounded-2xl bg-[#d63a37] px-4 text-[15px] hover:bg-[#bd2e2c]"
-            onClick={() => {
-              setSelectedItem(null);
-              setIsChatOpen(true);
-            }}
-            size="lg"
+          <Link
+            className="flex h-12 w-[180px] self-center items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#bd2e2c]"
+            href="/chat"
           >
             <img className="size-5" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
             新對話
-          </Button>
+          </Link>
 
           <nav className="mt-4" aria-label="主要導覽">
-            {navigationItems.map(({ label, iconSrc, activeIconSrc }) => {
-              const isActive = selectedItem === label;
+            {navigationItems.map(({ label, href, iconSrc, activeIconSrc }) => {
+              const isActive = activeItem === label;
 
               return (
-                <button
+                <Link
                   className={cn(
                     "flex h-14 w-[188px] items-center rounded-2xl text-left text-lg font-medium tracking-[0.1px] transition-colors",
                     isActive
                       ? "bg-[#f4f0ff] text-[#13221b]"
                       : "text-[#506058] hover:bg-[#f7f8f7]"
                   )}
+                  href={href}
                   key={label}
-                  onClick={() => {
-                    setSelectedItem(label);
-                    setIsChatOpen(false);
-                  }}
-                  type="button"
                 >
                   <span className="grid size-14 shrink-0 place-items-center overflow-hidden">
                     <img
@@ -130,7 +108,7 @@ export function ChildrenShell({
                     />
                   </span>
                   {label}
-                </button>
+                </Link>
               );
             })}
           </nav>
@@ -153,7 +131,7 @@ export function ChildrenShell({
           <p className="mt-auto text-base font-medium text-[#8a968f]">低年級模式 · 7 歲</p>
         </aside>
 
-        <main className="min-w-0 flex-1 bg-[#fffcf7]">{children ?? (isChatOpen ? <Chat /> : ActivePage && <ActivePage />)}</main>
+        <main className="min-w-0 flex-1 bg-[#fffcf7]">{children}</main>
       </div>
     </div>
   );
