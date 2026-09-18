@@ -1,5 +1,5 @@
-import { AppShell } from "@/components/app-shell";
+import { ChildrenShell } from "@/components/children-shell";
 
 export default function Home() {
-  return <AppShell />;
+  return <ChildrenShell />;
 }
