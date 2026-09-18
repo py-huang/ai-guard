@@ -1,9 +1,10 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { useWritingStore } from "@/components/writing-store";
+import { useWritingStore } from "@/store/writing-store";
 import type { GenerateWritingResponse } from "@/lib/writing";
 
 type Topic = {
@@ -42,7 +43,6 @@ const topics: Topic[] = [
 
 export function DiscoverTheme() {
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
-  const [writingSubject, setWritingSubject] = useState("");
   const [writingError, setWritingError] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
@@ -78,11 +78,6 @@ export function DiscoverTheme() {
     } finally {
       setIsGenerating(false);
     }
-  }
-
-  function submitWritingSubject(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void startWriting(writingSubject);
   }
 
   return (
@@ -125,22 +120,16 @@ export function DiscoverTheme() {
 
       <div className="mt-8 flex max-w-[1064px] flex-wrap items-center justify-between gap-4 lg:mt-8">
         <div>
-          <p className="text-[13px] leading-5 text-[#506058]">有自己的寫作題目嗎？從一個回憶開始。</p>
+          <p className="text-[13px] leading-5 text-[#506058]">找不到想問的？直接開始一個新問題。</p>
           {writingError ? <p className="mt-1 text-[13px] text-[#c02d32]">{writingError}</p> : null}
         </div>
-        <form className="flex h-12 w-full max-w-[440px] items-center gap-2 rounded-2xl border border-[#dde3df] bg-white p-1.5 sm:w-[440px]" onSubmit={submitWritingSubject}>
-          <label className="sr-only" htmlFor="writing-subject">想寫的主題</label>
-          <input
-            id="writing-subject"
-            className="min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-[#8a968f]"
-            value={writingSubject}
-            onChange={(event) => setWritingSubject(event.target.value)}
-            placeholder="例如：暑假回憶"
-          />
-          <button className="h-9 shrink-0 rounded-xl bg-[#d63a37] px-3 text-sm font-medium text-white hover:bg-[#bd2e2c] disabled:opacity-50" disabled={isGenerating} type="submit">
-            {isGenerating ? "準備中" : "開始寫作"}
-          </button>
-        </form>
+        <Link
+          aria-label="問自己的問題"
+          className="h-12 overflow-hidden rounded-2xl transition-[filter] hover:brightness-[.875] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
+          href="/chat"
+        >
+          <img className="block h-12 w-auto" src="/discover/explore-ask.svg" alt="" aria-hidden="true" />
+        </Link>
       </div>
     </section>
   );

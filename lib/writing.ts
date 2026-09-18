@@ -1,3 +1,8 @@
+import "server-only";
+
+import { generateGeminiText } from "@/lib/gemini";
+import { getWritingSystemPrompt } from "./writing-prompts";
+
 export type WritingMessageRole = "assistant" | "user";
 
 export type WritingMessage = {
@@ -28,28 +33,29 @@ export type GenerateWritingResponse = {
   init_question: string;
 };
 
-export function getWritingSystemPrompt(mode: "chat" | "summarize") {
-  if (mode === "summarize") {
-    return "你是低年級孩子的寫作小幫手。根據本階段對話，用繁體中文寫出一句具體、精簡的作文重點。";
+export async function generateWritingPlan(subject: string) {
+  const text = await generateGeminiText({
+    messages: [
+      { role: "system", content: getWritingSystemPrompt("chat") },
+      { role: "user", content: `為題目「${subject}」建立引導寫作計畫。只回傳 JSON：{"steps":[string,string,string,string,string],"outline":[{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""}],"init_question":string}。steps 必須依序引導主題、地點、細節、想法、結尾；每個字串簡短；init_question 只能問一個問題。` },
+    ],
+    responseMimeType: "application/json",
+  });
+  const result = JSON.parse(text) as Partial<Pick<GenerateWritingResponse, "steps" | "outline" | "init_question">>;
+
+  if (!Array.isArray(result.steps) || result.steps.length !== 5 || !result.steps.every((step) => typeof step === "string") || !Array.isArray(result.outline) || result.outline.length !== 5 || !result.outline.every((item) => typeof item?.stage === "string") || typeof result.init_question !== "string") {
+    throw new Error("Gemini returned an invalid writing plan.");
   }
 
-  return "你是低年級孩子的寫作小幫手。一次只問一個簡單問題，用繁體中文鼓勵孩子說出自己的經驗，不代寫整篇作文。";
+  return { steps: result.steps, outline: result.outline.map((item) => ({ stage: item.stage, content: "" })), init_question: result.init_question };
 }
 
-export function getMockWritingPlan(subject: string) {
-  return {
-    steps: [`選一件${subject}`, "說出地點", "補充細節", "分享想法", "寫下結尾"],
-    outline: ["開頭", "經過", "細節", "想法", "結尾"].map((stage) => ({ stage, content: "" })),
-  };
-}
-
-export function getMockAssistantReply(userMessage: string, stage: string) {
-  const trimmedMessage = userMessage.trim();
-  return `你說「${trimmedMessage}」很棒！關於「${stage}」，還想補充一個小細節嗎？`;
-}
-
-export function getMockStageSummary(messages: WritingMessage[]) {
-  const userMessages = messages.filter((message) => message.role === "user" && message.content.trim());
-  const latestMessage = userMessages.at(-1)?.content.trim();
-  return latestMessage ? latestMessage.slice(0, 60) : "還沒有寫下這一段的內容。";
+export async function summarizeWritingStage(stage: string, messages: WritingMessage[]) {
+  return generateGeminiText({
+    messages: [
+      { role: "system", content: getWritingSystemPrompt("summarize") },
+      ...messages.map((message) => ({ role: message.role, content: message.content })),
+      { role: "user", content: `目前階段：${stage}。只輸出摘要內容，不要加標題、引號或說明。` },
+    ],
+  });
 }

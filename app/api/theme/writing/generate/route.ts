@@ -1,4 +1,4 @@
-import { getMockWritingPlan, getWritingSystemPrompt, type GenerateWritingResponse } from "@/lib/writing";
+import { generateWritingPlan, type GenerateWritingResponse } from "@/lib/writing";
 
 type GenerateRequest = {
   input?: unknown;
@@ -12,16 +12,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "請輸入想寫的主題。" }, { status: 400 });
   }
 
-  const plan = getMockWritingPlan(input);
-  const response: GenerateWritingResponse = {
-    ...plan,
-    theme: "writing",
-    theme_id: crypto.randomUUID(),
-    init_question: input.includes("暑假")
-      ? "暑假裡最想寫哪一件事？一次只做一步。"
-      : `關於「${input}」，最想寫哪一件事？一次只做一步。`,
-  };
+  try {
+    const plan = await generateWritingPlan(input);
+    const response: GenerateWritingResponse = {
+      ...plan,
+      theme: "writing",
+      theme_id: crypto.randomUUID(),
+    };
 
-  getWritingSystemPrompt("chat");
-  return Response.json(response);
+    return Response.json(response);
+  } catch (error) {
+    console.error("Writing plan generation failed", error);
+    return Response.json({ error: "暫時無法建立寫作計畫。" }, { status: 502 });
+  }
 }

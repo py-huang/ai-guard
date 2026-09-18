@@ -1,4 +1,4 @@
-import { getMockStageSummary, getWritingSystemPrompt, type WritingMessage } from "@/lib/writing";
+import { summarizeWritingStage, type WritingMessage } from "@/lib/writing";
 
 type SummarizeRequest = {
   stage?: unknown;
@@ -24,6 +24,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "請先完成這一步的對話。" }, { status: 400 });
   }
 
-  getWritingSystemPrompt("summarize");
-  return Response.json({ content: getMockStageSummary(messages) });
+  try {
+    return Response.json({ content: await summarizeWritingStage(stage, messages) });
+  } catch (error) {
+    console.error("Writing stage summary failed", error);
+    return Response.json({ error: "暫時無法整理這一步。" }, { status: 502 });
+  }
 }

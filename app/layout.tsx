@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_TC } from "next/font/google";
 
-import { WritingStoreProvider } from "@/components/writing-store";
+import { WritingStoreProvider } from "@/store/writing-store";
 
 import "./globals.css";
 

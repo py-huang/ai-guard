@@ -4,7 +4,8 @@ import { type FormEvent, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Send } from "lucide-react";
 
-import { useWritingStore } from "@/components/writing-store";
+import { useWritingStore } from "@/store/writing-store";
+import { getWritingSystemPrompt } from "../../lib/writing-prompts";
 import type { WritingMessage } from "@/lib/writing";
 
 type WritingWorkspaceProps = {
@@ -57,15 +58,21 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
       const response = await fetch("/api/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: "writing", stageIndex, stage: stage.stage, messages: requestMessages }),
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: `${getWritingSystemPrompt("chat")}\n目前寫作階段：${stage.stage}\n請直接回覆孩子下一句引導問題，不要加上角色名稱。` },
+            ...requestMessages.map(({ role, content: messageContent }) => ({ role, content: messageContent })),
+          ],
+        }),
       });
-      const data = (await response.json()) as { message?: WritingMessage; error?: string };
+      const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }>; error?: string };
+      const assistantContent = data.choices?.[0]?.message?.content;
 
-      if (!response.ok || !data.message) {
+      if (!response.ok || !assistantContent) {
         throw new Error(data.error ?? "暫時無法回覆。 ");
       }
 
-      appendMessage(activeDraft.id, data.message);
+      appendMessage(activeDraft.id, { role: "assistant", content: assistantContent, stageIndex });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "暫時無法回覆。 ");
     } finally {

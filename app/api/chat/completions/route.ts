@@ -1,33 +1,35 @@
-import { getMockAssistantReply, getWritingSystemPrompt, type WritingMessage } from "@/lib/writing";
+import { generateGeminiText, type GeminiChatMessage } from "@/lib/gemini";
 
 type ChatCompletionRequest = {
-  theme?: unknown;
-  stageIndex?: unknown;
-  stage?: unknown;
+  temperature?: unknown;
   messages?: unknown;
 };
 
-function isWritingMessage(value: unknown): value is WritingMessage {
+function isChatMessage(value: unknown): value is GeminiChatMessage {
   if (!value || typeof value !== "object") {
     return false;
   }
 
-  const message = value as Partial<WritingMessage>;
-  return (message.role === "assistant" || message.role === "user") && typeof message.content === "string" && typeof message.stageIndex === "number";
+  const message = value as Partial<GeminiChatMessage>;
+  return (message.role === "system" || message.role === "assistant" || message.role === "user") && typeof message.content === "string" && Boolean(message.content.trim());
 }
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as ChatCompletionRequest | null;
-  const messages = Array.isArray(body?.messages) ? body.messages.filter(isWritingMessage) : [];
-  const stage = typeof body?.stage === "string" ? body.stage.trim() : "";
-  const lastUserMessage = messages.findLast((message) => message.role === "user" && message.content.trim());
+  const messages = Array.isArray(body?.messages) ? body.messages.filter(isChatMessage) : [];
+  const hasUserMessage = messages.some((message) => message.role === "user");
+  const temperature = typeof body?.temperature === "number" && body.temperature >= 0 && body.temperature <= 2 ? body.temperature : undefined;
 
-  if (body?.theme !== "writing" || typeof body?.stageIndex !== "number" || !stage || !lastUserMessage) {
+  if (!hasUserMessage) {
     return Response.json({ error: "對話資料不完整。" }, { status: 400 });
   }
 
-  const content = getMockAssistantReply(lastUserMessage.content, stage);
-  getWritingSystemPrompt("chat");
+  try {
+    const content = await generateGeminiText({ messages, temperature });
 
-  return Response.json({ message: { role: "assistant", content, stageIndex: body.stageIndex } satisfies WritingMessage });
+    return Response.json({ choices: [{ message: { role: "assistant", content } }] });
+  } catch (error) {
+    console.error("Chat completion failed", error);
+    return Response.json({ error: "暫時無法回覆。" }, { status: 502 });
+  }
 }

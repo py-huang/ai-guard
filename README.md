@@ -9,7 +9,7 @@
 * 語言: `TypeScript`
 * 狀態管理: `React Context`
 * UI 元件庫: `Shadcn UI`
-* 外部服務: 暫定無
+* 外部服務: Google Gemini API
 * 部署平台: 暫定本機執行，透過 Cloudflare Tunnel 提供對外服務
 
 ## 架構
@@ -57,8 +57,11 @@ graph LR
 
 ```bash
 pnpm install
+copy .env.example .env.local
 pnpm dev
 ```
+
+在 `.env.local` 設定 Google AI Studio 的 `GEMINI_API_KEY` 與要使用的 `GEMINI_MODEL`。金鑰與模型設定只會由 Next.js 的伺服器端 Route Handlers 使用，不會傳送到瀏覽器。
 
 * URL: [http://localhost:3000](http://localhost:3000)
 
