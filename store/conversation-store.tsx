@@ -26,6 +26,40 @@ function createConversationId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function withoutStoredImages(conversations: Conversation[]): Conversation[] {
+  return conversations.map((conversation) => ({
+    ...conversation,
+    messages: conversation.messages.map((message) => {
+      if (!message.imagePreview) {
+        return message;
+      }
+
+      const { imagePreview: _imagePreview, ...rest } = message;
+      return { ...rest, hasImage: true };
+    }),
+  }));
+}
+
+function persistConversations(conversations: Conversation[]) {
+  const payload = withoutStoredImages(conversations);
+
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    return;
+  } catch {
+    const trimmed = payload.slice(0, 20).map((conversation) => ({
+      ...conversation,
+      messages: conversation.messages.slice(-30),
+    }));
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    } catch {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+}
+
 function readStoredConversations(): Conversation[] {
   if (typeof window === "undefined") {
     return [];
@@ -39,16 +73,18 @@ function readStoredConversations(): Conversation[] {
     }
 
     const seen = new Set<string>();
-    return parsed
-      .filter((conversation) => conversation && typeof conversation.id === "string" && typeof conversation.title === "string" && Array.isArray(conversation.messages))
-      .map((conversation) => {
-        if (seen.has(conversation.id)) {
-          return { ...conversation, id: createConversationId() };
-        }
+    return withoutStoredImages(
+      parsed
+        .filter((conversation) => conversation && typeof conversation.id === "string" && typeof conversation.title === "string" && Array.isArray(conversation.messages))
+        .map((conversation) => {
+          if (seen.has(conversation.id)) {
+            return { ...conversation, id: createConversationId() };
+          }
 
-        seen.add(conversation.id);
-        return conversation;
-      });
+          seen.add(conversation.id);
+          return conversation;
+        }),
+    );
   } catch {
     return [];
   }
@@ -68,7 +104,7 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    persistConversations(conversations);
   }, [conversations, ready]);
 
   const createConversation = useCallback((title: string, firstMessage?: ConversationMessage) => {

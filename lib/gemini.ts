@@ -20,6 +20,7 @@ type GenerateGeminiTextOptions = {
   messages: GeminiChatMessage[];
   responseMimeType?: "application/json";
   temperature?: number;
+  image?: { mimeType: string; data: string };
 };
 
 function getGeminiClient() {
@@ -42,17 +43,24 @@ function getGeminiModel() {
   return model;
 }
 
-export async function generateGeminiText({ messages, responseMimeType, temperature }: GenerateGeminiTextOptions) {
+export async function generateGeminiText({ messages, responseMimeType, temperature, image }: GenerateGeminiTextOptions) {
   const systemInstruction = messages
     .filter((message) => message.role === "system")
     .map((message) => message.content)
     .join("\n\n");
   const contents = messages
     .filter((message) => message.role !== "system")
-    .map((message) => ({
-      role: message.role === "assistant" ? "model" : "user",
-      parts: [{ text: message.content }],
-    }));
+    .map((message, index, list) => {
+      const isLastUser = message.role === "user" && index === list.length - 1;
+      const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: message.content }];
+      if (isLastUser && image?.data) {
+        parts.push({ inlineData: { mimeType: image.mimeType || "image/png", data: image.data } });
+      }
+      return {
+        role: message.role === "assistant" ? "model" : "user",
+        parts,
+      };
+    });
 
   if (!contents.length) {
     throw new Error("At least one user or assistant message is required.");

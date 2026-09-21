@@ -4,6 +4,7 @@ export type ConversationMessage = {
   protected?: boolean;
   blocked?: boolean;
   hasImage?: boolean;
+  imagePreview?: string;
 };
 
 export type Conversation = {

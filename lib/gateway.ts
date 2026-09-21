@@ -46,3 +46,24 @@ export async function inspectWithGateway(sessionId: string, text: string): Promi
 
   return (await response.json()) as GatewayInspectResult;
 }
+
+export async function redactImageWithGateway(sessionId: string, file: Blob): Promise<Buffer> {
+  const body = new FormData();
+  body.append("file", file, "upload.png");
+
+  const response = await fetch(`${getSafetyGatewayUrl()}/api/redact-image?session_id=${encodeURIComponent(sessionId)}`, {
+    method: "POST",
+    body,
+    cache: "no-store",
+  }).catch(() => null);
+
+  if (!response) {
+    throw new GatewayUnavailableError();
+  }
+
+  if (!response.ok) {
+    throw new GatewayUnavailableError();
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}

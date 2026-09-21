@@ -12,12 +12,14 @@ import { useConversationStore } from "@/store/conversation-store";
 import type { ConversationMessage } from "@/types/conversation";
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { MarkdownMessage } from "@/components/markdown-message";
+import { ImageReviewCard } from "@/components/pages/image-review-card";
 import {
   ParentApprovedCard,
   ParentPendingCard,
   PiiDetectedCard,
   PiiRewriteCard,
 } from "@/components/pages/pii-guard-cards";
+import { pngDataUrl, redactImage } from "@/lib/safety-redact";
 
 type GuardState = "none" | "detected" | "rewritten" | "parent-pending" | "parent-approved" | "image-review";
 
@@ -40,8 +42,26 @@ export function Chat({ conversationId }: ChatProps) {
   const [imageName, setImageName] = useState("");
   const [imageScanning, setImageScanning] = useState(false);
   const [llmPrompt, setLlmPrompt] = useState("");
+  const [originalImageUrl, setOriginalImageUrl] = useState("");
+  const [redactedImageUrl, setRedactedImageUrl] = useState("");
+  const [redactedImageBase64, setRedactedImageBase64] = useState("");
+  const [imageChanged, setImageChanged] = useState(false);
 
   const started = useRef(false);
+
+  function clearImage() {
+    if (originalImageUrl) {
+      URL.revokeObjectURL(originalImageUrl);
+    }
+    setImageName("");
+    setOriginalImageUrl("");
+    setRedactedImageUrl("");
+    setRedactedImageBase64("");
+    setImageChanged(false);
+    if (fileRef.current) {
+      fileRef.current.value = "";
+    }
+  }
 
   useEffect(() => {
     if (!ready || conversationId || started.current || typeof window === "undefined") {
@@ -68,17 +88,22 @@ export function Chat({ conversationId }: ChatProps) {
     void startGuard(pending);
   }, [conversation?.id, ready]);
 
-  async function sendSafeText(text: string, options?: { protected?: boolean; hasImage?: boolean; llmText?: string }) {
+  async function sendSafeText(
+    text: string,
+    options?: { protected?: boolean; hasImage?: boolean; llmText?: string; imageBase64?: string; imagePreview?: string },
+  ) {
     if (!conversation) {
       return;
     }
 
     const promptForModel = options?.llmText?.trim() || llmPrompt.trim() || text;
+    const imageBase64 = options?.imageBase64 || redactedImageBase64;
     const userMessage: ConversationMessage = {
       role: "user",
       content: text,
       protected: options?.protected,
-      hasImage: options?.hasImage,
+      hasImage: options?.hasImage || Boolean(imageBase64),
+      imagePreview: options?.imagePreview || (imageBase64 ? pngDataUrl(imageBase64) : undefined),
     };
     appendMessage(conversation.id, userMessage);
     if (conversation.title === "新對話") {
@@ -89,6 +114,7 @@ export function Chat({ conversationId }: ChatProps) {
     setPreview(null);
     setRawDraft("");
     setLlmPrompt("");
+    clearImage();
     setBusy(true);
     setError("");
 
@@ -116,6 +142,7 @@ export function Chat({ conversationId }: ChatProps) {
             },
             ...history,
           ],
+          ...(imageBase64 ? { image: { mimeType: "image/png", data: imageBase64 } } : {}),
         }),
       });
       const data = (await response.json()) as { choices?: { message?: { content?: string } }[]; error?: string };
@@ -152,7 +179,11 @@ export function Chat({ conversationId }: ChatProps) {
       }
 
       if (result.hits.length === 0) {
-        await sendSafeText(text, { hasImage: Boolean(imageName), llmText: result.processedText });
+        await sendSafeText(text, {
+          hasImage: Boolean(redactedImageBase64),
+          llmText: result.processedText,
+          imageBase64: redactedImageBase64 || undefined,
+        });
         return;
       }
 
@@ -176,16 +207,34 @@ export function Chat({ conversationId }: ChatProps) {
     void startGuard(text);
   }
 
-  function onPickImage(file: File | undefined) {
-    if (!file) {
+  async function onPickImage(file: File | undefined) {
+    if (!file || !conversation) {
       return;
     }
+
+    if (originalImageUrl) {
+      URL.revokeObjectURL(originalImageUrl);
+    }
+
+    const previewUrl = URL.createObjectURL(file);
     setImageName(file.name);
+    setOriginalImageUrl(previewUrl);
     setImageScanning(true);
-    window.setTimeout(() => {
-      setImageScanning(false);
+    setError("");
+    try {
+      const result = await redactImage(conversation.id, file);
+      setRedactedImageBase64(result.redactedPngBase64);
+      setRedactedImageUrl(pngDataUrl(result.redactedPngBase64));
+      setImageChanged(result.changed);
       setGuard("image-review");
-    }, 900);
+    } catch (redactError) {
+      URL.revokeObjectURL(previewUrl);
+      setOriginalImageUrl("");
+      setImageName("");
+      setError(redactError instanceof Error ? redactError.message : "現在沒辦法檢查這張圖片。");
+    } finally {
+      setImageScanning(false);
+    }
   }
 
   if (!ready || !conversation) {
@@ -209,6 +258,11 @@ export function Chat({ conversationId }: ChatProps) {
             message.role === "user" ? (
               <div className="ml-auto max-w-[520px] rounded-[24px] bg-[#eee6ff] px-5 py-4" key={`${message.content}-${index}`}>
                 {message.protected ? <p className="mb-2 inline-flex rounded-full bg-[#177049] px-3 py-1 text-xs text-white">已保護</p> : null}
+                {message.imagePreview ? (
+                  <img alt="" className="mb-3 max-h-40 w-full rounded-[16px] object-contain" src={message.imagePreview} />
+                ) : message.hasImage ? (
+                  <p className="mb-2 rounded-[16px] bg-white/70 px-3 py-2 text-sm text-[#177049]">已用安全圖片（紀錄不保存原圖）</p>
+                ) : null}
                 <p className="text-[17px] leading-8">{message.content}</p>
               </div>
             ) : (
@@ -226,57 +280,24 @@ export function Chat({ conversationId }: ChatProps) {
             )
           )}
 
-          {imageScanning ? <p className="rounded-[24px] bg-[#fff7e8] px-5 py-4">正在檢查圖片裡的臉與文字…原始圖片不會存進對話紀錄。</p> : null}
+          {imageScanning ? <p className="rounded-[24px] bg-[#fff7e8] px-5 py-4">正在檢查{imageName ? `「${imageName}」` : "圖片"}裡的臉與文字…原始圖片不會存進對話紀錄。</p> : null}
 
-          {guard === "image-review" ? (
-            <section className="rounded-[28px] bg-white p-6 shadow-[0_8px_30px_rgba(20,33,26,0.04)]">
-              <h2 className="text-[22px] font-bold">這張圖片裡有一些可以先藏起來的資料</h2>
-              <p className="mt-2 text-sm text-[#506058]">這張圖片可以使用，但會先移除不需要提供給 AI 的欄位。</p>
-              <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-center">
-                <div className="rounded-[22px] border border-[#dde3df] p-4">
-                  <p className="text-sm text-[#c02d32]">原始圖片 · 不會送出</p>
-                  <p className="mt-3 font-bold">已選擇：{imageName || "圖片"}</p>
-                  <p className="mt-2 text-sm text-[#8a968f]">姓名、電話、學校會先塗黑。</p>
-                </div>
-                <p className="text-center text-[#8a968f]">→</p>
-                <div className="rounded-[22px] border border-[#dde3df] bg-[#ecf9f3] p-4">
-                  <p className="text-sm text-[#177049]">安全版本 · 可送出</p>
-                  <div className="mt-4 space-y-2">
-                    <p className="h-8 rounded-lg bg-[#cfe8da]" />
-                    <p className="h-8 w-2/3 rounded-lg bg-[#cfe8da]" />
-                    <p className="h-8 w-1/2 rounded-lg bg-[#cfe8da]" />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  className="h-12 rounded-full bg-[#d63a37] px-5 text-white"
-                  onClick={() => {
-                    const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
-                    void sendSafeText(text, { protected: true, hasImage: true });
-                    setImageName("");
-                  }}
-                  type="button"
-                >
-                  使用安全圖片
-                </button>
-                <button className="h-12 rounded-full border border-[#d63a37] px-5 text-[#d63a37]" onClick={() => setGuard("parent-pending")} type="button">
-                  送給家長看
-                </button>
-                <button
-                  className="h-12 rounded-full border border-[#d63a37] px-5 text-[#d63a37]"
-                  onClick={() => {
-                    setImageName("");
-                    setGuard("none");
-                    fileRef.current?.click();
-                  }}
-                  type="button"
-                >
-                  換一張圖片
-                </button>
-              </div>
-              <p className="mt-3 text-sm text-[#c02d32]">你決定前，圖片還沒有送給 AI。完整人臉／OCR 遮罩在 Python Gateway。</p>
-            </section>
+          {guard === "image-review" && originalImageUrl && redactedImageUrl ? (
+            <ImageReviewCard
+              originalUrl={originalImageUrl}
+              redactedUrl={redactedImageUrl}
+              changed={imageChanged}
+              onUseSafe={() => {
+                const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
+                void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
+              }}
+              onAskParent={() => setGuard("parent-pending")}
+              onReplace={() => {
+                clearImage();
+                setGuard("none");
+                fileRef.current?.click();
+              }}
+            />
           ) : null}
 
           {guard === "detected" && preview ? (
@@ -307,38 +328,55 @@ export function Chat({ conversationId }: ChatProps) {
             />
           ) : null}
 
-          {guard === "parent-pending" && preview ? (
+          {guard === "parent-pending" && (preview || redactedImageUrl) ? (
             <ParentPendingCard
-              safeText={preview.safeText}
+              safeText={preview?.safeText || "這張已遮罩的圖片"}
               onUseSafe={() => {
-                setDraft(preview.safeText);
+                if (redactedImageBase64) {
+                  const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
+                  void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
+                  return;
+                }
+                setDraft(preview?.safeText || "");
                 setGuard("none");
               }}
               onEdit={() => {
-                setDraft(rawDraft);
-                setGuard("none");
+                setGuard(redactedImageUrl ? "image-review" : "none");
+                if (!redactedImageUrl && preview) {
+                  setDraft(rawDraft);
+                }
               }}
               onAskElse={() => {
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
+                clearImage();
               }}
               onDemoApprove={() => setGuard("parent-approved")}
             />
           ) : null}
 
-          {guard === "parent-approved" && preview ? (
+          {guard === "parent-approved" && (preview || redactedImageUrl) ? (
             <ParentApprovedCard
-              safeText={preview.safeText}
-              onContinue={() => void sendSafeText(preview.safeText, { protected: true, hasImage: Boolean(imageName) })}
+              safeText={preview?.safeText || "這張已遮罩的圖片"}
+              onContinue={() =>
+                void sendSafeText(preview?.safeText || draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。", {
+                  protected: true,
+                  hasImage: Boolean(redactedImageBase64),
+                  imageBase64: redactedImageBase64 || undefined,
+                })
+              }
               onEdit={() => {
-                setDraft(rawDraft);
-                setGuard("none");
+                setGuard(redactedImageUrl ? "image-review" : "none");
+                if (!redactedImageUrl) {
+                  setDraft(rawDraft);
+                }
               }}
               onAskElse={() => {
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
+                clearImage();
               }}
             />
           ) : null}
