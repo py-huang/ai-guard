@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>遠傳智靈｜AI 心守護</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ag-white-1000: #ffffff;
+      --ag-warm-50: #fffcf7;
+      --ag-neutral-50: #f7f8f7;
+      --ag-neutral-200: #dde3df;
+      --ag-neutral-300: #c4cec8;
+      --ag-neutral-400: #8a968f;
+      --ag-neutral-600: #506058;
+      --ag-neutral-900: #13221b;
+      --ag-coral-50: #fff0ee;
+      --ag-coral-100: #ffe2df;
+      --ag-coral-500: #d63a37;
+      --ag-coral-600: #c02d32;
+      --ag-mint-50: #ecf9f3;
+      --ag-mint-100: #ddf5ea;
+      --ag-mint-500: #2ea56f;
+      --ag-mint-700: #177049;
+      --ag-sky-50: #ecf6ff;
+      --ag-sky-100: #dceeff;
+      --ag-sky-500: #4f9cda;
+      --ag-navy-800: #25324a;
+      --ag-lavender-50: #f4f0ff;
+      --ag-lavender-100: #eae1ff;
+      --ag-lavender-400: #9a7fd1;
+      --ag-lavender-700: #6650a4;
+      --ag-yellow-50: #fff8d9;
+      --ag-yellow-100: #fff0b8;
+      --ag-ochre-700: #8a6400;
+      --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ag-neutral-900);
+      background: var(--ag-warm-50);
+      font-family: var(--sans);
+      font-weight: 400;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1440px; margin: 0 auto; padding: 0 72px; }
+    @media (max-width: 900px) { .wrap { padding: 0 20px; } }
+
+    .top {
+      position: sticky; top: 0; z-index: 20;
+      background: color-mix(in srgb, var(--ag-warm-50) 92%, white);
+      backdrop-filter: blur(10px);
+    }
+    .top-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; min-height: 88px; flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 700; }
+    .mark {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: var(--ag-coral-500); color: #fff;
+      display: grid; place-items: center; font-size: 20px; font-weight: 700; line-height: 1;
+      flex: 0 0 38px;
+    }
+    .nav { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+    .nav a { font-size: 14px; font-weight: 500; color: var(--ag-neutral-600); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 50px; padding: 0 20px; border-radius: 18px; font-size: 15px; font-weight: 500;
+      border: 0; cursor: pointer;
+    }
+    .btn-primary { background: var(--ag-coral-500); color: #fff; min-width: 140px; }
+    .btn-ghost {
+      background: var(--ag-coral-50); color: var(--ag-coral-600);
+      border: 1px solid var(--ag-coral-100); min-width: 190px;
+    }
+
+    .hero { position: relative; overflow: hidden; padding: 48px 0 80px; }
+    .hero-glow {
+      position: absolute; right: -80px; top: -220px;
+      width: 620px; height: 620px; border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle, #ffd6d0 0%, #ffe8e4 42%, rgba(255,252,247,0) 72%);
+    }
+    .hero-grid {
+      position: relative;
+      display: grid; grid-template-columns: minmax(0, 650px) minmax(320px, 1fr);
+      gap: 40px; align-items: start;
+    }
+    .eyebrow { margin: 0 0 16px; font-size: 14px; font-weight: 500; color: var(--ag-coral-600); }
+    .hero h1 {
+      margin: 0; font-size: 52px; font-weight: 700; line-height: 68px; letter-spacing: -0.02em;
+    }
+    .lede { margin: 28px 0 0; font-size: 18px; line-height: 30px; color: var(--ag-neutral-600); max-width: 560px; }
+    .actions { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 36px; }
+    .trust-line { margin: 22px 0 0; font-size: 12px; font-weight: 500; color: var(--ag-neutral-400); }
+
+    .stage { position: relative; min-height: 720px; }
+    .child-card, .parent-card {
+      background: #fff; box-shadow: 0 18px 42px -12px rgba(20, 33, 26, 0.1);
+    }
+    .child-card {
+      width: min(500px, 100%); border-radius: 28px; padding: 16px 22px 22px; position: relative; z-index: 2;
+    }
+    .child-top { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+    .child-mark { width: 28px; height: 28px; border-radius: 9px; background: var(--ag-coral-500); flex: 0 0 28px; }
+    .child-brand { margin: 0; font-size: 14px; font-weight: 700; }
+    .read-aid {
+      margin-left: auto; background: var(--ag-sky-50); color: var(--ag-navy-800);
+      border-radius: 18px; padding: 8px 14px; font-size: 13px; font-weight: 500;
+    }
+    .child-hi { margin: 24px 0 0; font-size: 13px; font-weight: 500; color: var(--ag-neutral-600); }
+    .child-h { margin: 8px 0 0; font-size: 28px; font-weight: 700; line-height: 40px; }
+    .child-copy { margin: 8px 0 0; font-size: 14px; color: var(--ag-neutral-600); }
+    .topics { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    .topic {
+      width: 114px; height: 62px; border-radius: 16px; display: flex; align-items: center;
+      gap: 8px; padding: 0 12px; font-size: 13px; font-weight: 500;
+    }
+    .topic b { font-size: 18px; font-weight: 700; }
+    .topic.nature { background: var(--ag-mint-100); color: var(--ag-mint-700); }
+    .topic.en { background: var(--ag-sky-100); color: var(--ag-navy-800); }
+    .topic.space { background: var(--ag-lavender-100); color: var(--ag-lavender-700); }
+    .composer {
+      margin-top: 24px; height: 60px; border: 1px solid var(--ag-neutral-200); border-radius: 22px;
+      display: flex; align-items: center; padding: 0 8px 0 16px; gap: 10px; color: var(--ag-neutral-400); font-size: 14px;
+    }
+    .composer .plus { font-size: 20px; color: var(--ag-neutral-600); }
+    .composer .mic { margin-left: auto; color: var(--ag-sky-500); font-weight: 700; }
+    .send {
+      width: 44px; height: 44px; border-radius: 22px; background: var(--ag-coral-500); color: #fff;
+      display: grid; place-items: center; font-weight: 700; font-size: 18px; flex: 0 0 44px;
+    }
+    .parent-card {
+      width: min(458px, 100%); border-radius: 24px; padding: 22px 26px 26px;
+      margin: -48px 0 0 auto; position: relative; z-index: 1;
+      box-shadow: 0 14px 34px -10px rgba(20, 33, 26, 0.09);
+    }
+    .parent-card h2 { margin: 0; font-size: 20px; }
+    .parent-card .sub { margin: 4px 0 0; font-size: 12px; color: var(--ag-neutral-600); }
+    .parent-row { display: grid; grid-template-columns: 172px 1fr; gap: 18px; margin-top: 18px; }
+    .health { background: var(--ag-mint-50); border-radius: 18px; padding: 16px; }
+    .health .lbl { font-size: 12px; font-weight: 500; color: var(--ag-mint-700); }
+    .health .score { font-size: 40px; font-weight: 700; line-height: 48px; margin: 8px 0 12px; }
+    .health-meta { display: flex; align-items: center; gap: 8px; }
+    .pill { border-radius: 18px; padding: 7px 14px; font-size: 13px; font-weight: 500; display: inline-flex; }
+    .pill.ok { background: var(--ag-mint-100); color: var(--ag-mint-700); }
+    .delta { font-size: 12px; font-weight: 700; color: var(--ag-mint-700); }
+    .stat { background: var(--ag-neutral-50); border-radius: 12px; height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 12px; color: var(--ag-neutral-600); margin-bottom: 10px; }
+    .stat b { font-size: 18px; color: var(--ag-neutral-900); }
+    .stat.warn { background: var(--ag-yellow-50); }
+    .float {
+      position: absolute; z-index: 3; border-radius: 18px; padding: 7px 14px;
+      font-size: 13px; font-weight: 500; white-space: nowrap;
+    }
+    .float.pii { left: -48px; top: 126px; background: var(--ag-mint-100); color: var(--ag-mint-700); }
+    .float.learn { right: 12px; top: 302px; background: var(--ag-lavender-100); color: var(--ag-lavender-700); }
+    .float.voice { left: 86px; bottom: 210px; background: var(--ag-sky-100); color: var(--ag-navy-800); }
+    .float.parent { right: 0; bottom: 36px; background: var(--ag-yellow-100); color: var(--ag-ochre-700); }
+
+    section { padding: 72px 0 88px; }
+    .why { background: #fff; }
+    .sec-kicker { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.04em; color: var(--ag-coral-600); }
+    .sec-title { margin: 12px 0 0; font-size: 42px; font-weight: 700; line-height: 58px; }
+    .sec-sub { margin: 16px 0 0; font-size: 18px; line-height: 30px; color: var(--ag-neutral-600); max-width: 1000px; }
+    .pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 48px; }
+    .pillar { border-radius: 24px; padding: 22px 24px 28px; min-height: 198px; position: relative; }
+    .pillar .no { margin: 0; font-size: 13px; font-weight: 700; }
+    .pillar h3 { margin: 14px 0 0; font-size: 24px; line-height: 34px; }
+    .pillar p { margin: 14px 0 0; font-size: 16px; line-height: 27px; color: var(--ag-neutral-600); max-width: 520px; }
+    .dot { position: absolute; top: 28px; right: 34px; width: 34px; height: 34px; border-radius: 50%; }
+    .p-mint { background: var(--ag-mint-50); } .p-mint .no { color: var(--ag-mint-700); } .p-mint .dot { background: var(--ag-mint-700); }
+    .p-coral { background: var(--ag-coral-50); } .p-coral .no { color: var(--ag-coral-600); } .p-coral .dot { background: var(--ag-coral-500); }
+    .p-lav { background: var(--ag-lavender-50); } .p-lav .no { color: var(--ag-lavender-700); } .p-lav .dot { background: var(--ag-lavender-700); }
+    .p-sky { background: var(--ag-sky-50); } .p-sky .no { color: var(--ag-navy-800); } .p-sky .dot { background: var(--ag-navy-800); }
+    .flow-line { margin: 40px 0 0; text-align: center; font-size: 16px; font-weight: 500; }
+
+    .features { background: var(--ag-neutral-50); }
+    .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 40px; }
+    .feat {
+      background: #fff; border: 1px solid var(--ag-neutral-200); border-radius: 20px; padding: 18px 22px 20px; min-height: 202px;
+    }
+    .feat h3 { margin: 0; font-size: 19px; }
+    .feat .val { margin: 6px 0 0; font-size: 13px; color: var(--ag-neutral-600); }
+    .preview {
+      margin-top: 16px; border-radius: 14px; min-height: 91px; padding: 12px 14px;
+      display: flex; flex-direction: column; justify-content: space-between; gap: 10px; position: relative;
+    }
+    .tag { display: inline-flex; align-items: center; background: #fff; border-radius: 15px; height: 30px; padding: 0 12px; font-size: 12px; font-weight: 500; color: var(--ag-neutral-600); width: fit-content; }
+    .preview .copy { margin: 0; font-size: 13px; font-weight: 500; }
+    .pv-mint { background: var(--ag-mint-50); }
+    .pv-sky { background: var(--ag-sky-50); }
+    .pv-coral { background: var(--ag-coral-50); }
+    .pv-yellow { background: var(--ag-yellow-50); }
+    .pv-lav { background: var(--ag-lavender-50); }
+    .pv-neutral { background: var(--ag-neutral-50); }
+    .waves { position: absolute; right: 28px; top: 18px; display: flex; align-items: end; gap: 8px; height: 40px; }
+    .waves span { width: 6px; border-radius: 3px; background: var(--ag-sky-500); display: block; }
+    .bars { position: absolute; right: 24px; top: 16px; display: grid; gap: 12px; }
+    .bars i { display: block; height: 8px; border-radius: 4px; }
+
+    .principles { background: var(--ag-warm-50); }
+    .prin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
+    .prin-grid .span2 { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, 394px); gap: 24px; justify-content: center; }
+    .prin { border-radius: 22px; min-height: 190px; padding: 20px 22px; }
+    .prin .no { margin: 0; font-size: 13px; font-weight: 700; }
+    .prin h3 { margin: 14px 0 0; font-size: 18px; line-height: 28px; }
+    .prin p { margin: 16px 0 0; font-size: 15px; line-height: 24px; color: var(--ag-neutral-600); }
+    .trust-bar {
+      margin-top: 40px; background: var(--ag-neutral-900); color: #fff; border-radius: 22px;
+      min-height: 82px; display: flex; align-items: center; gap: 24px; padding: 18px 24px; flex-wrap: wrap;
+    }
+    .trust-bar b { font-size: 14px; }
+    .trust-bar span { font-size: 15px; font-weight: 500; }
+
+    .how { background: var(--ag-warm-50); padding-top: 24px; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 48px; }
+    .steps-2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; max-width: 1236px; margin-left: auto; margin-right: auto; }
+    .step { border-radius: 22px; min-height: 174px; padding: 20px; position: relative; }
+    .step.outline { background: #fff; border: 1px solid var(--ag-neutral-200); }
+    .ico { width: 44px; height: 44px; border-radius: 14px; background: #fff; display: grid; place-items: center; font-size: 17px; font-weight: 700; }
+    .step .no { position: absolute; top: 24px; right: 20px; font-size: 12px; font-weight: 700; }
+    .step h3 { margin: 18px 0 0; font-size: 18px; }
+    .step p { margin: 8px 0 0; font-size: 13px; color: var(--ag-neutral-600); }
+    .tech { margin-top: 48px; }
+    .tech h3 { margin: 0; font-size: 20px; }
+    .tech p { margin: 8px 0 0; font-size: 13px; color: var(--ag-neutral-600); }
+    .acc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 18px; }
+    details.acc-item {
+      background: #fff; border: 1px solid var(--ag-neutral-200); border-radius: 14px; min-height: 50px;
+    }
+    details.acc-item summary {
+      list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; min-height: 50px; padding: 12px 16px; font-size: 12px; font-weight: 500;
+    }
+    details.acc-item summary::-webkit-details-marker { display: none; }
+    details.acc-item summary::after { content: "＋"; color: var(--ag-neutral-400); font-size: 18px; font-weight: 400; }
+    details.acc-item[open] summary::after { content: "－"; }
+    details.acc-item .body { padding: 0 16px 14px; font-size: 13px; color: var(--ag-neutral-600); }
+
+    footer.cta {
+      padding: 0 0 72px;
+      display: flex; justify-content: center;
+    }
+
+    @media (max-width: 1100px) {
+      .hero h1 { font-size: 40px; line-height: 52px; }
+      .hero-grid, .pillars, .feat-grid, .prin-grid, .steps, .steps-2, .acc, .parent-row { grid-template-columns: 1fr; }
+      .prin-grid .span2 { grid-template-columns: 1fr; }
+      .stage { min-height: 0; }
+      .parent-card { margin: 24px 0 0; }
+      .float { display: none; }
+      .child-card { width: 100%; }
+    }
+    @media (max-width: 700px) {
+      .nav a:not(.btn) { display: none; }
+      .hero h1 { font-size: 32px; line-height: 42px; }
+      .sec-title { font-size: 28px; line-height: 38px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="brand" href="/intro">
+        <span class="mark" aria-hidden="true">✦</span>
+        遠傳智靈｜AI 心守護
+      </a>
+      <nav class="nav" aria-label="產品導覽">
+        <a href="#features">產品特色</a>
+        <a href="#how">怎麼保護</a>
+        <a href="#parents">家長陪伴</a>
+        <a href="/">登入</a>
+        <a class="btn btn-primary" href="/">開始體驗</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">遠傳家庭 AI 安全服務</p>
+        <h1>讓孩子安心使用 AI，<br />讓家長放心陪伴<br />每一次提問。</h1>
+        <p class="lede">問題送出前先保護個人資料與不適合內容；回答之後，再用學習引導陪孩子找到自己的答案。</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="/">開始體驗</a>
+          <a class="btn btn-ghost" href="#how">了解怎麼保護孩子</a>
+        </div>
+        <p class="trust-line">Microsoft PII Detection  ·  Azure AI Content Safety  ·  Microsoft Speech</p>
+      </div>
+      <div class="stage">
+        <span class="float pii">個資先保護</span>
+        <span class="float learn">學習引導</span>
+        <div class="child-card">
+          <div class="child-top">
+            <span class="child-mark"></span>
+            <p class="child-brand">AI 心守護</p>
+            <span class="read-aid">閱讀輔助</span>
+          </div>
+          <p class="child-hi">嗨，小宇</p>
+          <p class="child-h">今天想知道什麼？</p>
+          <p class="child-copy">打字或用說的都可以，我們一起找答案。</p>
+          <div class="topics">
+            <div class="topic nature"><b>🦕</b> 自然</div>
+            <div class="topic en"><b>Aa</b> 英文</div>
+            <div class="topic space"><b>✦</b> 太空</div>
+          </div>
+          <div class="composer">
+            <span class="plus">＋</span>
+            <span>問我一個問題……</span>
+            <span class="mic">◉</span>
+            <span class="send">↑</span>
+          </div>
+        </div>
+        <span class="float voice">Voice AI</span>
+        <div class="parent-card">
+          <h2>家庭 AI 總覽</h2>
+          <p class="sub">看見趨勢，需要時才加入。</p>
+          <div class="parent-row">
+            <div class="health">
+              <div class="lbl">AI 使用健康度</div>
+              <div class="score">86</div>
+              <div class="health-meta">
+                <span class="pill ok">穩定</span>
+                <span class="delta">+4</span>
+              </div>
+            </div>
+            <div>
+              <div class="stat">探索主題 <b>6</b></div>
+              <div class="stat">已保護個資 <b>3</b></div>
+              <div class="stat warn">待家長確認 <b>1</b></div>
+            </div>
+          </div>
+        </div>
+        <span class="float parent">家長陪伴</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="why" id="why">
+    <div class="wrap">
+      <p class="sec-kicker">WHY FAMILY AI SAFETY</p>
+      <h2 class="sec-title">孩子需要的，不只是會回答的 AI。</h2>
+      <p class="sec-sub">真正安心的體驗，是讓安全處理自然發生、讓學習引導留在對話裡，也讓家長只在需要時加入。</p>
+      <div class="pillars">
+        <article class="pillar p-mint">
+          <p class="no">01</p>
+          <span class="dot" aria-hidden="true"></span>
+          <h3>安心問</h3>
+          <p>打字、說話或上傳圖片，都能自然地提出問題。</p>
+        </article>
+        <article class="pillar p-coral">
+          <p class="no">02</p>
+          <span class="dot" aria-hidden="true"></span>
+          <h3>個資先保護</h3>
+          <p>姓名、學校、電話與位置，在送出 AI 前先處理。</p>
+        </article>
+        <article class="pillar p-lav">
+          <p class="no">03</p>
+          <span class="dot" aria-hidden="true"></span>
+          <h3>陪孩子想</h3>
+          <p>AI 透過追問與提示，幫孩子建立自己的答案。</p>
+        </article>
+        <article class="pillar p-sky">
+          <p class="no">04</p>
+          <span class="dot" aria-hidden="true"></span>
+          <h3>家長需要時再加入</h3>
+          <p>多數狀況自動處理，只有需要決定時才通知家長。</p>
+        </article>
+      </div>
+      <p class="flow-line">孩子提問 → 安全層先處理 → AI 回答 → 學習引導 → 需要時通知家長</p>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="wrap">
+      <p class="sec-kicker">FEATURE OVERVIEW</p>
+      <h2 class="sec-title">一個家庭 AI，九種安心能力。</h2>
+      <p class="sec-sub">每項功能都對應孩子的一個真實使用時刻，也都讓家長看得懂系統做了什麼。</p>
+      <div class="feat-grid">
+        <article class="feat">
+          <h3>AI 問答</h3>
+          <p class="val">打字、說話、圖片都能問。</p>
+          <div class="preview pv-mint"><span class="tag">Q</span><p class="copy">恐龍為什麼會滅絕？</p></div>
+        </article>
+        <article class="feat">
+          <h3>Voice AI</h3>
+          <p class="val">手錶、手機與專線都能說。</p>
+          <div class="preview pv-sky">
+            <span class="tag">VOICE</span>
+            <p class="copy">正在聆聽 · 00:08</p>
+            <div class="waves" aria-hidden="true"><span style="height:24px"></span><span style="height:32px"></span><span style="height:40px"></span><span style="height:24px"></span><span style="height:32px"></span><span style="height:40px"></span><span style="height:24px"></span><span style="height:32px"></span><span style="height:40px"></span></div>
+          </div>
+        </article>
+        <article class="feat">
+          <h3>個資保護</h3>
+          <p class="val">送出前偵測並改寫。</p>
+          <div class="preview pv-coral"><span class="tag">PII</span><p class="copy">姓名、學校已移除</p></div>
+        </article>
+        <article class="feat">
+          <h3>圖片安全</h3>
+          <p class="val">OCR 遮罩或直接攔截。</p>
+          <div class="preview pv-yellow"><span class="tag">OCR</span><p class="copy">4 個欄位已遮罩</p></div>
+        </article>
+        <article class="feat">
+          <h3>內容安全</h3>
+          <p class="val">不適合內容改為安全教育。</p>
+          <div class="preview pv-lav"><span class="tag">SAFE</span><p class="copy">已轉為帳號保護建議</p></div>
+        </article>
+        <article class="feat">
+          <h3>學習引導</h3>
+          <p class="val">用追問陪孩子自己想。</p>
+          <div class="preview pv-mint"><span class="tag">STEP</span><p class="copy">活動 → 地點 → 感受</p></div>
+        </article>
+        <article class="feat">
+          <h3>家庭規則</h3>
+          <p class="val">依年齡與家庭設定回答。</p>
+          <div class="preview pv-neutral"><span class="tag">POLICY</span><p class="copy">低年級模式 · 7 歲</p></div>
+        </article>
+        <article class="feat">
+          <h3>家長洞察</h3>
+          <p class="val">看趨勢，不做監控。</p>
+          <div class="preview pv-sky">
+            <span class="tag">INSIGHT</span>
+            <p class="copy">自然 9 · 寫作 3 · 數學 3</p>
+            <div class="bars" aria-hidden="true">
+              <i style="width:107px;background:var(--ag-mint-500)"></i>
+              <i style="width:62px;background:var(--ag-lavender-400)"></i>
+              <i style="width:44px;background:var(--ag-sky-500)"></i>
+            </div>
+          </div>
+        </article>
+        <article class="feat">
+          <h3>AI 語音通話</h3>
+          <p class="val">錄音、摘要、文字稿與事件。</p>
+          <div class="preview pv-coral"><span class="tag">CALL</span><p class="copy">05:42 · 安心通話</p></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="principles" id="parents">
+    <div class="wrap">
+      <p class="sec-kicker">TRUST BY DESIGN</p>
+      <h2 class="sec-title">我們怎麼設計孩子的 AI？</h2>
+      <p class="sec-sub">安全不是額外加上的警告，而是每一次提問都先經過的產品原則。</p>
+      <div class="prin-grid">
+        <article class="prin p-coral">
+          <p class="no">01</p>
+          <h3>Privacy First</h3>
+          <p>只提供回答問題真正需要的資料。</p>
+        </article>
+        <article class="prin p-sky">
+          <p class="no">02</p>
+          <h3>Age Appropriate</h3>
+          <p>依孩子年齡調整回答深度與語氣。</p>
+        </article>
+        <article class="prin p-lav">
+          <p class="no">03</p>
+          <h3>Think, Don’t Copy</h3>
+          <p>AI 陪孩子思考，不代替完成。</p>
+        </article>
+        <div class="span2">
+          <article class="prin" style="background:var(--ag-yellow-50)">
+            <p class="no" style="color:var(--ag-ochre-700)">04</p>
+            <h3>Parents When Needed</h3>
+            <p>需要決定時才加入家長。</p>
+          </article>
+          <article class="prin p-mint">
+            <p class="no">05</p>
+            <h3>Safety Before AI</h3>
+            <p>問題送模型前先做安全處理。</p>
+          </article>
+        </div>
+      </div>
+      <div class="trust-bar">
+        <b>Safety before AI</b>
+        <span>孩子提問  →  個資與內容先保護  →  家庭規則  →  遠傳智靈 AI  →  學習引導</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="how" id="how">
+    <div class="wrap">
+      <p class="sec-kicker">HOW IT WORKS</p>
+      <h2 class="sec-title">安全處理先發生，孩子才看見回答。</h2>
+      <p class="sec-sub">每次提問都經過同一條安全路徑；家長只需理解結果，不必閱讀技術紀錄。</p>
+      <div class="steps">
+        <article class="step p-mint"><div class="ico" style="color:var(--ag-mint-700)">●</div><span class="no" style="color:var(--ag-mint-700)">01</span><h3>孩子提問</h3><p>打字、語音或圖片</p></article>
+        <article class="step p-coral"><div class="ico" style="color:var(--ag-coral-600)">◇</div><span class="no" style="color:var(--ag-coral-600)">02</span><h3>個資檢查</h3><p>先找出不必要資料</p></article>
+        <article class="step" style="background:var(--ag-yellow-50)"><div class="ico" style="color:var(--ag-ochre-700)">□</div><span class="no" style="color:var(--ag-ochre-700)">03</span><h3>圖片／內容安全</h3><p>適齡且可送出</p></article>
+        <article class="step p-lav"><div class="ico" style="color:var(--ag-lavender-700)">≡</div><span class="no" style="color:var(--ag-lavender-700)">04</span><h3>家庭規則</h3><p>套用年齡與設定</p></article>
+      </div>
+      <div class="steps-2">
+        <article class="step p-sky"><div class="ico" style="color:var(--ag-navy-800)">→</div><span class="no" style="color:var(--ag-navy-800)">05</span><h3>安全問題</h3><p>只送必要內容</p></article>
+        <article class="step outline"><div class="ico">✦</div><span class="no">06</span><h3>遠傳智靈 AI</h3><p>產生適齡回答</p></article>
+        <article class="step p-mint"><div class="ico" style="color:var(--ag-mint-700)">↗</div><span class="no" style="color:var(--ag-mint-700)">07</span><h3>學習引導</h3><p>陪孩子繼續想</p></article>
+      </div>
+      <div class="tech">
+        <h3>技術細節</h3>
+        <p>需要時再展開查看；日常使用不必理解模型與偵測器名稱。</p>
+        <div class="acc">
+          <details class="acc-item"><summary>Microsoft PII Detection｜個資偵測與遮蔽</summary><div class="body">送進模型前先找出姓名、學校、電話等個資並改寫成代號。</div></details>
+          <details class="acc-item"><summary>Azure AI Content Safety｜內容與圖片安全</summary><div class="body">不適合兒童的文字與圖片會被攔截，或改成安全教育引導。</div></details>
+          <details class="acc-item"><summary>Microsoft Speech｜語音辨識與轉文字</summary><div class="body">語音先轉成文字，再走同一條個資與內容安全路徑。</div></details>
+          <details class="acc-item"><summary>遠傳智靈 AI｜安全回應與家庭情境</summary><div class="body">只看到已經處理過的問題，再用適齡語氣回答。</div></details>
+          <details class="acc-item"><summary>Family Policy｜年齡、規則與家長決定</summary><div class="body">依年齡與家庭設定調整深度；需要決定時才通知家長。</div></details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="cta wrap">
+    <a class="btn btn-primary" href="/">開始體驗</a>
+  </footer>
+</body>
+</html>

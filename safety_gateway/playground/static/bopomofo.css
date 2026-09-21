@@ -1,0 +1,55 @@
+/* cmex-30/Bopomofo_on_Web — OpenType tone-mark font + W3C ruby.
+   Font: BopomofoRuby1909-v1-Regular.ttf (OFL-1.1, But Ko)
+   https://github.com/cmex-30/Bopomofo_on_Web */
+
+@font-face {
+  font-family: BopomofoRuby;
+  src: url("/static/fonts/BopomofoRuby1909-v1-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.bopomofo-ruby ruby {
+  ruby-align: center;
+  padding-right: 2px;
+}
+
+.bopomofo-ruby.h {
+  font-variant-east-asian: salt;
+  -moz-font-feature-settings: "salt";
+  -webkit-font-feature-settings: "salt";
+  font-feature-settings: "salt";
+}
+
+.bopomofo-ruby.v {
+  writing-mode: vertical-rl;
+  -webkit-writing-mode: vertical-rl;
+  -moz-writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+.bopomofo-ruby.over ruby {
+  ruby-position: over;
+}
+
+.bopomofo-ruby.inter ruby {
+  ruby-position: over;
+}
+
+@supports (ruby-position: inter-character) {
+  .bopomofo-ruby.inter ruby {
+    ruby-position: inter-character;
+  }
+}
+
+.bopomofo-ruby rt {
+  font-family: BopomofoRuby, sans-serif;
+  font-size: 26%;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+  ruby-align: center;
+  text-align: center;
+  text-orientation: upright;
+}

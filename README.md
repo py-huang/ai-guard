@@ -65,6 +65,16 @@ pnpm dev
 
 * URL: [http://localhost:3000](http://localhost:3000)
 
+送出前的個資檢查會由本機 Python Safety Gateway 處理。另開一個終端機：
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -e ".[playground]"
+.venv/bin/python -m safety_gateway.playground --host 127.0.0.1 --port 8765
+```
+
+`.env.local` 加上 `SAFETY_GATEWAY_URL=http://127.0.0.1:8765`。Gateway 沒開時，網站會暫時改用較陽春的本機規則，只為了讓畫面還能操作。
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

@@ -4,7 +4,8 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
-import { inspectPii, type PiiPreview } from "@/lib/pii-preview";
+import { inspectSafety, toPiiPreview } from "@/lib/safety-inspect";
+import type { PiiPreview } from "@/lib/pii-preview";
 import { useConversationStore } from "@/store/conversation-store";
 import type { ConversationMessage } from "@/types/conversation";
 import {
@@ -59,7 +60,7 @@ export function Chat({ conversationId }: ChatProps) {
 
     sessionStorage.removeItem("ai-guard-pending");
     setDraft(pending);
-    startGuard(pending);
+    void startGuard(pending);
   }, [conversation?.id, ready]);
 
   async function sendSafeText(text: string, options?: { protected?: boolean; hasImage?: boolean }) {
@@ -122,16 +123,39 @@ export function Chat({ conversationId }: ChatProps) {
     }
   }
 
-  function startGuard(text: string) {
-    const next = inspectPii(text);
-    if (next.hits.length === 0) {
-      void sendSafeText(text, { hasImage: Boolean(imageName) });
+  async function startGuard(text: string) {
+    if (!conversation) {
       return;
     }
 
-    setRawDraft(text);
-    setPreview(next);
-    setGuard("detected");
+    setBusy(true);
+    setError("");
+    try {
+      const result = await inspectSafety(conversation.id, text);
+      if (result.blocked) {
+        appendMessage(conversation.id, { role: "user", content: result.safeText || "這個問題先不要繼續。" });
+        appendMessage(conversation.id, {
+          role: "assistant",
+          content: result.childMessage || CHILD_BLOCK_REPLY,
+          blocked: true,
+        });
+        setDraft("");
+        return;
+      }
+
+      if (result.hits.length === 0) {
+        await sendSafeText(text, { hasImage: Boolean(imageName) });
+        return;
+      }
+
+      setRawDraft(text);
+      setPreview(toPiiPreview(text, result));
+      setGuard("detected");
+    } catch (inspectError) {
+      setError(inspectError instanceof Error ? inspectError.message : "現在沒辦法檢查這句話。");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function submitComposer(event: FormEvent<HTMLFormElement>) {
@@ -140,7 +164,7 @@ export function Chat({ conversationId }: ChatProps) {
     if (!text || busy || !conversation) {
       return;
     }
-    startGuard(text);
+    void startGuard(text);
   }
 
   function onPickImage(file: File | undefined) {

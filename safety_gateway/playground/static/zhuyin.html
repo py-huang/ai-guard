@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>注音顯示（Bopomofo on Web）</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/bopomofo.css" />
+  <style>
+    :root {
+      --ink: #1c1917;
+      --muted: #57534e;
+      --line: #e7e5e4;
+      --paper: #f7f4ee;
+      --card: #fffdf9;
+      --sage: #2f5d4a;
+      --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+    .shell { max-width: 1120px; margin: 0 auto; padding: 24px 18px 48px; }
+    header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    h1 { margin: 0 0 4px; font-size: 26px; font-weight: 700; }
+    p { margin: 0; color: var(--muted); font-size: 14px; }
+    a.ghost, button.ghost, .send {
+      font-family: inherit; border: 1px solid var(--line); background: #fff;
+      border-radius: 999px; padding: 8px 12px; cursor: pointer; font-size: 13px;
+      text-decoration: none; color: inherit; display: inline-block;
+    }
+    .send { background: var(--sage); color: #fff; border: 0; font-weight: 600; }
+    textarea {
+      width: 100%; min-height: 72px; margin-top: 14px; border: 1px solid var(--line);
+      border-radius: 12px; padding: 10px; font: 16px/1.6 var(--sans);
+    }
+    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
+    }
+    .panel h2 {
+      margin: 0; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--line);
+    }
+    .panel h2 small { display: block; font-weight: 400; color: var(--muted); margin-top: 4px; }
+    .sample {
+      padding: 18px 16px 20px; font-size: 32px; line-height: 2.1;
+      white-space: pre-wrap; min-height: 140px;
+    }
+    .sample.v {
+      min-height: 280px;
+      height: 320px;
+      font-size: 28px;
+      line-height: 1.9;
+    }
+    .sample rt { color: var(--sage); }
+    .note { margin-top: 16px; font-size: 13px; color: var(--muted); }
+    .status { font-size: 13px; color: var(--muted); align-self: center; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>注音顯示（Bopomofo on Web）</h1>
+        <p>畫面只用 <a href="https://github.com/cmex-30/Bopomofo_on_Web">cmex-30/Bopomofo_on_Web</a> 的 ruby 標法與 BopomofoRuby 字體。輕聲 ˙ 在注音前，ˊ ˇ ˋ 在注音後。</p>
+      </div>
+      <div>
+        <a class="ghost" href="/">回兒童對話</a>
+        <a class="ghost" href="/test">測試頁</a>
+      </div>
+    </header>
+    <textarea id="input">今天的天空為什麼是藍色的？你好，小宇。</textarea>
+    <div class="row">
+      <button class="send" id="render" type="button">更新顯示</button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="grid">
+      <article class="panel">
+        <h2>官方範例（字體本身）<small>固定句子，不含轉換庫</small></h2>
+        <div class="sample bopomofo-ruby h inter" id="official">
+          <ruby>各<rt>ㄍㄜˋ</rt></ruby><ruby>位<rt>ㄨㄟˋ</rt></ruby><ruby>都<rt>ㄉㄡ</rt></ruby><ruby>好<rt>ㄏㄠˇ</rt></ruby><ruby>吧<rt>˙ㄅㄚ</rt></ruby>？
+          <ruby>我<rt>ㄨㄛˇ</rt></ruby><ruby>們<rt>˙ㄇㄣ</rt></ruby><ruby>都<rt>ㄉㄡ</rt></ruby><ruby>很<rt>ㄏㄣˇ</rt></ruby><ruby>想<rt>ㄒㄧㄤˇ</rt></ruby><ruby>念<rt>ㄋㄧㄢˋ</rt></ruby><ruby>你<rt>ㄋㄧˇ</rt></ruby><ruby>們<rt>˙ㄇㄣ</rt></ruby>。
+        </div>
+      </article>
+      <article class="panel">
+        <h2>橫排，注音在右<small>ruby-position: inter-character（Safari 18.2+）</small></h2>
+        <div class="sample bopomofo-ruby h inter" id="style-side"></div>
+      </article>
+      <article class="panel">
+        <h2>橫排，注音在上<small>ruby-position: over + OpenType salt</small></h2>
+        <div class="sample bopomofo-ruby h over" id="style-over"></div>
+      </article>
+      <article class="panel">
+        <h2>直排，注音在右<small>writing-mode: vertical-rl</small></h2>
+        <div class="sample bopomofo-ruby v" id="style-vert"></div>
+      </article>
+    </div>
+    <p class="note">標點不標音。這個 repo 不管「這個字唸什麼」，只負責調號位置；任意句子的讀音仍由後端 <code>/api/zhuyin</code> 轉成 ruby 字串。</p>
+  </div>
+  <script>
+    const input = document.getElementById("input");
+    const status = document.getElementById("status");
+    const ids = ["style-side", "style-over", "style-vert"];
+
+    function appendRuby(el, parts) {
+      (parts || []).forEach((part) => {
+        if (part.zhuyin) {
+          const ruby = document.createElement("ruby");
+          ruby.appendChild(document.createTextNode(part.text || ""));
+          const rt = document.createElement("rt");
+          rt.textContent = part.zhuyin;
+          ruby.appendChild(rt);
+          el.appendChild(ruby);
+        } else {
+          el.appendChild(document.createTextNode(part.text || ""));
+        }
+      });
+    }
+
+    async function render() {
+      const text = input.value.trim() || "今天的天空為什麼是藍色的？";
+      status.textContent = "轉換中…";
+      const res = await fetch("/api/zhuyin?text=" + encodeURIComponent(text));
+      const data = await res.json();
+      if (!res.ok) {
+        status.textContent = "轉換失敗";
+        return;
+      }
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        el.replaceChildren();
+        appendRuby(el, data.parts);
+      });
+      status.textContent = "已更新";
+    }
+
+    document.getElementById("render").addEventListener("click", () => render());
+    render();
+  </script>
+</body>
+</html>
