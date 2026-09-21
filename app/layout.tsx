@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_TC } from "next/font/google";
 
+import { ConversationStoreProvider } from "@/store/conversation-store";
 import { WritingStoreProvider } from "@/store/writing-store";
 import { ReadingAssistProvider } from "@/components/reading-assist-provider";
 import "./globals.css";
@@ -23,7 +24,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ReadingAssistProvider>
-          <WritingStoreProvider>{children}</WritingStoreProvider>
+          <ConversationStoreProvider>
+            <WritingStoreProvider>{children}</WritingStoreProvider>
+          </ConversationStoreProvider>
         </ReadingAssistProvider>
       </body>
     </html>

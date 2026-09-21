@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useWritingStore } from "@/store/writing-store";
+import { useConversationStore } from "@/store/conversation-store";
+import { hasPii } from "@/lib/pii-preview";
 import type { GenerateWritingResponse } from "@/lib/writing";
 
 type Topic = {
@@ -47,6 +49,7 @@ export function DiscoverTheme() {
   const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
   const { addDraft } = useWritingStore();
+  const { createConversation } = useConversationStore();
 
   async function startWriting(subject: string) {
     const input = subject.trim();
@@ -105,7 +108,17 @@ export function DiscoverTheme() {
                   aria-pressed={selectedQuestion === question}
                   className="flex h-[38px] w-full items-center justify-between rounded-xl bg-white px-[14px] text-left text-[13px] leading-[21px] font-medium text-[#13221b] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(20,33,26,0.06)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
                   key={question}
-                  onClick={() => (topic.title === "寫作靈感" ? void startWriting(question) : setSelectedQuestion(question))}
+                  onClick={() => {
+                    setSelectedQuestion(question);
+                    if (topic.title === "寫作靈感") {
+                      void startWriting(question);
+                      return;
+                    }
+
+                    const conversation = createConversation(hasPii(question) ? "新對話" : question);
+                    sessionStorage.setItem("ai-guard-pending", question);
+                    router.push(`/chat/${conversation.id}`);
+                  }}
                   disabled={isGenerating && topic.title === "寫作靈感"}
                   type="button"
                 >

@@ -1,10 +1,16 @@
 import { ChildrenShell } from "@/components/children-shell";
 import { Chat } from "@/components/pages/chat";
 
-export default function ChatDetailPage() {
+type ChatDetailPageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export default async function ChatDetailPage({ params }: ChatDetailPageProps) {
+  const { slug } = await params;
+
   return (
     <ChildrenShell>
-      <Chat />
+      <Chat conversationId={slug} />
     </ChildrenShell>
   );
 }

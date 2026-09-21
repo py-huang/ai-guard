@@ -1,6 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { useConversationStore } from "@/store/conversation-store";
+import { hasPii } from "@/lib/pii-preview";
 
 const topics = [
   {
@@ -43,10 +47,20 @@ const topics = [
 
 export function DiscoverHome() {
   const [message, setMessage] = useState("");
+  const router = useRouter();
+  const { createConversation } = useConversationStore();
 
   function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const content = message.trim();
+    if (!content) {
+      return;
+    }
+
+    const conversation = createConversation(hasPii(content) ? "新對話" : content.slice(0, 24));
+    sessionStorage.setItem("ai-guard-pending", content);
     setMessage("");
+    router.push(`/chat/${conversation.id}`);
   }
 
   return (

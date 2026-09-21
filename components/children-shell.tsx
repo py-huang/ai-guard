@@ -1,7 +1,13 @@
+"use client";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import { useConversationStore } from "@/store/conversation-store";
 
 import { ReadingAssistToggle } from "@/components/reading-assist-toggle";
+import { RecentConversations } from "@/components/recent-conversations";
 import { ZhuyinScope } from "@/components/zhuyin-scope";
 import { cn } from "@/lib/utils";
 
@@ -41,8 +47,6 @@ const navigationItems: NavigationItem[] = [
   },
 ];
 
-const recentConversations = ["恐龍為什麼會滅絕？", "夏天作文怎麼開始？"];
-
 type ChildrenShellProps = {
   children?: ReactNode;
   activeItem?: PageName;
@@ -54,6 +58,14 @@ export function ChildrenShell({
   activeItem = "探索首頁",
   accountName = "小小",
 }: ChildrenShellProps) {
+  const router = useRouter();
+  const { createConversation } = useConversationStore();
+
+  function startNewChat() {
+    const conversation = createConversation("新對話");
+    router.push(`/chat/${conversation.id}`);
+  }
+
   return (
     <div className="min-h-dvh bg-[#fffcf7] text-[#13221b]">
       <header className="flex h-[72px] items-center justify-between bg-white px-4 py-[10px] sm:pl-6 sm:pr-8 sm:pt-[14px] xl:pr-[130px]">
@@ -72,13 +84,15 @@ export function ChildrenShell({
 
       <ZhuyinScope className="flex min-h-[calc(100dvh-72px)]">
         <aside className="hidden w-[220px] shrink-0 flex-col bg-white px-4 pt-6 pb-7 lg:flex">
-          <Link
+          <button
+            aria-label="新對話"
             className="flex h-12 w-[180px] self-center items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#bd2e2c]"
-            href="/chat"
+            onClick={startNewChat}
+            type="button"
           >
             <img className="size-5" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
             新對話
-          </Link>
+          </button>
 
           <nav className="mt-4" aria-label="主要導覽">
             {navigationItems.map(({ label, href, iconSrc, activeIconSrc }) => {
@@ -113,20 +127,7 @@ export function ChildrenShell({
             })}
           </nav>
 
-          <section className="mt-6 pl-2.5" aria-labelledby="recent-conversations-title">
-            <h2 id="recent-conversations-title" className="text-base font-medium text-[#8a968f]">
-              最近對話
-            </h2>
-            <ul className="mt-1.5 space-y-1.5 text-base text-[#506058]">
-              {recentConversations.map((conversation) => (
-                <li key={conversation}>
-                  <Link className="block truncate hover:text-[#177049]" href="/">
-                    {conversation}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <RecentConversations />
 
           <p className="mt-auto text-base font-medium text-[#8a968f]">低年級模式 · 7 歲</p>
         </aside>
