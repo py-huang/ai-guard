@@ -1,6 +1,7 @@
 import type { Components } from "react-markdown";
 import Markdown from "react-markdown";
 
+import { replaceChildMathInMarkdown } from "@/lib/child-math";
 import { cn } from "@/lib/utils";
 
 type MarkdownMessageProps = {
@@ -36,7 +37,7 @@ export function MarkdownMessage({ children, className, compact = false }: Markdo
       if (isBlock) {
         return <code className={codeClassName}>{nodes}</code>;
       }
-      return <code className="rounded bg-[#ecf9f3] px-1 py-0.5 text-[0.95em]">{nodes}</code>;
+      return <code className="rounded bg-[#ecf9f3] px-1 py-0.5 text-[0.95em] tabular-nums">{nodes}</code>;
     },
     pre: ({ children: nodes }) => (
       <pre className="my-3 overflow-x-auto rounded-2xl bg-[#14211a] px-4 py-3 text-[14px] leading-6 text-white">{nodes}</pre>
@@ -46,7 +47,7 @@ export function MarkdownMessage({ children, className, compact = false }: Markdo
 
   return (
     <div className={cn("max-w-none break-words", className)}>
-      <Markdown components={components}>{children}</Markdown>
+      <Markdown components={components}>{replaceChildMathInMarkdown(children)}</Markdown>
     </div>
   );
 }
