@@ -3,8 +3,10 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { CHILD_LEARNING_PARTNER_PROMPT } from "@/lib/child-llm-prompt";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
 import { inspectSafety, toPiiPreview } from "@/lib/safety-inspect";
+import { applyOutboundSocraticHint } from "@/lib/socratic";
 import type { PiiPreview } from "@/lib/pii-preview";
 import { useConversationStore } from "@/store/conversation-store";
 import type { ConversationMessage } from "@/types/conversation";
@@ -37,6 +39,7 @@ export function Chat({ conversationId }: ChatProps) {
   const [rawDraft, setRawDraft] = useState("");
   const [imageName, setImageName] = useState("");
   const [imageScanning, setImageScanning] = useState(false);
+  const [llmPrompt, setLlmPrompt] = useState("");
 
   const started = useRef(false);
 
@@ -65,11 +68,12 @@ export function Chat({ conversationId }: ChatProps) {
     void startGuard(pending);
   }, [conversation?.id, ready]);
 
-  async function sendSafeText(text: string, options?: { protected?: boolean; hasImage?: boolean }) {
+  async function sendSafeText(text: string, options?: { protected?: boolean; hasImage?: boolean; llmText?: string }) {
     if (!conversation) {
       return;
     }
 
+    const promptForModel = options?.llmText?.trim() || llmPrompt.trim() || text;
     const userMessage: ConversationMessage = {
       role: "user",
       content: text,
@@ -84,6 +88,7 @@ export function Chat({ conversationId }: ChatProps) {
     setGuard("none");
     setPreview(null);
     setRawDraft("");
+    setLlmPrompt("");
     setBusy(true);
     setError("");
 
@@ -98,6 +103,7 @@ export function Chat({ conversationId }: ChatProps) {
       const history = [...conversation.messages, userMessage]
         .filter((message) => message.role === "user" || message.role === "assistant")
         .map((message) => ({ role: message.role, content: message.content }));
+      history[history.length - 1] = { role: "user", content: promptForModel };
 
       const response = await fetch("/api/chat/completions", {
         method: "POST",
@@ -106,7 +112,7 @@ export function Chat({ conversationId }: ChatProps) {
           messages: [
             {
               role: "system",
-              content: "你是台灣國小兒童的學習夥伴。用繁體中文、短句回答。不要要求姓名、電話、地址或學校全名。",
+              content: CHILD_LEARNING_PARTNER_PROMPT,
             },
             ...history,
           ],
@@ -117,7 +123,7 @@ export function Chat({ conversationId }: ChatProps) {
       if (!response.ok || !content) {
         throw new Error(data.error || "暫時無法回覆。");
       }
-      appendMessage(conversation.id, { role: "assistant", content });
+      appendMessage(conversation.id, { role: "assistant", content: applyOutboundSocraticHint(content, promptForModel) });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "暫時無法回覆。");
     } finally {
@@ -146,12 +152,13 @@ export function Chat({ conversationId }: ChatProps) {
       }
 
       if (result.hits.length === 0) {
-        await sendSafeText(text, { hasImage: Boolean(imageName) });
+        await sendSafeText(text, { hasImage: Boolean(imageName), llmText: result.processedText });
         return;
       }
 
       setRawDraft(text);
       setPreview(toPiiPreview(text, result));
+      setLlmPrompt(result.processedText);
       setGuard("detected");
     } catch (inspectError) {
       setError(inspectError instanceof Error ? inspectError.message : "現在沒辦法檢查這句話。");
