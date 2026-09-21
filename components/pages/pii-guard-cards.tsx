@@ -1,5 +1,6 @@
 "use client";
 
+import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { inspectPii, type PiiPreview } from "@/lib/pii-preview";
 
 type Props = {
@@ -136,7 +137,7 @@ export function ParentApprovedCard({ safeText, onContinue, onEdit, onAskElse }: 
         <p className="mt-2 text-[17px] leading-8">{safeText}</p>
       </div>
       <div className="flex gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#fff0ee] text-lg">✦</span>
+        <ChatAiAvatar />
         <div>
           <p className="font-bold">我們會使用安全版本。</p>
           <p className="mt-1 text-sm text-[#506058]">按下「繼續」後才會送出；原始姓名與學校不會傳給 AI。</p>

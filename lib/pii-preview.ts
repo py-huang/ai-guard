@@ -1,4 +1,4 @@
-export type PiiKind = "姓名" | "學校" | "電話" | "地址" | "Email" | "身分證";
+export type PiiKind = "姓名" | "學校" | "電話" | "地址" | "Email" | "身分證" | "其他";
 
 export type PiiHit = {
   kind: PiiKind;
@@ -74,6 +74,8 @@ function replacementFor(kind: PiiKind) {
     case "Email":
       return "";
     case "身分證":
+      return "";
+    case "其他":
       return "";
   }
 }

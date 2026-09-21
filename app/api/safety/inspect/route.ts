@@ -27,37 +27,29 @@ export async function POST(request: Request) {
 
   try {
     const result = await inspectWithGateway(sessionId, text);
-    const hits = result.entities
-      .map((entity) => {
-        const kind = ENTITY_KIND[entity.entity_type];
-        if (!kind) {
-          return null;
-        }
-        return { kind, value: entity.original };
-      })
-      .filter((hit): hit is { kind: PiiKind; value: string } => Boolean(hit));
+    const hits = result.entities.map((entity) => ({
+      kind: ENTITY_KIND[entity.entity_type] ?? ("其他" as PiiKind),
+      value: entity.original,
+    }));
 
-    const local = inspectPii(text);
-    const safeText =
-      result.entities.length > 0
-        ? result.processed_text
-            .replace(/<PERSON_\d+>/g, "一位小朋友")
-            .replace(/<SCHOOL_\d+>/g, "學校")
-            .replace(/<PHONE_NUMBER_\d+>/g, "")
-            .replace(/<LOCATION_\d+>/g, "這個城市")
-            .replace(/<EMAIL_ADDRESS_\d+>/g, "")
-            .replace(/<TW_ID_\d+>/g, "")
-            .replace(/\s{2,}/g, " ")
-            .trim()
-        : local.safeText;
+    const safeText = result.processed_text
+      .replace(/<PERSON_\d+>/g, "一位小朋友")
+      .replace(/<SCHOOL_\d+>/g, "學校")
+      .replace(/<PHONE_NUMBER_\d+>/g, "")
+      .replace(/<LOCATION_\d+>/g, "這個城市")
+      .replace(/<EMAIL_ADDRESS_\d+>/g, "")
+      .replace(/<TW_ID_\d+>/g, "")
+      .replace(/<[A-Z][A-Z0-9_]*_\d+>/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
 
     return Response.json({
       source: "gateway",
       blocked: result.blocked,
       childMessage: result.child_message,
       processedText: result.processed_text,
-      hits: hits.length > 0 ? hits : local.hits,
-      safeText: safeText || local.safeText,
+      hits,
+      safeText: safeText || text,
     });
   } catch (error) {
     if (!(error instanceof GatewayUnavailableError)) {

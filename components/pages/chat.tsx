@@ -8,6 +8,8 @@ import { inspectSafety, toPiiPreview } from "@/lib/safety-inspect";
 import type { PiiPreview } from "@/lib/pii-preview";
 import { useConversationStore } from "@/store/conversation-store";
 import type { ConversationMessage } from "@/types/conversation";
+import { ChatAiAvatar } from "@/components/chat-ai-avatar";
+import { MarkdownMessage } from "@/components/markdown-message";
 import {
   ParentApprovedCard,
   ParentPendingCard,
@@ -195,7 +197,7 @@ export function Chat({ conversationId }: ChatProps) {
           </div>
         ) : null}
 
-        <div className="mt-6 flex-1 space-y-5">
+        <div className="mt-6 flex-1 space-y-5 pb-28">
           {conversation.messages.map((message, index) =>
             message.role === "user" ? (
               <div className="ml-auto max-w-[520px] rounded-[24px] bg-[#eee6ff] px-5 py-4" key={`${message.content}-${index}`}>
@@ -204,9 +206,13 @@ export function Chat({ conversationId }: ChatProps) {
               </div>
             ) : (
               <div className="flex max-w-[640px] gap-3" key={`${message.content}-${index}`}>
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#fff0ee]">✦</span>
+                <ChatAiAvatar />
                 <div>
-                  <p className="text-[17px] leading-8">{message.content}</p>
+                  {message.blocked ? (
+                    <p className="text-[17px] leading-8">{message.content}</p>
+                  ) : (
+                    <MarkdownMessage>{message.content}</MarkdownMessage>
+                  )}
                   {message.blocked ? <p className="mt-2 text-sm text-[#c02d32]">這個問題沒有送給 AI。</p> : null}
                 </div>
               </div>

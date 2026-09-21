@@ -1,4 +1,4 @@
-import { generateGeminiText, type GeminiChatMessage } from "@/lib/gemini";
+import { GeminiBusyError, generateGeminiText, type GeminiChatMessage } from "@/lib/gemini";
 
 type ChatCompletionRequest = {
   temperature?: unknown;
@@ -30,6 +30,9 @@ export async function POST(request: Request) {
     return Response.json({ choices: [{ message: { role: "assistant", content } }] });
   } catch (error) {
     console.error("Chat completion failed", error);
-    return Response.json({ error: "暫時無法回覆。" }, { status: 502 });
+    if (error instanceof GeminiBusyError) {
+      return Response.json({ error: error.message, retryable: true }, { status: 503 });
+    }
+    return Response.json({ error: "暫時無法回覆。請再試一次。" }, { status: 502 });
   }
 }
