@@ -14,7 +14,7 @@ import type { GenerateWritingResponse } from "@/lib/writing";
 import type { ConversationMessage } from "@/types/conversation";
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { MarkdownMessage } from "@/components/markdown-message";
-import { ImageReviewCard } from "@/components/pages/image-review-card";
+import { ImagePiiScanningCard, ImageReviewCard } from "@/components/pages/image-review-card";
 import {
   ParentApprovedCard,
   ParentPendingCard,
@@ -292,7 +292,7 @@ export function Chat({ conversationId }: ChatProps) {
         {conversation.messages.length === 0 && guard === "none" && !imageScanning ? (
           <div className="pt-6">
             <h1 className="text-[28px] font-bold">想問什麼都可以先打字</h1>
-            <p className="mt-2 text-[#506058]">送出前會先檢查個人資料。紀錄裡只會留下安全版本。</p>
+            <p className="mt-2 text-[16px] font-normal leading-[26px] text-[#506058]">送出前會先檢查個人資料。紀錄裡只會留下安全版本。</p>
           </div>
         ) : null}
 
@@ -323,7 +323,7 @@ export function Chat({ conversationId }: ChatProps) {
             )
           )}
 
-          {imageScanning ? <p className="rounded-[24px] bg-[#fff7e8] px-5 py-4">正在檢查{imageName ? `「${imageName}」` : "圖片"}裡的臉與文字…原始圖片不會存進對話紀錄。</p> : null}
+          {imageScanning ? <ImagePiiScanningCard /> : null}
 
           {guard === "image-review" && originalImageUrl && redactedImageUrl ? (
             <ImageReviewCard

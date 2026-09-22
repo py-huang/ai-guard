@@ -145,6 +145,7 @@
 }
 
 html.zhuyin-on {
+  font-family: var(--font-noto-sans-tc), BopomofoRuby, sans-serif;
   font-variant-east-asian: salt;
   -moz-font-feature-settings: "salt";
   -webkit-font-feature-settings: "salt";
@@ -153,23 +154,32 @@ html.zhuyin-on {
 
 html.zhuyin-on ruby {
   ruby-align: center;
-  padding-right: 5px;
-  ruby-position: over;
-}
-
-@supports (ruby-position: inter-character) {
-  html.zhuyin-on ruby {
-    ruby-position: inter-character;
-  }
+  padding-right: 0.25em;
+  ruby-position: inter-character;
+  -webkit-ruby-position: inter-character;
 }
 
 html.zhuyin-on rt {
   font-family: BopomofoRuby, var(--font-noto-sans-tc), sans-serif;
-  font-size: 30%;
+  font-size: 26%;
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1;
   ruby-align: center;
   text-align: center;
   text-orientation: upright;
+}
+
+@supports not (ruby-position: inter-character) {
+  html.zhuyin-on ruby {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    vertical-align: baseline;
+  }
+
+  html.zhuyin-on rt {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+  }
 }

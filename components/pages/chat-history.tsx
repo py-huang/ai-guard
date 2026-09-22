@@ -74,7 +74,7 @@ export function ChatHistory() {
   return (
     <section className="px-5 py-8 sm:px-10 lg:px-16">
       <h1 className="text-[32px] font-bold leading-[44px]">對話紀錄</h1>
-      <p className="mt-1 text-[#506058]">回到任何一次好奇，繼續你的探索。</p>
+      <p className="mt-1 text-[16px] font-normal leading-[26px] text-[#506058]">回到任何一次好奇，繼續你的探索。</p>
 
       <div className="mt-6 flex max-w-[860px] items-center gap-3">
         <input
