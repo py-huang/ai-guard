@@ -1,5 +1,6 @@
 import { GatewayUnavailableError, inspectWithGateway } from "@/lib/gateway";
 import { inspectPii, type PiiKind } from "@/lib/pii-preview";
+import { stripSocraticInboundPrefix } from "@/lib/socratic";
 
 type InspectBody = {
   sessionId?: unknown;
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       value: entity.original,
     }));
 
-    const safeText = result.processed_text
+    const safeText = stripSocraticInboundPrefix(result.processed_text)
       .replace(/<PERSON_\d+>/g, "一位小朋友")
       .replace(/<SCHOOL_\d+>/g, "學校")
       .replace(/<PHONE_NUMBER_\d+>/g, "")

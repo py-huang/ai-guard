@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { CHILD_LEARNING_PARTNER_PROMPT } from "@/lib/child-llm-prompt";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
 import { inspectSafety, toPiiPreview } from "@/lib/safety-inspect";
-import { applyOutboundSocraticHint } from "@/lib/socratic";
+import { applyOutboundSocraticHint, stripSocraticInboundPrefix } from "@/lib/socratic";
 import type { PiiPreview } from "@/lib/pii-preview";
 import { useConversationStore } from "@/store/conversation-store";
 import { useWritingStore } from "@/store/writing-store";
@@ -14,7 +14,8 @@ import type { GenerateWritingResponse } from "@/lib/writing";
 import type { ConversationMessage } from "@/types/conversation";
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { MarkdownMessage } from "@/components/markdown-message";
-import { ImagePiiScanningCard, ImageReviewCard } from "@/components/pages/image-review-card";
+import { ProtectedBadge } from "@/components/protected-badge";
+import { ImageReviewCard, ImageScanningCard } from "@/components/pages/image-review-card";
 import {
   ParentApprovedCard,
   ParentPendingCard,
@@ -42,13 +43,13 @@ export function Chat({ conversationId }: ChatProps) {
   const [guard, setGuard] = useState<GuardState>("none");
   const [preview, setPreview] = useState<PiiPreview | null>(null);
   const [rawDraft, setRawDraft] = useState("");
-  const [imageName, setImageName] = useState("");
   const [imageScanning, setImageScanning] = useState(false);
   const [llmPrompt, setLlmPrompt] = useState("");
   const [originalImageUrl, setOriginalImageUrl] = useState("");
   const [redactedImageUrl, setRedactedImageUrl] = useState("");
   const [redactedImageBase64, setRedactedImageBase64] = useState("");
   const [imageChanged, setImageChanged] = useState(false);
+  const [safetyTouched, setSafetyTouched] = useState(false);
 
   const started = useRef(false);
 
@@ -56,7 +57,6 @@ export function Chat({ conversationId }: ChatProps) {
     if (originalImageUrl) {
       URL.revokeObjectURL(originalImageUrl);
     }
-    setImageName("");
     setOriginalImageUrl("");
     setRedactedImageUrl("");
     setRedactedImageBase64("");
@@ -101,22 +101,24 @@ export function Chat({ conversationId }: ChatProps) {
 
     const promptForModel = options?.llmText?.trim() || llmPrompt.trim() || text;
     const imageBase64 = options?.imageBase64 || redactedImageBase64;
+    const visibleText = stripSocraticInboundPrefix(text);
     const userMessage: ConversationMessage = {
       role: "user",
-      content: text,
-      protected: options?.protected,
+      content: visibleText,
+      protected: Boolean(options?.protected || safetyTouched || imageBase64),
       hasImage: options?.hasImage || Boolean(imageBase64),
       imagePreview: options?.imagePreview || (imageBase64 ? pngDataUrl(imageBase64) : undefined),
     };
     appendMessage(conversation.id, userMessage);
     if (conversation.title === "新對話") {
-      renameConversation(conversation.id, text.slice(0, 24));
+      renameConversation(conversation.id, visibleText.slice(0, 24));
     }
     setDraft("");
     setGuard("none");
     setPreview(null);
     setRawDraft("");
     setLlmPrompt("");
+    setSafetyTouched(false);
     clearImage();
     setBusy(true);
     setError("");
@@ -233,6 +235,7 @@ export function Chat({ conversationId }: ChatProps) {
       setRawDraft(text);
       setPreview(toPiiPreview(text, result));
       setLlmPrompt(result.processedText);
+      setSafetyTouched(true);
       setGuard("detected");
     } catch (inspectError) {
       setError(inspectError instanceof Error ? inspectError.message : "現在沒辦法檢查這句話。");
@@ -260,8 +263,8 @@ export function Chat({ conversationId }: ChatProps) {
     }
 
     const previewUrl = URL.createObjectURL(file);
-    setImageName(file.name);
     setOriginalImageUrl(previewUrl);
+    setSafetyTouched(true);
     setImageScanning(true);
     setError("");
     try {
@@ -273,7 +276,6 @@ export function Chat({ conversationId }: ChatProps) {
     } catch (redactError) {
       URL.revokeObjectURL(previewUrl);
       setOriginalImageUrl("");
-      setImageName("");
       setError(redactError instanceof Error ? redactError.message : "現在沒辦法檢查這張圖片。");
     } finally {
       setImageScanning(false);
@@ -296,26 +298,33 @@ export function Chat({ conversationId }: ChatProps) {
           </div>
         ) : null}
 
+        {guard === "parent-pending" ? <h1 className="pt-2 text-xl font-bold leading-[30px] text-[#13221b]">已經問家長囉</h1> : null}
+        {guard === "rewritten" ? <h1 className="pt-2 text-xl font-bold leading-[30px] text-[#13221b]">安全版本已準備好</h1> : null}
+
         <div className="mt-6 flex-1 space-y-5 pb-28">
           {conversation.messages.map((message, index) =>
             message.role === "user" ? (
               <div className="ml-auto max-w-[520px] rounded-[24px] bg-[#eee6ff] px-5 py-4" key={`${message.content}-${index}`}>
-                {message.protected ? <p className="mb-2 inline-flex rounded-full bg-[#177049] px-3 py-1 text-xs text-white">已保護</p> : null}
+                {message.protected ? (
+                  <div className="mb-2">
+                    <ProtectedBadge />
+                  </div>
+                ) : null}
                 {message.imagePreview ? (
                   <img alt="" className="mb-3 max-h-40 w-full rounded-[16px] object-contain" src={message.imagePreview} />
                 ) : message.hasImage ? (
                   <p className="mb-2 rounded-[16px] bg-white/70 px-3 py-2 text-sm text-[#177049]">已用安全圖片（紀錄不保存原圖）</p>
                 ) : null}
-                <p className="text-[17px] leading-8">{message.content}</p>
+                <p className="text-[17px] leading-8">{stripSocraticInboundPrefix(message.content)}</p>
               </div>
             ) : (
               <div className="flex max-w-[640px] gap-3" key={`${message.content}-${index}`}>
                 <ChatAiAvatar />
                 <div>
                   {message.blocked ? (
-                    <p className="text-[17px] leading-8">{message.content}</p>
+                    <p className="text-[17px] leading-8">{stripSocraticInboundPrefix(message.content)}</p>
                   ) : (
-                    <MarkdownMessage>{message.content}</MarkdownMessage>
+                    <MarkdownMessage>{stripSocraticInboundPrefix(message.content)}</MarkdownMessage>
                   )}
                   {message.blocked ? <p className="mt-2 text-sm text-[#c02d32]">這個問題沒有送給 AI。</p> : null}
                 </div>
@@ -323,7 +332,7 @@ export function Chat({ conversationId }: ChatProps) {
             )
           )}
 
-          {imageScanning ? <ImagePiiScanningCard /> : null}
+          {imageScanning ? <ImageScanningCard /> : null}
 
           {guard === "image-review" && originalImageUrl && redactedImageUrl ? (
             <ImageReviewCard
@@ -380,8 +389,7 @@ export function Chat({ conversationId }: ChatProps) {
                   void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
                   return;
                 }
-                setDraft(preview?.safeText || "");
-                setGuard("none");
+                setGuard("rewritten");
               }}
               onEdit={() => {
                 setGuard(redactedImageUrl ? "image-review" : "none");
@@ -393,6 +401,7 @@ export function Chat({ conversationId }: ChatProps) {
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
+                setSafetyTouched(false);
                 clearImage();
               }}
               onDemoApprove={() => setGuard("parent-approved")}
@@ -419,6 +428,7 @@ export function Chat({ conversationId }: ChatProps) {
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
+                setSafetyTouched(false);
                 clearImage();
               }}
             />
@@ -428,30 +438,36 @@ export function Chat({ conversationId }: ChatProps) {
           {error ? <p className="text-[#c02d32]">{error}</p> : null}
         </div>
 
-        <form className="sticky bottom-4 mt-8 flex h-[66px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" onSubmit={submitComposer}>
-          <input
-            ref={fileRef}
-            className="hidden"
-            type="file"
-            accept="image/*"
-            onChange={(event) => onPickImage(event.target.files?.[0])}
-          />
-          <button className="grid size-12 place-items-center rounded-full text-[#d63a37]" onClick={() => fileRef.current?.click()} type="button" aria-label="新增附件">
-            <img className="size-8" src="/discover/composer-plus.svg" alt="" />
-          </button>
-          <input
-            className="min-w-0 flex-1 bg-transparent text-[18px] outline-none placeholder:text-[#8a968f]"
-            value={draft}
-            disabled={composerLocked || busy}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder={composerLocked ? "這裡有你的名字和學校，先不要送出" : "想知道什麼？可以打字或用說的"}
-            autoComplete="off"
-          />
-          <button className="grid size-12 place-items-center rounded-full bg-[#d63a37] text-white disabled:bg-[#d7ddd9]" disabled={composerLocked || busy || !draft.trim()} type="submit" aria-label="送出問題">
-            <img className="size-6 brightness-0 invert" src="/discover/composer-send.svg" alt="" />
-          </button>
-        </form>
-        <p className="mt-1 pl-1 text-[11px] font-medium text-[#177049]">分享前會先保護你的個人資料；對話紀錄不保存原始姓名與照片。</p>
+        {guard === "parent-pending" ? (
+          <p className="mt-8 text-xs font-medium leading-[19px] text-[#c02d32]">等待中的原問題不會送出；你仍可繼續探索其他內容。</p>
+        ) : (
+          <>
+            <form className="sticky bottom-4 mt-8 flex h-[66px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" onSubmit={submitComposer}>
+              <input
+                ref={fileRef}
+                className="hidden"
+                type="file"
+                accept="image/*"
+                onChange={(event) => onPickImage(event.target.files?.[0])}
+              />
+              <button className="grid size-12 place-items-center rounded-full text-[#d63a37]" onClick={() => fileRef.current?.click()} type="button" aria-label="新增附件">
+                <img className="size-8" src="/discover/composer-plus.svg" alt="" />
+              </button>
+              <input
+                className="min-w-0 flex-1 bg-transparent text-[18px] outline-none placeholder:text-[#8a968f]"
+                value={draft}
+                disabled={composerLocked || busy}
+                onChange={(event) => setDraft(event.target.value)}
+                placeholder={composerLocked ? "這裡有你的名字和學校，先不要送出" : "想知道什麼？可以打字或用說的"}
+                autoComplete="off"
+              />
+              <button className="grid size-12 place-items-center rounded-full bg-[#d63a37] text-white disabled:bg-[#d7ddd9]" disabled={composerLocked || busy || !draft.trim()} type="submit" aria-label="送出問題">
+                <img className="size-6 brightness-0 invert" src="/discover/composer-send.svg" alt="" />
+              </button>
+            </form>
+            <p className="mt-1 pl-1 text-[11px] font-medium text-[#177049]">分享前會先保護你的個人資料；對話紀錄不保存原始姓名與照片。</p>
+          </>
+        )}
       </div>
     </section>
   );
