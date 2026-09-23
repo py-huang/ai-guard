@@ -2,7 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Send } from "lucide-react";
+import { ArrowRight, LoaderCircle, Send } from "lucide-react";
 
 import { MarkdownMessage } from "@/components/markdown-message";
 import { useWritingStore } from "@/store/writing-store";
@@ -38,7 +38,7 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
   const stage = activeDraft.outline[stageIndex];
   const stageMessages = activeDraft.chat_history.filter((item) => item.stageIndex === stageIndex);
   const isLastStage = stageIndex === activeDraft.steps.length - 1;
-  const pendingOutlineLabels = ["等待選擇主題", "等待地點", "等待畫面", "等待感受", "等待結尾"];
+  const pendingOutlineLabel = "等待中";
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,8 +125,8 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
       <p className="mt-2 inline-flex h-8 items-center rounded-2xl bg-[#ffe7d7] px-3 text-xs font-medium text-[#a35a2d]">✎ 寫作靈感</p>
 
       <div className="mt-6 grid max-w-[920px] gap-6 lg:grid-cols-[620px_274px]">
-        <div className="flex min-h-[626px] flex-col rounded-[22px] border border-[#dde3df] bg-white p-[19px]">
-          <div className="space-y-4">
+        <div className="flex h-[626px] flex-col rounded-[22px] border border-[#dde3df] bg-white p-[19px]">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
             {stageMessages.map((item, index) => (
               <div className={item.role === "user" ? "ml-auto w-full max-w-[260px] rounded-2xl bg-[#eae1ff] px-[14px] py-2.5" : "w-full max-w-[500px] rounded-2xl bg-[#ecf9f3] px-[14px] py-2.5"} key={`${item.role}-${index}-${item.content}`}>
                 <p className={item.role === "user" ? "text-[11px] leading-[17px] font-bold text-[#6650a4]" : "text-[11px] leading-[17px] font-bold text-[#177049]"}>{item.role === "user" ? "小宇" : "AI"}</p>
@@ -137,12 +137,21 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
                 )}
               </div>
             ))}
+            {isSending ? (
+              <div className="w-full max-w-[500px] rounded-2xl bg-[#ecf9f3] px-[14px] py-2.5">
+                <p className="text-[11px] leading-[17px] font-bold text-[#177049]">AI</p>
+                <div className="mt-1 flex items-center gap-2 text-sm text-[#177049]">
+                  <span>思考中</span>
+                  <LoaderCircle className="animate-spin" size={20} aria-label="AI 正在回覆" />
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <form className="mt-auto pt-6" onSubmit={submitMessage}>
             <label className="sr-only" htmlFor="writing-message">寫下你的想法</label>
             <div className="flex h-16 items-center gap-2 rounded-[20px] border border-[#dde3df] py-2 pl-[18px] pr-4">
-              <input id="writing-message" className="min-w-0 flex-1 text-[18px] outline-none placeholder:text-[#8a968f]" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="例如：日本、花蓮或阿嬤家…" disabled={isSending || isSummarizing} />
+              <input id="writing-message" className="min-w-0 flex-1 text-[18px] outline-none placeholder:text-[#8a968f]" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="例如：日本、花蓮或阿嬤家…" autoComplete="off" disabled={isSending || isSummarizing} />
               <button aria-label="送出想法" className="grid size-12 shrink-0 place-items-center rounded-full bg-[#d63a37] text-white hover:bg-[#bd2e2c] disabled:opacity-50" disabled={!message.trim() || isSending || isSummarizing} title="送出想法" type="submit">
                 <Send size={20} aria-hidden="true" />
               </button>
@@ -151,7 +160,7 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
           {error ? <p className="mt-2 text-sm text-[#c02d32]">{error}</p> : null}
         </div>
 
-        <aside className="min-h-[626px] rounded-[22px] bg-[#fff8d9] p-5">
+        <aside className="h-[626px] overflow-y-auto rounded-[22px] bg-[#fff8d9] p-5">
           <p className="inline-flex h-8 items-center rounded-2xl bg-white px-3 text-xs font-medium text-[#8a6400]">你的作文大綱</p>
           <h2 className="mt-3 text-[22px] leading-8 font-bold">正在收集想法</h2>
           <ol className="mt-5 space-y-5">
@@ -160,14 +169,14 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
                 <p className="pt-0.5 text-[11px] leading-[18px] font-bold text-[#a35a2d]">{String(index + 1).padStart(2, "0")}</p>
                 <div>
                   <p className="text-sm leading-[22px] font-bold">{item.stage}</p>
-                  <p className="mt-1 text-xs leading-[19px] text-[#506058]">{item.content || pendingOutlineLabels[index]}</p>
+                  <p className="mt-1 text-xs leading-[19px] text-[#506058]">{item.content || pendingOutlineLabel}</p>
                 </div>
               </li>
             ))}
           </ol>
           <button className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white hover:bg-[#bd2e2c] disabled:opacity-50" disabled={isSummarizing || Boolean(stage.content && isLastStage)} onClick={() => void continueToNextStage()} type="button">
             {isSummarizing ? "整理中" : isLastStage && stage.content ? "完成了" : "繼續下一步"}
-            {!isLastStage || !stage.content ? <ArrowRight size={20} aria-hidden="true" /> : null}
+            {isSummarizing ? <LoaderCircle className="animate-spin" size={20} aria-hidden="true" /> : !isLastStage || !stage.content ? <ArrowRight size={20} aria-hidden="true" /> : null}
           </button>
         </aside>
       </div>

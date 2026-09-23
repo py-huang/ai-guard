@@ -37,7 +37,7 @@ export async function generateWritingPlan(subject: string) {
   const text = await generateGeminiText({
     messages: [
       { role: "system", content: getWritingSystemPrompt("chat") },
-      { role: "user", content: `為題目「${subject}」建立引導寫作計畫。只回傳 JSON：{"steps":[string,string,string,string,string],"outline":[{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""}],"init_question":string}。steps 必須依序引導主題、地點、細節、想法、結尾；每個字串簡短；init_question 只能問一個問題。` },
+      { role: "user", content: `為題目「${subject}」建立引導寫作計畫。只回傳 JSON：{"steps":[string,string,string,string,string],"outline":[{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""}],"init_question":string}。請依題目為五個 stage 取具體、簡短且彼此不同的名稱；五步依序引導孩子決定寫作焦點、交代情境、描述事件或畫面、說出感受或想法、完成結尾。不要直接使用「主題、地點、細節、想法、結尾」當作 stage 名稱；init_question 只能問一個問題。` },
     ],
     responseMimeType: "application/json",
   });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { LoaderCircle } from "lucide-react";
 
 import { useWritingStore } from "@/store/writing-store";
 import { useConversationStore } from "@/store/conversation-store";
@@ -123,7 +124,11 @@ export function DiscoverTheme() {
                   type="button"
                 >
                   <span className="truncate">{question}</span>
-                  <img className="ml-3 size-5 shrink-0" src="/discover/question-arrow.svg" alt="" aria-hidden="true" />
+                  {isGenerating && selectedQuestion === question ? (
+                    <LoaderCircle className="ml-3 size-5 shrink-0 animate-spin text-[#506058]" aria-label="正在準備寫作空間" />
+                  ) : (
+                    <img className="ml-3 size-5 shrink-0" src="/discover/question-arrow.svg" alt="" aria-hidden="true" />
+                  )}
                 </button>
               ))}
             </div>
