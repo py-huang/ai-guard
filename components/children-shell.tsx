@@ -2,9 +2,6 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-
-import { useConversationStore } from "@/store/conversation-store";
 
 import { ReadingAssistToggle } from "@/components/reading-assist-toggle";
 import { RecentConversations } from "@/components/recent-conversations";
@@ -58,14 +55,6 @@ export function ChildrenShell({
   activeItem = "探索首頁",
   accountName = "小小",
 }: ChildrenShellProps) {
-  const router = useRouter();
-  const { createConversation } = useConversationStore();
-
-  function startNewChat() {
-    const conversation = createConversation("新對話");
-    router.push(`/chat/${conversation.id}`);
-  }
-
   return (
     <div className="min-h-dvh bg-[#fffcf7] text-[#13221b]">
       <header className="flex h-[72px] items-center justify-between bg-white px-4 py-[10px] sm:px-6 sm:pt-[14px]">
@@ -75,6 +64,14 @@ export function ChildrenShell({
         </Link>
 
         <div className="flex h-12 shrink-0 items-center gap-4">
+          <a
+            aria-label="新對話"
+            className="inline-flex h-12 items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-3 text-[15px] font-medium text-white lg:hidden"
+            href="/chat"
+          >
+            <img className="size-5" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
+            新對話
+          </a>
           <ReadingAssistToggle />
           <button className="grid h-12 w-[46px] place-items-center rounded-[22px] bg-[#dceeff] text-[15px] font-bold text-[#25324a]">
             {accountName.slice(0, 1)}
@@ -84,15 +81,14 @@ export function ChildrenShell({
 
       <ZhuyinScope className="flex min-h-[calc(100dvh-72px)]">
         <aside className="hidden w-[220px] shrink-0 flex-col bg-white px-4 pt-6 pb-7 lg:flex">
-          <button
+          <a
             aria-label="新對話"
             className="flex h-12 w-[180px] self-center items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#bd2e2c]"
-            onClick={startNewChat}
-            type="button"
+            href="/chat"
           >
             <img className="size-5" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
             新對話
-          </button>
+          </a>
 
           <nav className="mt-4" aria-label="主要導覽">
             {navigationItems.map(({ label, href, iconSrc, activeIconSrc }) => {

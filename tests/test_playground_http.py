@@ -164,6 +164,8 @@ def test_share_password_requires_http_basic(monkeypatch) -> None:  # type: ignor
     assert allowed.status_code == 200
     wrong_user = client.get("/", auth=("admin", "demo-pass-1"))
     assert wrong_user.status_code == 401
+    local = client.get("/", headers={"Host": "127.0.0.1"})
+    assert local.status_code == 200
 
 
 def test_chat_blocks_bathroom_photo_request_without_calling_llm() -> None:

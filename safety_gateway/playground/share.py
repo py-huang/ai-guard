@@ -23,25 +23,29 @@ _URL_RE = re.compile(r"https://[a-z0-9.-]+\.(ngrok-free\.app|ngrok\.io|trycloudf
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="把本機 127.0.0.1 playground 打成暫時 HTTPS，給平板／手機試用"
+        description="把本機 127.0.0.1 服務打成暫時 HTTPS（playground 或 Next 主專案）"
     )
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
     password = os.environ.get("PLAYGROUND_SHARE_PASSWORD", "").strip()
-    if not password:
+    if args.port == 8765 and not password:
         print(
-            "請先用 PLAYGROUND_SHARE_PASSWORD 重啟 playground，否則隧道沒有通行碼。\n"
-            "例：PLAYGROUND_SHARE_PASSWORD='你的密碼' python -m safety_gateway.playground --host 127.0.0.1",
+            "分享 playground 時請先設 PLAYGROUND_SHARE_PASSWORD 再重啟 8765。\n"
+            "分享 Next 主專案請用 --port 3001（正式版）或 --port 3000。",
             file=sys.stderr,
         )
         raise SystemExit(2)
     if not _port_open(args.port):
-        print(f"127.0.0.1:{args.port} 沒有在聽。請先開 playground。", file=sys.stderr)
+        print(f"127.0.0.1:{args.port} 沒有在聽。請先開本機服務。", file=sys.stderr)
         raise SystemExit(2)
 
-    print("通行碼使用者名稱：demo")
-    print(f"通行碼：{password}")
-    print("只傳給要試用的人。用完請 Ctrl+C 停隧道，並關掉 playground。")
+    if password and args.port == 8765:
+        print("通行碼使用者名稱：demo")
+        print(f"通行碼：{password}")
+        print("只傳給要試用的人。用完請 Ctrl+C 停隧道。")
+    else:
+        print(f"分享 Next 主專案 → http://127.0.0.1:{args.port}")
+        print("用完請 Ctrl+C 停隧道。")
     print()
 
     ngrok = shutil.which("ngrok")
@@ -113,7 +117,7 @@ def _stream_until_url(process: subprocess.Popen[str], name: str) -> None:
                 found = True
                 print()
                 print(f"分享網址：{match.group(0)}")
-                print("手機／平板用瀏覽器打開後，會要 demo + 通行碼。")
+                print("用瀏覽器打開即可。若是 playground 會再要 demo + 通行碼。")
                 print()
         process.wait()
     except KeyboardInterrupt:

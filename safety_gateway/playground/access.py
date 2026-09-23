@@ -33,6 +33,9 @@ class SharePasswordMiddleware(BaseHTTPMiddleware):
         expected = share_password()
         if not expected:
             return await call_next(request)
+        hostname = (request.url.hostname or "").lower()
+        if hostname in {"127.0.0.1", "localhost", "::1"}:
+            return await call_next(request)
         if not _valid_basic(request.headers.get("authorization", ""), expected):
             return PlainTextResponse(
                 "請輸入示範通行碼。使用者名稱填 demo，密碼請問分享給你連結的人。",
