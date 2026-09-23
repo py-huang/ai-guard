@@ -35,6 +35,28 @@ export type GenerateWritingResponse = {
   init_question: string;
 };
 
+export type WritingIntent = {
+  isThemeMode: boolean;
+};
+
+export async function classifyWritingIntent(input: string): Promise<WritingIntent> {
+  const text = await generateGeminiText({
+    messages: [
+      { role: "system", content: getWritingSystemPrompt("classify") },
+      { role: "user", content: input },
+    ],
+    responseMimeType: "application/json",
+    temperature: 0,
+  });
+  const result = JSON.parse(text) as Partial<WritingIntent>;
+
+  if (typeof result.isThemeMode !== "boolean") {
+    throw new Error("Gemini returned an invalid writing intent.");
+  }
+
+  return { isThemeMode: result.isThemeMode };
+}
+
 export async function generateWritingPlan(subject: string) {
   const text = await generateGeminiText({
     messages: [

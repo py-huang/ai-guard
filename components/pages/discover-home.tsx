@@ -89,8 +89,9 @@ export function DiscoverHome() {
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             placeholder="想知道什麼？可以打字或用說的"
+            autoComplete="off"
           />
-          <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d63a37] text-[#d63a37] hover:bg-[#fff0ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d63a37]" type="button" aria-label="語音輸入" title="語音輸入">
+          <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d7ddd9] text-[#aab4ae] disabled:cursor-not-allowed disabled:opacity-60" type="button" disabled aria-label="語音輸入目前無法使用" title="語音輸入目前無法使用">
             <img className="size-6" src="/discover/composer-microphone.svg" alt="" aria-hidden="true" />
           </button>
           <button className="grid size-12 shrink-0 place-items-center rounded-full bg-[#d63a37] text-white hover:bg-[#bd2e2c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d63a37]" type="submit" aria-label="送出問題" title="送出問題">

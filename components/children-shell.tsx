@@ -68,7 +68,7 @@ export function ChildrenShell({
 
   return (
     <div className="min-h-dvh bg-[#fffcf7] text-[#13221b]">
-      <header className="flex h-[72px] items-center justify-between bg-white px-4 py-[10px] sm:pl-6 sm:pr-8 sm:pt-[14px] xl:pr-[130px]">
+      <header className="flex h-[72px] items-center justify-between bg-white px-4 py-[10px] sm:px-6 sm:pt-[14px]">
         <Link className="flex h-10 items-center gap-3 sm:w-[362px]" href="/" aria-label="遠傳智靈 AI 心守護首頁">
           <img className="size-10" src="/brand-mark.svg" alt="" aria-hidden="true" />
           <span className="text-[18px] font-bold leading-7">遠傳智靈｜AI 心守護</span>

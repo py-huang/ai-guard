@@ -9,6 +9,8 @@ import { inspectSafety, toPiiPreview } from "@/lib/safety-inspect";
 import { applyOutboundSocraticHint } from "@/lib/socratic";
 import type { PiiPreview } from "@/lib/pii-preview";
 import { useConversationStore } from "@/store/conversation-store";
+import { useWritingStore } from "@/store/writing-store";
+import type { GenerateWritingResponse } from "@/lib/writing";
 import type { ConversationMessage } from "@/types/conversation";
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { MarkdownMessage } from "@/components/markdown-message";
@@ -29,7 +31,8 @@ type ChatProps = {
 
 export function Chat({ conversationId }: ChatProps) {
   const router = useRouter();
-  const { ready, createConversation, getConversation, appendMessage, renameConversation } = useConversationStore();
+  const { ready, createConversation, getConversation, appendMessage, renameConversation, removeConversation } = useConversationStore();
+  const { addDraft } = useWritingStore();
   const conversation = conversationId ? getConversation(conversationId) : undefined;
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -179,6 +182,46 @@ export function Chat({ conversationId }: ChatProps) {
       }
 
       if (result.hits.length === 0) {
+        const isFirstTextMessage = conversation.messages.length === 0 && !redactedImageBase64;
+        if (isFirstTextMessage) {
+          let isThemeMode = false;
+          try {
+            const classifyResponse = await fetch("/api/theme/writing/classify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ input: result.processedText }),
+            });
+            const classification = (await classifyResponse.json()) as { isThemeMode?: boolean };
+
+            isThemeMode = classifyResponse.ok && classification.isThemeMode === true;
+          } catch (classificationError) {
+            console.error("Writing intent classification failed", classificationError);
+          }
+
+          if (isThemeMode) {
+            try {
+              const writingResponse = await fetch("/api/theme/writing/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ input: result.processedText }),
+              });
+              const writingDraft = (await writingResponse.json()) as GenerateWritingResponse | { error?: string };
+
+              if (!writingResponse.ok || !("theme_id" in writingDraft)) {
+                throw new Error("error" in writingDraft ? writingDraft.error : "暫時無法開始寫作。 ");
+              }
+
+              addDraft(writingDraft, text);
+              removeConversation(conversation.id);
+              router.push(`/theme/writing/${writingDraft.theme_id}`);
+              return;
+            } catch (writingError) {
+              setError(writingError instanceof Error ? writingError.message : "暫時無法開始寫作。 ");
+              return;
+            }
+          }
+        }
+
         await sendSafeText(text, {
           hasImage: Boolean(redactedImageBase64),
           llmText: result.processedText,
@@ -402,6 +445,7 @@ export function Chat({ conversationId }: ChatProps) {
             disabled={composerLocked || busy}
             onChange={(event) => setDraft(event.target.value)}
             placeholder={composerLocked ? "這裡有你的名字和學校，先不要送出" : "想知道什麼？可以打字或用說的"}
+            autoComplete="off"
           />
           <button className="grid size-12 place-items-center rounded-full bg-[#d63a37] text-white disabled:bg-[#d7ddd9]" disabled={composerLocked || busy || !draft.trim()} type="submit" aria-label="送出問題">
             <img className="size-6 brightness-0 invert" src="/discover/composer-send.svg" alt="" />

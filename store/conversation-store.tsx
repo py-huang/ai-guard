@@ -13,6 +13,7 @@ type ConversationStoreValue = {
   appendMessage: (id: string, message: ConversationMessage) => void;
   replaceMessages: (id: string, messages: ConversationMessage[]) => void;
   renameConversation: (id: string, title: string) => void;
+  removeConversation: (id: string) => void;
   getConversation: (id: string) => Conversation | undefined;
 };
 
@@ -145,12 +146,16 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
     );
   }
 
+  function removeConversation(id: string) {
+    setConversations((current) => current.filter((conversation) => conversation.id !== id));
+  }
+
   function getConversation(id: string) {
     return conversations.find((conversation) => conversation.id === id);
   }
 
   return (
-    <ConversationStoreContext.Provider value={{ ready, conversations, createConversation, appendMessage, replaceMessages, renameConversation, getConversation }}>
+    <ConversationStoreContext.Provider value={{ ready, conversations, createConversation, appendMessage, replaceMessages, renameConversation, removeConversation, getConversation }}>
       {children}
     </ConversationStoreContext.Provider>
   );
