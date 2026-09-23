@@ -14,12 +14,16 @@ type WritingWorkspaceProps = {
 };
 
 export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
-  const { drafts, appendMessage, summarizeStage, advanceStage } = useWritingStore();
+  const { ready, drafts, appendMessage, summarizeStage, selectStage, advanceStage } = useWritingStore();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const draft = drafts.find((item) => item.id === themeId);
+
+  if (!ready) {
+    return <p className="px-5 py-12 text-[#8a968f] sm:px-8 lg:px-12">載入寫作筆記中…</p>;
+  }
 
   if (!draft) {
     return (
@@ -37,6 +41,9 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
   const stageIndex = activeDraft.currentStageIndex;
   const stage = activeDraft.outline[stageIndex];
   const stageMessages = activeDraft.chat_history.filter((item) => item.stageIndex === stageIndex);
+  const userMessageCount = stageMessages.filter((item) => item.role === "user" && item.content.trim()).length;
+  const baselineUserMessageCount = stage.summarizedUserMessageCount ?? 0;
+  const canUpdateOutline = userMessageCount > baselineUserMessageCount;
   const isLastStage = stageIndex === activeDraft.steps.length - 1;
   const pendingOutlineLabel = "等待中";
 
@@ -82,9 +89,8 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
   }
 
   async function continueToNextStage() {
-    const hasUserMessage = stageMessages.some((item) => item.role === "user" && item.content.trim());
-    if (!hasUserMessage || isSummarizing) {
-      setError("先寫下一句自己的想法，再繼續下一步。 ");
+    if (!canUpdateOutline || isSummarizing) {
+      setError(stage.content ? "先補充新的想法，再更新大綱。 " : "先寫下一句自己的想法，再更新大綱。 ");
       return;
     }
 
@@ -103,13 +109,17 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
         throw new Error(data.error ?? "暫時無法整理這一步。 ");
       }
 
-      summarizeStage(activeDraft.id, stageIndex, data.content);
+      summarizeStage(activeDraft.id, stageIndex, data.content, userMessageCount);
       if (!isLastStage) {
-        appendMessage(activeDraft.id, {
-          role: "assistant",
-          content: `下一步是「${activeDraft.steps[stageIndex + 1]}」。你想先說什麼？`,
-          stageIndex: stageIndex + 1,
-        });
+        const nextStageIndex = stageIndex + 1;
+        const nextStageHasMessages = activeDraft.chat_history.some((item) => item.stageIndex === nextStageIndex);
+        if (!nextStageHasMessages) {
+          appendMessage(activeDraft.id, {
+            role: "assistant",
+            content: `下一步是「${activeDraft.steps[nextStageIndex]}」。你想先說什麼？`,
+            stageIndex: nextStageIndex,
+          });
+        }
         advanceStage(activeDraft.id);
       }
     } catch (requestError) {
@@ -123,6 +133,23 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
     <section className="px-5 py-8 sm:px-8 lg:px-12 xl:pl-[120px] xl:pt-9">
       <h1 className="text-[22px] leading-8 font-bold">第 {stageIndex + 1} 步：{activeDraft.steps[stageIndex]}</h1>
       <p className="mt-2 inline-flex h-8 items-center rounded-2xl bg-[#ffe7d7] px-3 text-xs font-medium text-[#a35a2d]">✎ 寫作靈感</p>
+
+      <nav aria-label="寫作步驟" className="mt-5 flex max-w-[920px] flex-wrap gap-2">
+        {activeDraft.steps.map((step, index) => (
+          <button
+            aria-current={stageIndex === index ? "step" : undefined}
+            className={stageIndex === index ? "h-9 rounded-full bg-[#177049] px-3 text-sm font-medium text-white" : "h-9 rounded-full border border-[#dde3df] bg-white px-3 text-sm font-medium text-[#506058] hover:border-[#a8cfb7]"}
+            key={step}
+            onClick={() => {
+              setError("");
+              selectStage(activeDraft.id, index);
+            }}
+            type="button"
+          >
+            第 {index + 1} 步
+          </button>
+        ))}
+      </nav>
 
       <div className="mt-6 grid max-w-[920px] gap-6 lg:grid-cols-[620px_274px]">
         <div className="flex h-[626px] flex-col rounded-[22px] border border-[#dde3df] bg-white p-[19px]">
@@ -174,8 +201,8 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
               </li>
             ))}
           </ol>
-          <button className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white hover:bg-[#bd2e2c] disabled:opacity-50" disabled={isSummarizing || Boolean(stage.content && isLastStage)} onClick={() => void continueToNextStage()} type="button">
-            {isSummarizing ? "整理中" : isLastStage && stage.content ? "完成了" : "繼續下一步"}
+          <button className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white hover:bg-[#bd2e2c] disabled:opacity-50" disabled={isSummarizing || !canUpdateOutline} onClick={() => void continueToNextStage()} type="button">
+            {isSummarizing ? "整理中" : "更新大綱"}
             {isSummarizing ? <LoaderCircle className="animate-spin" size={20} aria-hidden="true" /> : !isLastStage || !stage.content ? <ArrowRight size={20} aria-hidden="true" /> : null}
           </button>
         </aside>

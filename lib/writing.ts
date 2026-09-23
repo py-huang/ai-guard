@@ -14,11 +14,13 @@ export type WritingMessage = {
 export type WritingOutlineItem = {
   stage: string;
   content: string;
+  summarizedUserMessageCount?: number;
 };
 
 export type WritingDraft = {
   id: string;
   subject: string;
+  updatedAt: number;
   steps: string[];
   outline: WritingOutlineItem[];
   chat_history: WritingMessage[];

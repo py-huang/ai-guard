@@ -4,6 +4,16 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { useConversationStore } from "@/store/conversation-store";
+import { useWritingStore } from "@/store/writing-store";
+
+type HistoryItem = {
+  id: string;
+  title: string;
+  updatedAt: number;
+  messages: Array<{ content: string }>;
+  href: string;
+  mode: "chat" | "writing";
+};
 
 function dayLabel(timestamp: number) {
   const date = new Date(timestamp);
@@ -25,20 +35,39 @@ function timeLabel(timestamp: number) {
 }
 
 export function ChatHistory() {
-  const { ready, conversations } = useConversationStore();
+  const { ready: conversationsReady, conversations } = useConversationStore();
+  const { ready: draftsReady, drafts } = useWritingStore();
   const [query, setQuery] = useState("");
 
   const grouped = useMemo(() => {
-    const filtered = conversations.filter((conversation) => conversation.title.includes(query.trim()) || conversation.messages.some((message) => message.content.includes(query.trim())));
+    const items: HistoryItem[] = [
+      ...conversations.map((conversation) => ({
+        id: conversation.id,
+        title: conversation.title,
+        updatedAt: conversation.updatedAt,
+        messages: conversation.messages,
+        href: `/chat/${conversation.id}`,
+        mode: "chat" as const,
+      })),
+      ...drafts.map((draft) => ({
+        id: draft.id,
+        title: draft.subject,
+        updatedAt: draft.updatedAt,
+        messages: draft.chat_history,
+        href: `/theme/writing/${draft.id}`,
+        mode: "writing" as const,
+      })),
+    ].sort((left, right) => right.updatedAt - left.updatedAt);
+    const filtered = items.filter((item) => item.title.includes(query.trim()) || item.messages.some((message) => message.content.includes(query.trim())));
     const buckets = new Map<string, typeof filtered>();
-    for (const conversation of filtered) {
-      const key = dayLabel(conversation.updatedAt);
-      buckets.set(key, [...(buckets.get(key) ?? []), conversation]);
+    for (const item of filtered) {
+      const key = dayLabel(item.updatedAt);
+      buckets.set(key, [...(buckets.get(key) ?? []), item]);
     }
     return [...buckets.entries()];
-  }, [conversations, query]);
+  }, [conversations, drafts, query]);
 
-  if (!ready) {
+  if (!conversationsReady || !draftsReady) {
     return <p className="px-8 py-10 text-[#8a968f]">載入對話紀錄中…</p>;
   }
 
@@ -57,7 +86,7 @@ export function ChatHistory() {
         <span className="text-sm text-[#177049]">全部</span>
       </div>
 
-      {conversations.length === 0 ? (
+      {conversations.length + drafts.length === 0 ? (
         <p className="mt-10 text-[#8a968f]">還沒有對話。按「新對話」開始後，紀錄會出現在這裡。</p>
       ) : (
         <div className="mt-8 max-w-[860px] space-y-8">
@@ -65,12 +94,12 @@ export function ChatHistory() {
             <section key={label}>
               <h2 className="mb-3 text-sm text-[#8a968f]">{label}</h2>
               <ul className="space-y-3">
-                {items.map((conversation) => (
-                  <li key={conversation.id}>
-                    <Link className="flex items-center gap-4 rounded-[22px] border border-[#edf0ee] bg-white px-5 py-4 hover:border-[#cfe8da]" href={`/chat/${conversation.id}`}>
-                      <span className="w-12 shrink-0 text-sm text-[#8a968f]">{timeLabel(conversation.updatedAt)}</span>
-                      <span className="min-w-0 flex-1 truncate font-medium">{conversation.title}</span>
-                      <span className="rounded-full bg-[#ecf9f3] px-3 py-1 text-xs text-[#177049]">文字</span>
+                {items.map((item) => (
+                  <li key={`${item.mode}-${item.id}`}>
+                    <Link className="flex items-center gap-4 rounded-[22px] border border-[#edf0ee] bg-white px-5 py-4 hover:border-[#cfe8da]" href={item.href}>
+                      <span className="w-12 shrink-0 text-sm text-[#8a968f]">{timeLabel(item.updatedAt)}</span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{item.title}</span>
+                      <span className={item.mode === "writing" ? "rounded-full bg-[#ffe7d7] px-3 py-1 text-xs text-[#a35a2d]" : "rounded-full bg-[#ecf9f3] px-3 py-1 text-xs text-[#177049]"}>{item.mode === "writing" ? "作業模式" : "文字"}</span>
                       <span aria-hidden="true">→</span>
                     </Link>
                   </li>
