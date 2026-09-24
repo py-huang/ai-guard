@@ -15,6 +15,7 @@ import type { GenerateWritingResponse } from "@/lib/writing";
 import type { ConversationMessage } from "@/types/conversation";
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { MarkdownMessage } from "@/components/markdown-message";
+import { SpeakButton } from "@/components/speak-button";
 import { ComposerAttach } from "@/components/composer-attach";
 import { ProtectedBadge } from "@/components/protected-badge";
 import { takePendingUpload } from "@/lib/pending-upload";
@@ -379,6 +380,7 @@ export function Chat({ conversationId }: ChatProps) {
                     <MarkdownMessage>{replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))}</MarkdownMessage>
                   )}
                   {message.blocked ? <p className="mt-2 text-sm text-[#c02d32]">這個問題沒有送給 AI。</p> : null}
+                  <SpeakButton text={replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))} />
                 </div>
               </div>
             )

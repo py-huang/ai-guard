@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, LoaderCircle, Send } from "lucide-react";
 
 import { MarkdownMessage } from "@/components/markdown-message";
+import { SpeakButton } from "@/components/speak-button";
 import { useWritingStore } from "@/store/writing-store";
 import { getWritingSystemPrompt } from "../../lib/writing-prompts";
 import type { WritingMessage } from "@/lib/writing";
@@ -158,7 +159,10 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
               <div className={item.role === "user" ? "ml-auto w-full max-w-[260px] rounded-2xl bg-[#eae1ff] px-[14px] py-2.5" : "w-full max-w-[500px] rounded-2xl bg-[#ecf9f3] px-[14px] py-2.5"} key={`${item.role}-${index}-${item.content}`}>
                 <p className={item.role === "user" ? "text-[11px] leading-[17px] font-bold text-[#6650a4]" : "text-[11px] leading-[17px] font-bold text-[#177049]"}>{item.role === "user" ? "小宇" : "AI"}</p>
                 {item.role === "assistant" ? (
-                  <MarkdownMessage compact>{item.content}</MarkdownMessage>
+                  <>
+                    <MarkdownMessage compact>{item.content}</MarkdownMessage>
+                    <SpeakButton text={item.content} />
+                  </>
                 ) : (
                   <p className="text-sm leading-6">{item.content}</p>
                 )}
