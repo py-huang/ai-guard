@@ -107,7 +107,7 @@ export function PiiRewriteCard({ preview, onPutBack, onAskParent, onEditSelf }: 
       <div className="flex flex-wrap gap-2.5">
         {preview.hits.map((hit) => (
           <span className="inline-flex h-8 items-center rounded-2xl bg-white px-3 text-xs font-medium leading-[19px] text-[#c02d32]" key={`${hit.kind}-${hit.value}`}>
-            {hit.kind} · {hit.kind === "姓名" || hit.kind === "學校" ? hit.value : "已隱藏"}
+            {hit.kind} · {hit.value || "已隱藏"}
           </span>
         ))}
       </div>
@@ -117,7 +117,7 @@ export function PiiRewriteCard({ preview, onPutBack, onAskParent, onEditSelf }: 
         <p className="text-base font-medium leading-[26px] text-[#13221b]">{preview.safeText}</p>
       </div>
 
-      <p className="text-[13px] font-normal leading-[21px] text-[#506058]">已移除{joinKinds(kinds)}，只保留回答需要的城市層級位置。</p>
+      <p className="text-[13px] font-normal leading-[21px] text-[#506058]">已移除{joinKinds(kinds)}，只保留回答需要的資訊內容。</p>
 
       <div className="flex flex-wrap gap-3">
         <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium tracking-[0.1px] text-white" onClick={onPutBack} type="button">

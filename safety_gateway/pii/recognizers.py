@@ -18,6 +18,7 @@ from safety_gateway.pii.checksum import is_valid_tw_national_id
 _CJK = r"\u4e00-\u9fa5"
 _ASCII_BOUND_LEFT = r"(?<![A-Za-z0-9])"
 _ASCII_BOUND_RIGHT = r"(?![A-Za-z0-9])"
+_CLASS_UNIT = r"[一二三四五六七八九十兩0-9]{1,2}年[一二三四五六七八九十甲乙丙丁0-9]{1,2}班"
 
 
 class TaiwanPhoneRecognizer(PatternRecognizer):
@@ -232,11 +233,17 @@ class ChinesePersonRecognizer(EntityRecognizer):
         name = rf"(?P<name>{surname}{given})"
         self._patterns = (
             re.compile(rf"(?:我叫|我是|名叫|名字是|名字叫|我的名字是)\s*{name}"),
+            re.compile(
+                rf"(?:我叫|我是|名叫|名字是|名字叫|我的名字是)\s*{_CLASS_UNIT}的?\s*{name}"
+            ),
+            re.compile(rf"{_CLASS_UNIT}的?\s*{name}"),
             re.compile(rf"(?:姓名|學生姓名|名牌|名札)[:：]?\s*{name}"),
             re.compile(rf"(?:這是|他是|她是|他叫|她叫|班上的|班上)\s*{name}"),
+            re.compile(rf"(?:班導師|級任老師|導師|老師)\s*叫\s*{name}"),
             re.compile(rf"(?:把|拿)\s*{name}(?=的照片|的相片|來搞怪|的臉)"),
             re.compile(rf"{name}(?=同學|小朋友|老師|的照片|的相片)"),
             re.compile(rf"(?:同學|小朋友)\s*{name}"),
+            re.compile(rf"{name}\s*(?=同學|小朋友|老師)"),
         )
 
     def load(self) -> None:
@@ -287,7 +294,7 @@ class EnglishPersonRecognizer(EntityRecognizer):
                 re.IGNORECASE,
             ),
             re.compile(rf"(?:同學|小朋友)\s*{full}"),
-            re.compile(rf"{full}(?=同學|小朋友)"),
+            re.compile(rf"{full}\s*(?=同學|小朋友)"),
         )
 
     def load(self) -> None:
@@ -396,6 +403,57 @@ class _LabeledValueRecognizer(EntityRecognizer):
                     )
                 )
         return results
+
+
+class TaiwanSchoolClassRecognizer(PatternRecognizer):
+    """Homeroom like 三年一班 — identifying for a child even without a school name."""
+
+    PATTERNS: ClassVar[list[Pattern]] = [
+        Pattern(
+            name="tw_homeroom",
+            regex=_CLASS_UNIT,
+            score=0.8,
+        ),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__(
+            supported_entity="SCHOOL_CLASS",
+            name="TaiwanSchoolClassRecognizer",
+            supported_language="zh",
+            patterns=self.PATTERNS,
+            context=["班", "年級", "請假", "學號", "座號"],
+        )
+
+
+class InstagramHandleRecognizer(_LabeledValueRecognizer):
+    """Instagram / IG handle. Needs an IG cue so English words are not swallowed."""
+
+    def __init__(self) -> None:
+        ident = r"(?P<value>@?[A-Za-z][A-Za-z0-9._]{1,29})"
+        cue = r"(?:IG|ig|I\.G\.|Instagram|instagram|insta)"
+        super().__init__(
+            entity_type="IG_HANDLE",
+            name="InstagramHandleRecognizer",
+            score=0.92,
+            patterns=(
+                re.compile(rf"(?<![A-Za-z]){cue}\s*(?:帳號)?[:：是為]?\s*{ident}"),
+            ),
+        )
+
+
+class TaiwanStudentIdRecognizer(_LabeledValueRecognizer):
+    """學號／座號. Label required so homework numbers are not swallowed."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            entity_type="STUDENT_ID",
+            name="TaiwanStudentIdRecognizer",
+            score=0.9,
+            patterns=(
+                re.compile(rf"(?:學號)[:：是為]?\s*(?P<value>\d{{3,10}})"),
+            ),
+        )
 
 
 class TaiwanPassportRecognizer(_LabeledValueRecognizer):
@@ -526,6 +584,9 @@ def build_taiwan_recognizers() -> list[EntityRecognizer]:
         TaiwanPhoneRecognizer(),
         TaiwanNationalIDRecognizer(),
         TaiwanSchoolRecognizer(),
+        TaiwanSchoolClassRecognizer(),
+        TaiwanStudentIdRecognizer(),
+        InstagramHandleRecognizer(),
         TaiwanLocationRecognizer(),
         ChinesePersonRecognizer(),
         EnglishPersonRecognizer(),

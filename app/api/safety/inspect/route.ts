@@ -15,6 +15,9 @@ const ENTITY_KIND: Record<string, PiiKind> = {
   EMAIL_ADDRESS: "Email",
   EMAIL: "Email",
   TW_ID: "身分證",
+  SCHOOL_CLASS: "班級",
+  STUDENT_ID: "學號",
+  IG_HANDLE: "IG帳號",
 };
 
 export async function POST(request: Request) {
@@ -40,6 +43,9 @@ export async function POST(request: Request) {
       .replace(/<LOCATION_\d+>/g, "這個城市")
       .replace(/<EMAIL_ADDRESS_\d+>/g, "")
       .replace(/<TW_ID_\d+>/g, "")
+      .replace(/<SCHOOL_CLASS_\d+>/g, "班級")
+      .replace(/<STUDENT_ID_\d+>/g, "")
+      .replace(/<IG_HANDLE_\d+>/g, "")
       .replace(/<[A-Z][A-Z0-9_]*_\d+>/g, "")
       .replace(/\s{2,}/g, " ")
       .trim();

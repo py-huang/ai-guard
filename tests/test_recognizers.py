@@ -38,6 +38,73 @@ def test_contact_book_labels_and_simplified_hao() -> None:
     assert "LOCATION" in types
 
 
+def test_homework_question_without_pii_is_clean() -> None:
+    assert _types("恐龍為什麼會滅絕？") == set()
+
+
+def test_self_intro_with_class_particle_and_seat_number() -> None:
+    text = "我是五年二班的陳大同，座號 12 號，幫我寫一篇自我介紹。"
+    types = _types(text)
+    assert {"PERSON", "SCHOOL_CLASS"} <= types, types
+    assert "STUDENT_ID" not in types
+    engine = build_analyzer_engine()
+    spans = {text[hit.start : hit.end] for hit in engine.analyze(text=text, language="zh")}
+    assert {"陳大同", "五年二班"} <= spans
+    assert "12" not in spans
+
+
+def test_homeroom_teacher_and_school_are_redacted() -> None:
+    text = "我在信義國小上學，我的班導師叫張美麗。"
+    types = _types(text)
+    assert {"SCHOOL", "PERSON"} <= types, types
+    engine = build_analyzer_engine()
+    spans = {text[hit.start : hit.end] for hit in engine.analyze(text=text, language="zh")}
+    assert {"信義國小", "張美麗"} <= spans
+
+
+def test_leave_slip_identifies_class_name_and_student_id() -> None:
+    text = "幫我寫一張請假單：我是三年一班林小華，學號 109012，明天因為感冒要請假。"
+    types = _types(text)
+    assert {"PERSON", "SCHOOL_CLASS", "STUDENT_ID"} <= types, types
+    engine = build_analyzer_engine()
+    spans = {text[hit.start : hit.end] for hit in engine.analyze(text=text, language="zh")}
+    assert {"林小華", "三年一班", "109012"} <= spans
+
+
+def test_instagram_handle_in_follow_request() -> None:
+    samples = (
+        "我的 IG 帳號是 xiao_ming_2015，你可以追蹤我嗎？",
+        "我的 IG 是 xiao_ming_2015，你可以追蹤我嗎？",
+        "IG帳號 @xiao_ming_2015",
+    )
+    for text in samples:
+        types = _types(text)
+        assert "IG_HANDLE" in types, text
+        engine = build_analyzer_engine()
+        values = {text[hit.start : hit.end] for hit in engine.analyze(text=text, language="zh") if hit.entity_type == "IG_HANDLE"}
+        assert any("xiao_ming_2015" in item for item in values), text
+    assert "IG_HANDLE" not in _types("IG 是什麼？")
+
+
+def test_student_id_needs_label() -> None:
+    assert "STUDENT_ID" not in _types("這題答案是 109012")
+
+
+def test_pii_inside_child_questions_is_detected() -> None:
+    samples = {
+        "請問王小明的數學作業怎麼寫？": {"PERSON"},
+        "中山國小附近有什麼博物館？": {"SCHOOL"},
+        "我的電話是 0912-345-678，可以幫我記作業嗎？": {"PHONE_NUMBER"},
+        "我住台北市中山區，今天想問火山": {"LOCATION"},
+        "信箱是 ming@school.edu.tw 作業要寄到哪？": {"EMAIL_ADDRESS"},
+        "身分證 A123456789 這題怎麼算？": {"TW_ID"},
+        "John Smith 同學的英文名字怎麼唸？": {"PERSON"},
+        "林小華 同學明天請假，作業怎麼辦？": {"PERSON"},
+    }
+    for text, expected in samples.items():
+        assert expected <= _types(text), text
+
+
 def test_traditional_chinese_classmate_cues() -> None:
     samples = (
         "這是林小華",
