@@ -19,6 +19,7 @@ import { ComposerAttach } from "@/components/composer-attach";
 import { ProtectedBadge } from "@/components/protected-badge";
 import { takePendingUpload } from "@/lib/pending-upload";
 import { ImageBlockedCard, ImageParentApprovedCard, ImageParentDeclinedCard, ImageParentPendingCard, ImageReviewCard, ImageSoftScanPreview } from "@/components/pages/image-review-card";
+import { VoiceAsk } from "@/components/pages/voice-ask";
 import {
   ParentApprovedCard,
   ParentDeclinedCard,
@@ -58,6 +59,7 @@ export function Chat({ conversationId }: ChatProps) {
   const [imageChanged, setImageChanged] = useState(false);
   const [imageFields, setImageFields] = useState<string[]>([]);
   const [safetyTouched, setSafetyTouched] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   const started = useRef(false);
 
@@ -324,6 +326,18 @@ export function Chat({ conversationId }: ChatProps) {
     return <p className="px-8 py-10 text-[#8a968f]">正在開始新對話…</p>;
   }
 
+  if (voiceOpen) {
+    return (
+      <VoiceAsk
+        onConfirm={(text) => {
+          setVoiceOpen(false);
+          void startGuard(text);
+        }}
+        onUseText={() => setVoiceOpen(false)}
+      />
+    );
+  }
+
   const composerLocked = guard === "detected" || guard === "rewritten" || guard === "parent-pending" || guard === "parent-revision" || guard === "parent-declined" || guard === "image-review" || guard === "image-blocked";
 
   return (
@@ -584,6 +598,16 @@ export function Chat({ conversationId }: ChatProps) {
                 }
                 autoComplete="off"
               />
+              <button
+                aria-label="用聲音提問"
+                className="grid size-12 place-items-center rounded-full text-[#c02d32] hover:bg-[#fff0ee] disabled:opacity-40"
+                disabled={composerLocked || busy}
+                onClick={() => setVoiceOpen(true)}
+                title="用聲音提問"
+                type="button"
+              >
+                <img alt="" aria-hidden="true" className="size-6" src="/discover/composer-microphone.svg" />
+              </button>
               <button className="grid size-12 place-items-center rounded-full bg-[#d63a37] text-white disabled:bg-[#d7ddd9]" disabled={composerLocked || busy || !draft.trim()} type="submit" aria-label="送出問題">
                 <img className="size-6 brightness-0 invert" src="/discover/composer-send.svg" alt="" />
               </button>

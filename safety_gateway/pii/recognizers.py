@@ -241,9 +241,10 @@ class ChinesePersonRecognizer(EntityRecognizer):
             re.compile(rf"(?:這是|他是|她是|他叫|她叫|班上的|班上)\s*{name}"),
             re.compile(rf"(?:班導師|級任老師|導師|老師)\s*叫\s*{name}"),
             re.compile(rf"(?:把|拿)\s*{name}(?=的照片|的相片|來搞怪|的臉)"),
-            re.compile(rf"{name}(?=同學|小朋友|老師|的照片|的相片)"),
+            re.compile(rf"{name}(?=同學|小朋友|老師|先生|小姐|女士|的照片|的相片)"),
             re.compile(rf"(?:同學|小朋友)\s*{name}"),
-            re.compile(rf"{name}\s*(?=同學|小朋友|老師)"),
+            re.compile(rf"{name}\s*(?=同學|小朋友|老師|先生|小姐|女士)"),
+            re.compile(rf"(?:我跟|我和|我與|跟|和|與)\s*{name}(?=先生|小姐|女士|老師|同學)"),
         )
 
     def load(self) -> None:

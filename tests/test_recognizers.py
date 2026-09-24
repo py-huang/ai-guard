@@ -118,6 +118,19 @@ def test_traditional_chinese_classmate_cues() -> None:
         assert "PERSON" in _types(text), text
 
 
+def test_honorific_and_together_with_name_are_person() -> None:
+    samples = (
+        "我跟周品難先生今天會繼續一起搭公車下班嗎，你用塔羅牌幫我測看看",
+        "林小華小姐明天請假",
+        "我和陳大同老師下課後要不要一起走",
+    )
+    engine = build_analyzer_engine()
+    for text in samples:
+        assert "PERSON" in _types(text), text
+        spans = {text[hit.start : hit.end] for hit in engine.analyze(text=text, language="zh") if hit.entity_type == "PERSON"}
+        assert any(name in spans for name in ("周品難", "林小華", "陳大同")), (text, spans)
+
+
 def test_does_not_treat_common_words_as_names() -> None:
     types = _types("今天作業寫在黑板上，我們可以一起想")
     assert "PERSON" not in types

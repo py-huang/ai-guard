@@ -105,6 +105,59 @@ export async function generateGeminiText({ messages, responseMimeType, temperatu
   throw lastError instanceof Error ? lastError : new Error("Gemini request failed.");
 }
 
+function getTranscribeModel() {
+  return process.env.GEMINI_TRANSCRIBE_MODEL?.trim() || "gemini-3.5-transcribe";
+}
+
+function geminiAudioMime(mimeType: string) {
+  const base = mimeType.split(";")[0]?.trim().toLowerCase() || "audio/wav";
+  if (base === "audio/wav" || base === "audio/mpeg" || base === "audio/mp3" || base === "audio/mp4" || base === "audio/aac" || base === "audio/ogg" || base === "audio/flac") {
+    return base;
+  }
+  return "audio/wav";
+}
+
+export async function transcribeGeminiAudio(audio: { mimeType: string; data: string }) {
+  const client = getGeminiClient();
+  const model = getTranscribeModel();
+  const maxAttempts = 3;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const response = await client.models.generateContent({
+        model,
+        contents: [
+          {
+            role: "user",
+            parts: [{ inlineData: { mimeType: geminiAudioMime(audio.mimeType), data: audio.data } }],
+          },
+        ],
+        config: {
+          temperature: 0,
+          audioTranscriptionConfig: {
+            languageCodes: ["zh-TW"],
+            mode: "SMART",
+          },
+        } as Record<string, unknown>,
+      });
+      return response.text?.trim() ?? "";
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableGeminiError(error) || attempt === maxAttempts - 1) {
+        break;
+      }
+      await wait(600 * 2 ** attempt);
+    }
+  }
+
+  if (isRetryableGeminiError(lastError)) {
+    throw new GeminiBusyError();
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Gemini request failed.");
+}
+
 function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
