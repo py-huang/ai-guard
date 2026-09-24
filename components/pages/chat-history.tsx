@@ -92,14 +92,14 @@ export function ChatHistory() {
         <div className="mt-8 max-w-[860px] space-y-8">
           {grouped.map(([label, items]) => (
             <section key={label}>
-              <h2 className="mb-3 text-sm text-[#8a968f]">{label}</h2>
+              <h2 className="mb-3 whitespace-nowrap text-sm text-[#8a968f]">{label}</h2>
               <ul className="space-y-3">
                 {items.map((item) => (
                   <li key={`${item.mode}-${item.id}`}>
-                    <Link className="flex items-center gap-4 rounded-[22px] border border-[#edf0ee] bg-white px-5 py-4 hover:border-[#cfe8da]" href={item.href}>
+                    <Link className="flex items-center gap-4 whitespace-nowrap rounded-[22px] border border-[#edf0ee] bg-white px-5 py-4 hover:border-[#cfe8da]" href={item.href}>
                       <span className="w-12 shrink-0 text-sm text-[#8a968f]">{timeLabel(item.updatedAt)}</span>
-                      <span className="min-w-0 flex-1 truncate font-medium">{item.title}</span>
-                      <span className={item.mode === "writing" ? "rounded-full bg-[#ffe7d7] px-3 py-1 text-xs text-[#a35a2d]" : "rounded-full bg-[#ecf9f3] px-3 py-1 text-xs text-[#177049]"}>{item.mode === "writing" ? "作業模式" : "文字"}</span>
+                      <span className="min-w-0 flex-1 overflow-hidden font-medium">{item.title}</span>
+                      <span className={item.mode === "writing" ? "shrink-0 rounded-full bg-[#ffe7d7] px-3 py-1 text-xs text-[#a35a2d]" : "shrink-0 rounded-full bg-[#ecf9f3] px-3 py-1 text-xs text-[#177049]"}>{item.mode === "writing" ? "作業模式" : "文字"}</span>
                       <span aria-hidden="true">→</span>
                     </Link>
                   </li>

@@ -68,13 +68,21 @@ const FINALS: Record<string, string> = {
 const Y_FINALS: Record<string, string> = {
   i: "ㄧ",
   ia: "ㄧㄚ",
+  a: "ㄧㄚ",
   ie: "ㄧㄝ",
+  e: "ㄧㄝ",
   iao: "ㄧㄠ",
+  ao: "ㄧㄠ",
   iu: "ㄧㄡ",
+  ou: "ㄧㄡ",
   ian: "ㄧㄢ",
+  an: "ㄧㄢ",
   in: "ㄧㄣ",
+  en: "ㄧㄣ",
   iang: "ㄧㄤ",
+  ang: "ㄧㄤ",
   ing: "ㄧㄥ",
+  eng: "ㄧㄥ",
   u: "ㄩ",
   ue: "ㄩㄝ",
   uan: "ㄩㄢ",
@@ -85,15 +93,21 @@ const Y_FINALS: Record<string, string> = {
 const W_FINALS: Record<string, string> = {
   u: "ㄨ",
   ua: "ㄨㄚ",
+  a: "ㄨㄚ",
   uo: "ㄨㄛ",
   o: "ㄨㄛ",
   uai: "ㄨㄞ",
+  ai: "ㄨㄞ",
   ui: "ㄨㄟ",
   ei: "ㄨㄟ",
   uan: "ㄨㄢ",
+  an: "ㄨㄢ",
   un: "ㄨㄣ",
+  en: "ㄨㄣ",
   uang: "ㄨㄤ",
+  ang: "ㄨㄤ",
   eng: "ㄨㄥ",
+  ong: "ㄨㄥ",
 };
 
 const RETROFLEX = new Set(["zh", "ch", "sh", "r", "z", "c", "s"]);
@@ -103,12 +117,41 @@ export type ZhuyinPart = {
   zhuyin: string | null;
 };
 
+export type ZhuyinGlyphs = {
+  letters: string[];
+  tone: string | null;
+};
+
+const SIDE_TONES = new Set(["ˊ", "ˇ", "ˋ"]);
+
+export function splitZhuyin(zhuyin: string): ZhuyinGlyphs {
+  const letters: string[] = [];
+  let tone: string | null = null;
+  for (const mark of zhuyin) {
+    if (SIDE_TONES.has(mark)) {
+      tone = mark;
+      continue;
+    }
+    letters.push(mark);
+  }
+  return { letters, tone };
+}
+
 type PinyinToken = {
   origin: string;
   initial: string;
   final: string;
   num: number;
   isZh: boolean;
+};
+
+const TAIWAN_READINGS: Record<string, string> = {
+  們: "˙ㄇㄣ",
+  吗: "˙ㄇㄚ",
+  嗎: "˙ㄇㄚ",
+  麼: "˙ㄇㄜ",
+  么: "˙ㄇㄜ",
+  嗨: "ㄏㄞ",
 };
 
 export function toZhuyinParts(text: string): ZhuyinPart[] {
@@ -119,12 +162,16 @@ export function toZhuyinParts(text: string): ZhuyinPart[] {
     type: "all",
     traditional: true,
     nonZh: "consecutive",
-    toneSandhi: false,
+    toneSandhi: true,
   }) as PinyinToken[];
 
   return tokens.map((token) => {
     if (!token.isZh) {
       return { text: token.origin, zhuyin: null };
+    }
+    const fixed = TAIWAN_READINGS[token.origin];
+    if (fixed) {
+      return { text: token.origin, zhuyin: fixed };
     }
     const letters = toBopomofoLetters(token.initial, stripTone(token.final));
     return {
@@ -142,18 +189,28 @@ function withTone(letters: string, tone: number): string {
 
 function stripTone(value: string): string {
   return value
-    .normalize("NFD")
+    .normalize("NFKD")
+    .replace(/[uü][\u0308]/gi, "v")
     .replace(/\p{M}/gu, "")
     .replaceAll("ü", "v")
     .replaceAll("Ü", "v")
     .toLowerCase();
 }
 
+const JQX = new Set(["j", "q", "x"]);
+const JQX_U: Record<string, string> = {
+  u: "v",
+  ue: "ve",
+  uan: "van",
+  un: "vn",
+};
+
 function toBopomofoLetters(initial: string, final: string): string {
   if (initial === "y") return Y_FINALS[final] ?? FINALS[final] ?? "";
   if (initial === "w") return W_FINALS[final] ?? FINALS[final] ?? "";
   if (RETROFLEX.has(initial) && final === "i") return INITIALS[initial] ?? "";
+  const tailKey = JQX.has(initial) ? (JQX_U[final] ?? final) : final;
   const head = INITIALS[initial] ?? "";
-  const tail = FINALS[final] ?? "";
+  const tail = FINALS[tailKey] ?? "";
   return `${head}${tail}`;
 }

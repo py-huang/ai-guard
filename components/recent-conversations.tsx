@@ -50,7 +50,7 @@ export function RecentConversations() {
         {recent.map((item) => (
           <li key={`${item.mode}-${item.id}`}>
             <Link className="flex min-w-0 items-center gap-1.5 hover:text-[#177049]" href={item.href}>
-              <span className="truncate">{item.title}</span>
+              <span className="truncate whitespace-nowrap">{item.title}</span>
             </Link>
           </li>
         ))}

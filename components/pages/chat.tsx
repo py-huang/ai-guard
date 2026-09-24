@@ -18,16 +18,18 @@ import { MarkdownMessage } from "@/components/markdown-message";
 import { ComposerAttach } from "@/components/composer-attach";
 import { ProtectedBadge } from "@/components/protected-badge";
 import { takePendingUpload } from "@/lib/pending-upload";
-import { ImageBlockedCard, ImageReviewCard, ImageSoftScanPreview } from "@/components/pages/image-review-card";
+import { ImageBlockedCard, ImageParentApprovedCard, ImageParentDeclinedCard, ImageParentPendingCard, ImageReviewCard, ImageSoftScanPreview } from "@/components/pages/image-review-card";
 import {
   ParentApprovedCard,
+  ParentDeclinedCard,
   ParentPendingCard,
+  ParentRevisionCard,
   PiiDetectedCard,
   PiiRewriteCard,
 } from "@/components/pages/pii-guard-cards";
 import { pngDataUrl, redactImage } from "@/lib/safety-redact";
 
-type GuardState = "none" | "detected" | "rewritten" | "parent-pending" | "parent-approved" | "image-review" | "image-blocked";
+type GuardState = "none" | "detected" | "rewritten" | "parent-pending" | "parent-approved" | "parent-revision" | "parent-declined" | "image-review" | "image-blocked";
 
 type ChatProps = {
   conversationId?: string;
@@ -322,7 +324,7 @@ export function Chat({ conversationId }: ChatProps) {
     return <p className="px-8 py-10 text-[#8a968f]">正在開始新對話…</p>;
   }
 
-  const composerLocked = guard === "detected" || guard === "rewritten" || guard === "parent-pending" || guard === "image-review" || guard === "image-blocked";
+  const composerLocked = guard === "detected" || guard === "rewritten" || guard === "parent-pending" || guard === "parent-revision" || guard === "parent-declined" || guard === "image-review" || guard === "image-blocked";
 
   return (
     <section className="flex min-h-[calc(100dvh-72px)] flex-col px-5 py-6 sm:px-10 lg:px-16">
@@ -427,22 +429,17 @@ export function Chat({ conversationId }: ChatProps) {
             />
           ) : null}
 
-          {guard === "parent-pending" && (preview || redactedImageUrl) ? (
-            <ParentPendingCard
-              safeText={preview?.safeText || "這張已遮罩的圖片"}
+          {guard === "parent-pending" && redactedImageUrl ? (
+            <ImageParentPendingCard
+              fields={imageFields}
               onUseSafe={() => {
-                if (redactedImageBase64) {
-                  const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
-                  void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
-                  return;
-                }
-                setGuard("rewritten");
+                const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
+                void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
               }}
-              onEdit={() => {
-                setGuard(redactedImageUrl ? "image-review" : "none");
-                if (!redactedImageUrl && preview) {
-                  setDraft(rawDraft);
-                }
+              onReplace={() => {
+                clearImage();
+                setGuard("none");
+                fileRef.current?.click();
               }}
               onAskElse={() => {
                 setDraft("");
@@ -452,36 +449,101 @@ export function Chat({ conversationId }: ChatProps) {
                 clearImage();
               }}
               onDemoApprove={() => setGuard("parent-approved")}
+              onDemoDecline={() => setGuard("parent-declined")}
             />
           ) : null}
 
-          {guard === "parent-approved" && (preview || redactedImageUrl) ? (
-            <ParentApprovedCard
-              safeText={preview?.safeText || "這張已遮罩的圖片"}
-              onContinue={() =>
-                void sendSafeText(preview?.safeText || draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。", {
-                  protected: true,
-                  hasImage: Boolean(redactedImageBase64),
-                  imageBase64: redactedImageBase64 || undefined,
-                })
-              }
+          {guard === "parent-pending" && preview && !redactedImageUrl ? (
+            <ParentPendingCard
+              safeText={preview.safeText}
+              onUseSafe={() => setGuard("rewritten")}
               onEdit={() => {
-                setGuard(redactedImageUrl ? "image-review" : "none");
-                if (!redactedImageUrl) {
-                  setDraft(rawDraft);
-                }
+                setDraft(rawDraft);
+                setGuard("none");
               }}
               onAskElse={() => {
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
                 setSafetyTouched(false);
-                clearImage();
+              }}
+              onDemoApprove={() => setGuard("parent-approved")}
+              onDemoRevise={() => setGuard("parent-revision")}
+              onDemoDecline={() => setGuard("parent-declined")}
+            />
+          ) : null}
+
+          {guard === "parent-approved" && redactedImageUrl ? (
+            <ImageParentApprovedCard
+              fields={imageFields}
+              question={draft.trim() || undefined}
+              onContinue={() => {
+                const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
+                void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
               }}
             />
           ) : null}
 
-          {busy ? <p className="text-[#8a968f]">AI 正在想…</p> : null}
+          {guard === "parent-approved" && preview && !redactedImageUrl ? (
+            <ParentApprovedCard
+              safeText={preview.safeText}
+              onContinue={() => void sendSafeText(preview.safeText, { protected: true })}
+              onEdit={() => {
+                setDraft(rawDraft);
+                setGuard("none");
+              }}
+              onAskElse={() => {
+                setDraft("");
+                setGuard("none");
+                setPreview(null);
+                setSafetyTouched(false);
+              }}
+            />
+          ) : null}
+
+          {guard === "parent-revision" && preview && !redactedImageUrl ? (
+            <ParentRevisionCard
+              safeText={preview.safeText}
+              onEdit={() => {
+                setDraft(rawDraft);
+                setGuard("none");
+              }}
+              onUseSafe={() => setGuard("rewritten")}
+            />
+          ) : null}
+
+          {guard === "parent-declined" && preview && !redactedImageUrl ? (
+            <ParentDeclinedCard
+              safeText={preview.safeText}
+              onEdit={() => {
+                setDraft(rawDraft);
+                setGuard("none");
+              }}
+              onAskElse={() => {
+                setDraft("");
+                setGuard("none");
+                setPreview(null);
+                setSafetyTouched(false);
+              }}
+            />
+          ) : null}
+
+          {guard === "parent-declined" && redactedImageUrl ? (
+            <ImageParentDeclinedCard
+              question={draft.trim() || undefined}
+              onReplace={() => {
+                clearImage();
+                setGuard("none");
+                fileRef.current?.click();
+              }}
+              onUseText={() => {
+                clearImage();
+                setGuard("none");
+              }}
+            />
+          ) : null}
+
+          {busy ? <p className="whitespace-nowrap text-[#8a968f]">AI 正在想…</p> : null}
           {error ? <p className="text-[#c02d32]">{error}</p> : null}
         </div>
 
@@ -508,10 +570,14 @@ export function Chat({ conversationId }: ChatProps) {
                 disabled={composerLocked || busy}
                 onChange={(event) => setDraft(event.target.value)}
                 placeholder={
-                  imageScanning || guard === "image-review"
+                  imageScanning || guard === "image-review" || guard === "parent-approved"
                     ? "圖片已加入，送出前我會先幫你檢查"
                     : guard === "image-blocked"
                       ? "這張圖片沒有送出，可以換一張再問"
+                      : guard === "parent-revision"
+                        ? "這裡有你的名字和學校，先不要送出"
+                      : guard === "parent-declined"
+                        ? "還不能送出，先完成上一步"
                     : composerLocked
                       ? "這裡有你的名字和學校，先不要送出"
                       : "想知道什麼？可以打字或用說的"

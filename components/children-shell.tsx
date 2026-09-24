@@ -69,8 +69,8 @@ export function ChildrenShell({
             className="inline-flex h-12 items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-3 text-[15px] font-medium text-white lg:hidden"
             href="/chat"
           >
-            <img className="size-5" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
-            新對話
+            <img className="size-5 shrink-0" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
+            <span className="whitespace-nowrap">新對話</span>
           </a>
           <ReadingAssistToggle />
           <button className="grid h-12 w-[46px] place-items-center rounded-[22px] bg-[#dceeff] text-[15px] font-bold text-[#25324a]">
@@ -86,8 +86,8 @@ export function ChildrenShell({
             className="flex h-12 w-[180px] self-center items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#bd2e2c]"
             href="/chat"
           >
-            <img className="size-5" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
-            新對話
+            <img className="size-5 shrink-0" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
+            <span className="whitespace-nowrap">新對話</span>
           </a>
 
           <nav className="mt-4" aria-label="主要導覽">
@@ -97,7 +97,7 @@ export function ChildrenShell({
               return (
                 <Link
                   className={cn(
-                    "flex h-14 w-[188px] items-center rounded-2xl text-left text-lg font-medium tracking-[0.1px] transition-colors",
+                    "flex h-14 w-full items-center whitespace-nowrap rounded-2xl text-left text-lg font-medium tracking-[0.1px] transition-colors",
                     isActive
                       ? "bg-[#f4f0ff] text-[#13221b]"
                       : "text-[#506058] hover:bg-[#f7f8f7]"
@@ -117,7 +117,7 @@ export function ChildrenShell({
                       aria-hidden="true"
                     />
                   </span>
-                  {label}
+                  <span className="whitespace-nowrap">{label}</span>
                 </Link>
               );
             })}

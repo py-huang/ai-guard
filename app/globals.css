@@ -141,47 +141,103 @@
   src: url("/fonts/BopomofoRuby1909-v1-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
-html.zhuyin-on {
-  font-family: var(--font-noto-sans-tc), BopomofoRuby, sans-serif;
-  font-variant-east-asian: salt;
-  -moz-font-feature-settings: "salt";
-  -webkit-font-feature-settings: "salt";
-  font-feature-settings: "salt";
+/* 範例五：國語橫排、注音在字右側。漢字沿用當下字型／字級／字重。 */
+html.zhuyin-on main {
+  line-height: 1.7;
 }
 
-html.zhuyin-on ruby {
-  ruby-align: center;
-  padding-right: 0.25em;
-  ruby-position: inter-character;
-  -webkit-ruby-position: inter-character;
+html.zhuyin-on [data-zhuyin-source] {
+  display: inline;
 }
 
-html.zhuyin-on rt {
-  font-family: BopomofoRuby, var(--font-noto-sans-tc), sans-serif;
-  font-size: 26%;
-  font-weight: 400;
-  letter-spacing: 0;
+html.zhuyin-on .zhuyin-unit {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  vertical-align: baseline;
+  white-space: nowrap;
+  width: max-content;
+  height: 1em;
+  padding-right: 0.16em;
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
+html.zhuyin-on .zhuyin-han {
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: inherit;
   line-height: 1;
-  ruby-align: center;
-  text-align: center;
-  text-orientation: upright;
 }
 
-@supports not (ruby-position: inter-character) {
-  html.zhuyin-on ruby {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
-    vertical-align: baseline;
-  }
+html.zhuyin-on .zhuyin-ruby {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-left: 0.04em;
+  height: 100%;
+}
 
-  html.zhuyin-on rt {
-    writing-mode: vertical-rl;
-    text-orientation: upright;
-  }
+html.zhuyin-on .zhuyin-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  height: 100%;
+}
+
+html.zhuyin-on .zhuyin-letter,
+html.zhuyin-on .zhuyin-tone {
+  display: block;
+  flex: 0 0 auto;
+  height: calc(1em / var(--zhuyin-n, 3));
+  font-family: BopomofoRuby, inherit;
+  font-size: calc(0.86em / var(--zhuyin-n, 3));
+  font-weight: inherit;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+html.zhuyin-on .zhuyin-tone {
+  margin-left: 0.02em;
+  align-self: center;
+  height: auto;
+  font-size: calc(0.86em / var(--zhuyin-n, 3));
+}
+
+html.zhuyin-on .zhuyin-light {
+  font-size: calc(0.78em / var(--zhuyin-n, 3));
+}
+
+html.zhuyin-on aside {
+  width: 16rem;
+}
+
+html.zhuyin-on aside a,
+html.zhuyin-on aside h2,
+html.zhuyin-on aside li,
+html.zhuyin-on aside p {
+  white-space: nowrap;
+}
+
+html.zhuyin-on aside nav a {
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: nowrap;
+}
+
+html.zhuyin-on aside a[aria-label="新對話"] {
+  width: 212px;
+  max-width: 212px;
+  flex-wrap: nowrap;
 }
 
 @keyframes ag-soft-scan {

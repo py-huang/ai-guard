@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { useReadingAssist } from "@/hooks/use-reading-assist";
-import { toZhuyinParts } from "@/lib/zhuyin";
+import { splitZhuyin, toZhuyinParts } from "@/lib/zhuyin";
 import { cn } from "@/lib/utils";
 
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "TEXTAREA", "INPUT", "SELECT", "CODE", "PRE", "SVG", "NOSCRIPT"]);
@@ -52,7 +52,7 @@ function annotateZhuyin(root: HTMLElement) {
       }
       const parent = node.parentElement;
       if (!parent) return NodeFilter.FILTER_REJECT;
-      if (parent.closest("[data-zhuyin-source], [data-zhuyin-skip], ruby")) {
+      if (parent.closest("[data-zhuyin-source], [data-zhuyin-skip], .zhuyin-unit")) {
         return NodeFilter.FILTER_REJECT;
       }
       if (SKIP_TAGS.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
@@ -79,12 +79,32 @@ function replaceTextNode(node: Text) {
       wrapper.append(part.text);
       return;
     }
-    const ruby = document.createElement("ruby");
-    ruby.append(part.text);
-    const rt = document.createElement("rt");
-    rt.textContent = part.zhuyin;
-    ruby.append(rt);
-    wrapper.append(ruby);
+    const unit = document.createElement("span");
+    unit.className = "zhuyin-unit";
+    const han = document.createElement("span");
+    han.className = "zhuyin-han";
+    han.textContent = part.text;
+    const ruby = document.createElement("span");
+    ruby.className = "zhuyin-ruby";
+    const { letters, tone } = splitZhuyin(part.zhuyin);
+    const col = document.createElement("span");
+    col.className = "zhuyin-col";
+    unit.style.setProperty("--zhuyin-n", String(Math.max(letters.length, 3)));
+    letters.forEach((letter) => {
+      const glyph = document.createElement("span");
+      glyph.className = letter === "˙" ? "zhuyin-letter zhuyin-light" : "zhuyin-letter";
+      glyph.textContent = letter;
+      col.append(glyph);
+    });
+    ruby.append(col);
+    if (tone) {
+      const mark = document.createElement("span");
+      mark.className = "zhuyin-tone";
+      mark.textContent = tone;
+      ruby.append(mark);
+    }
+    unit.append(han, ruby);
+    wrapper.append(unit);
   });
   node.replaceWith(wrapper);
 }

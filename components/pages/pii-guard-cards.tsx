@@ -138,7 +138,23 @@ export function PiiRewriteCard({ preview, onPutBack, onAskParent, onEditSelf }: 
   );
 }
 
-export function ParentPendingCard({ safeText, onUseSafe, onEdit, onAskElse, onDemoApprove }: { safeText: string; onUseSafe: () => void; onEdit: () => void; onAskElse: () => void; onDemoApprove: () => void }) {
+export function ParentPendingCard({
+  safeText,
+  onUseSafe,
+  onEdit,
+  onAskElse,
+  onDemoApprove,
+  onDemoRevise,
+  onDemoDecline,
+}: {
+  safeText: string;
+  onUseSafe: () => void;
+  onEdit: () => void;
+  onAskElse: () => void;
+  onDemoApprove: () => void;
+  onDemoRevise: () => void;
+  onDemoDecline: () => void;
+}) {
   return (
     <section className="flex flex-col gap-3.5 rounded-3xl bg-[#ecf9f3] px-[22px] py-5">
       <div className="flex items-center gap-3.5">
@@ -170,9 +186,17 @@ export function ParentPendingCard({ safeText, onUseSafe, onEdit, onAskElse, onDe
           <img alt="" aria-hidden="true" height={20} src="/safety/icon-chevron-right.svg" width={20} />
         </button>
       </div>
-      <button className="self-start text-xs text-[#8a968f] underline" onClick={onDemoApprove} type="button">
-        示範：家長已確認
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button className="self-start text-xs text-[#8a968f] underline" onClick={onDemoApprove} type="button">
+          示範：家長同意
+        </button>
+        <button className="self-start text-xs text-[#8a968f] underline" onClick={onDemoRevise} type="button">
+          示範：請孩子自己改
+        </button>
+        <button className="self-start text-xs text-[#8a968f] underline" onClick={onDemoDecline} type="button">
+          示範：家長不同意
+        </button>
+      </div>
     </section>
   );
 }
@@ -209,6 +233,76 @@ export function ParentApprovedCard({ safeText, onContinue, onEdit, onAskElse }: 
         </div>
       </section>
     </div>
+  );
+}
+
+export function ParentRevisionCard({ safeText, onEdit, onUseSafe }: { safeText: string; onEdit: () => void; onUseSafe: () => void }) {
+  return (
+    <section className="w-full space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold leading-[30px] text-[#13221b]">家長想請你再改一下</h2>
+        <p className="inline-flex h-8 items-center rounded-2xl bg-[#ddf5ea] px-3 text-xs font-medium leading-[19px] text-[#177049]">✓ 家長確認好了</p>
+      </div>
+
+      <div className="ml-auto max-w-[430px] rounded-[20px] bg-[#eae1ff] px-5 py-3.5">
+        <ProtectedBadge />
+        <p className="mt-2 text-sm font-medium leading-[22px] text-[#13221b]">{safeText}</p>
+      </div>
+
+      <div className="flex gap-3">
+        <ChatAiAvatar />
+        <div className="min-w-0 flex-1">
+          <p className="text-lg font-bold leading-[30px] text-[#13221b]">可以把不需要分享的資訊拿掉，再問一次。</p>
+          <p className="mt-2 text-base font-normal leading-[29px] text-[#213129]">你可以自己修改，或使用已準備好的安全版本。</p>
+          <div className="mt-6 rounded-[20px] bg-[#ecf9f3] px-5 py-5">
+            <p className="text-[17px] font-bold leading-[27px] text-[#13221b]">重新整理問題</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium tracking-[0.1px] text-white" onClick={onEdit} type="button">
+                修改問題
+              </button>
+              <button className="inline-flex h-12 items-center justify-center rounded-2xl border border-solid border-[#d63a37] bg-white px-4 text-[15px] font-medium tracking-[0.1px] text-[#c02d32]" onClick={onUseSafe} type="button">
+                使用安全版本
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ParentDeclinedCard({ safeText, onEdit, onAskElse }: { safeText: string; onEdit: () => void; onAskElse: () => void }) {
+  return (
+    <section className="w-full space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold leading-[30px] text-[#13221b]">這次先不要送出這個問題</h2>
+        <p className="inline-flex h-8 items-center rounded-2xl bg-[#ddf5ea] px-3 text-xs font-medium leading-[19px] text-[#177049]">✓ 家長確認好了</p>
+      </div>
+
+      <div className="ml-auto max-w-[430px] rounded-[20px] bg-[#eae1ff] px-5 py-3.5">
+        <ProtectedBadge />
+        <p className="mt-2 text-sm font-medium leading-[22px] text-[#13221b]">{safeText}</p>
+      </div>
+
+      <div className="flex gap-3">
+        <ChatAiAvatar />
+        <div className="min-w-0 flex-1">
+          <p className="text-lg font-bold leading-[30px] text-[#13221b]">沒關係，你可以換個方式問。</p>
+          <p className="mt-2 text-base font-normal leading-[29px] text-[#213129]">也可以先問別的問題，之後再回來。</p>
+          <div className="mt-6 rounded-[20px] bg-[#ecf9f3] px-5 py-5">
+            <p className="text-[17px] font-bold leading-[27px] text-[#13221b]">想接著做什麼？</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium tracking-[0.1px] text-white" onClick={onEdit} type="button">
+                換個方式問
+              </button>
+              <button className="inline-flex h-12 items-center justify-center rounded-2xl border border-solid border-[#d63a37] bg-white px-4 text-[15px] font-medium tracking-[0.1px] text-[#c02d32]" onClick={onAskElse} type="button">
+                問別的問題
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
