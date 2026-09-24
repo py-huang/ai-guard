@@ -46,6 +46,10 @@ class InMemoryImageRedactor:
         self._ocr_name = "injected" if engine is not None else "rapidocr"
 
     def redact_image_in_memory(self, image_bytes: bytes) -> bytes:
+        redacted, _entities = self.redact_image_with_entities(image_bytes)
+        return redacted
+
+    def redact_image_with_entities(self, image_bytes: bytes) -> tuple[bytes, list[str]]:
         if not image_bytes:
             raise ValueError("image_bytes must be a non-empty byte buffer")
 
@@ -53,6 +57,7 @@ class InMemoryImageRedactor:
             opened.load()
             working = opened.convert("RGB")
 
+        entities = self._detected_entities(image_bytes, working)
         if self._redact_faces:
             working = redact_face_boxes(working, self._face_detector(working))
 
@@ -76,7 +81,24 @@ class InMemoryImageRedactor:
 
         output = io.BytesIO()
         redacted.save(output, format="PNG", optimize=True)
-        return output.getvalue()
+        return output.getvalue(), entities
+
+    def _detected_entities(self, image_bytes: bytes, working: Image.Image) -> list[str]:
+        found: set[str] = set()
+        if self._redact_faces and self._face_detector(working):
+            found.add("FACE")
+        if self._analyzer_engine is None:
+            return sorted(found)
+        try:
+            from safety_gateway.pii.ocr import ocr_lines
+
+            text = "\n".join(ocr_lines(image_bytes)).strip()
+        except Exception:
+            text = ""
+        if text:
+            hits = self._analyzer_engine.analyze(text=text, language="zh")
+            found.update(hit.entity_type for hit in hits if getattr(hit, "entity_type", None))
+        return sorted(found)
 
     def _engine_instance(self) -> ImageRedactorEngine:
         if self._engine is not None:

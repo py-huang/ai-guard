@@ -16,6 +16,7 @@ from safety_gateway.pii.faces import (
     redact_face_boxes,
 )
 from safety_gateway.pii.image import InMemoryImageRedactor
+from safety_gateway.pii.image_policy import classify_image_share, redaction_coverage
 from safety_gateway.schemas import (
     ImageRedactRequest,
     ImageRedactResult,
@@ -130,12 +131,18 @@ class AISafetyGateway:
 
     def redact_image(self, session_id: str, image_bytes: bytes) -> ImageRedactResult:
         request = ImageRedactRequest(session_id=session_id, image_bytes=image_bytes)
-        redacted = self.redact_image_in_memory(request.image_bytes)
+        redacted, detected_entities = self._image_redactor.redact_image_with_entities(request.image_bytes)
+        coverage = min(1.0, max(0.0, redaction_coverage(request.image_bytes, redacted)))
+        blocked, block_reason = classify_image_share(coverage, detected_entities)
         return ImageRedactResult(
             session_id=request.session_id,
             content_type="image/png",
             image_bytes=redacted,
             byte_size=len(redacted),
+            detected_entities=detected_entities,
+            coverage=coverage,
+            blocked=blocked,
+            block_reason=block_reason,
         )
 
     def demo_contact_book(self) -> tuple[bytes, bytes]:

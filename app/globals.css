@@ -183,3 +183,17 @@ html.zhuyin-on rt {
     text-orientation: upright;
   }
 }
+
+@keyframes ag-soft-scan {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.ag-soft-scan-line {
+  animation: ag-soft-scan 5s linear forwards;
+  transform-origin: left center;
+}

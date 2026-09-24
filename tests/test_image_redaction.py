@@ -35,3 +35,13 @@ def test_redact_image_in_memory_returns_png_without_disk(tmp_path) -> None:  # t
     with Image.open(io.BytesIO(result)) as image:
         assert image.format == "PNG"
         assert image.getpixel((1, 1)) == (0, 0, 0)
+
+
+def test_redact_with_entities_reports_faces() -> None:
+    redactor = InMemoryImageRedactor(
+        engine=_FakeEngine(),
+        face_detector=lambda _image: [(1, 1, 10, 10)],
+    )
+    png, entities = redactor.redact_image_with_entities(_png_bytes())
+    assert png.startswith(b"\x89PNG")
+    assert entities == ["FACE"]

@@ -81,3 +81,7 @@ class ImageRedactResult(StrictModel):
     content_type: Literal["image/png"]
     image_bytes: bytes
     byte_size: int = Field(gt=0)
+    detected_entities: list[str] = Field(default_factory=list)
+    coverage: float = Field(default=0.0, ge=0.0, le=1.0)
+    blocked: bool = False
+    block_reason: str | None = None

@@ -3,8 +3,10 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { ComposerAttach } from "@/components/composer-attach";
 import { useConversationStore } from "@/store/conversation-store";
 import { hasPii } from "@/lib/pii-preview";
+import { setPendingUpload } from "@/lib/pending-upload";
 
 const topics = [
   {
@@ -79,9 +81,13 @@ export function DiscoverHome() {
         <p className="mt-1 text-[17px] leading-7 text-[#506058]">打字或用說的都可以，我們一起找答案。</p>
 
         <form className="mt-[54px] flex h-[66px] max-w-[820px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" onSubmit={submitMessage}>
-          <button className="grid size-12 shrink-0 place-items-center rounded-full text-[#d63a37] hover:bg-[#fff0ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d63a37]" type="button" aria-label="新增附件" title="新增附件">
-            <img className="size-8" src="/discover/composer-plus.svg" alt="" aria-hidden="true" />
-          </button>
+          <ComposerAttach
+            onPickFile={(file) => {
+              setPendingUpload(file);
+              const conversation = createConversation("新對話");
+              router.push(`/chat/${conversation.id}`);
+            }}
+          />
           <label className="sr-only" htmlFor="discover-message">想知道什麼？</label>
           <input
             id="discover-message"

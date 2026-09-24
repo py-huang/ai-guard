@@ -29,12 +29,26 @@ from safety_gateway.playground.llm import (
 )
 from safety_gateway.playground.service import PlaygroundChat
 from safety_gateway.playground.zhuyin import to_zhuyin_parts
-from safety_gateway.schemas import StrictModel
+from safety_gateway.schemas import ImageRedactResult, StrictModel
 from safety_gateway.vault.memory import InMemorySessionVault
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 GENERATED_IMAGE = STATIC_DIR / "taiwan-contact-book-pii.png"
 CLASSMATE_IMAGE = STATIC_DIR / "classmate-nametag-portrait.png"
+
+
+def _png_redact_response(result: ImageRedactResult) -> Response:
+    return Response(
+        content=result.image_bytes,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "no-store",
+            "X-Detected-Entities": ",".join(result.detected_entities),
+            "X-Redact-Coverage": f"{result.coverage:.4f}",
+            "X-Image-Blocked": "1" if result.blocked else "0",
+            "X-Block-Reason": result.block_reason or "",
+        },
+    )
 
 
 class ChatRequest(StrictModel):
@@ -246,11 +260,7 @@ def create_app() -> FastAPI:
             result = gateway.redact_image(session_id, CLASSMATE_IMAGE.read_bytes())
         except ImageOcrUnavailable as exc:
             raise _http_error(503, str(exc), False) from exc
-        return Response(
-            content=result.image_bytes,
-            media_type="image/png",
-            headers={"Cache-Control": "no-store"},
-        )
+        return _png_redact_response(result)
 
     @app.post("/api/redact-generated-image")
     def redact_generated_image(
@@ -262,11 +272,7 @@ def create_app() -> FastAPI:
             result = gateway.redact_image(session_id, GENERATED_IMAGE.read_bytes())
         except ImageOcrUnavailable as exc:
             raise _http_error(503, str(exc), False) from exc
-        return Response(
-            content=result.image_bytes,
-            media_type="image/png",
-            headers={"Cache-Control": "no-store"},
-        )
+        return _png_redact_response(result)
 
     @app.post("/api/redact-image")
     def redact_image(
@@ -281,11 +287,7 @@ def create_app() -> FastAPI:
             raise _http_error(503, str(exc), False) from exc
         except Exception:
             raise _http_error(400, "這張照片現在沒辦法遮碼，請改用示範聯絡簿。", False)
-        return Response(
-            content=result.image_bytes,
-            media_type="image/png",
-            headers={"Cache-Control": "no-store"},
-        )
+        return _png_redact_response(result)
 
     def _html(name: str) -> FileResponse:
         return FileResponse(

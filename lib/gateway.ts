@@ -47,7 +47,15 @@ export async function inspectWithGateway(sessionId: string, text: string): Promi
   return (await response.json()) as GatewayInspectResult;
 }
 
-export async function redactImageWithGateway(sessionId: string, file: Blob): Promise<Buffer> {
+export type GatewayImageRedactResult = {
+  png: Buffer;
+  entities: string[];
+  coverage: number;
+  blocked: boolean;
+  blockReason: string | null;
+};
+
+export async function redactImageWithGateway(sessionId: string, file: Blob): Promise<GatewayImageRedactResult> {
   const body = new FormData();
   body.append("file", file, "upload.png");
 
@@ -65,5 +73,17 @@ export async function redactImageWithGateway(sessionId: string, file: Blob): Pro
     throw new GatewayUnavailableError();
   }
 
-  return Buffer.from(await response.arrayBuffer());
+  const header = response.headers.get("x-detected-entities") ?? "";
+  const coverage = Number(response.headers.get("x-redact-coverage") ?? "0");
+  const reason = (response.headers.get("x-block-reason") ?? "").trim();
+  return {
+    png: Buffer.from(await response.arrayBuffer()),
+    entities: header
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
+    coverage: Number.isFinite(coverage) ? coverage : 0,
+    blocked: response.headers.get("x-image-blocked") === "1",
+    blockReason: reason || null,
+  };
 }

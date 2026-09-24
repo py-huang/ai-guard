@@ -11,7 +11,7 @@ export function ReadingAssistToggle() {
       aria-label="切換注音顯示"
       aria-pressed={zhuyinEnabled}
       className={cn(
-        "h-[34px] rounded-[17px] px-3 text-xs font-medium text-[#25324a] transition-colors",
+        "relative z-50 h-[34px] shrink-0 rounded-[17px] px-3 text-xs font-medium text-[#25324a] transition-colors",
         zhuyinEnabled ? "bg-[#c9e4ff]" : "bg-[#ecf6ff]"
       )}
       data-zhuyin-skip=""

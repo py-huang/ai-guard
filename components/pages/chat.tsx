@@ -7,6 +7,7 @@ import { CHILD_LEARNING_PARTNER_PROMPT } from "@/lib/child-llm-prompt";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
 import { inspectSafety, toPiiPreview } from "@/lib/safety-inspect";
 import { applyOutboundSocraticHint, stripSocraticInboundPrefix } from "@/lib/socratic";
+import { replaceVaultTokensForChild } from "@/lib/vault-tokens";
 import type { PiiPreview } from "@/lib/pii-preview";
 import { useConversationStore } from "@/store/conversation-store";
 import { useWritingStore } from "@/store/writing-store";
@@ -14,8 +15,10 @@ import type { GenerateWritingResponse } from "@/lib/writing";
 import type { ConversationMessage } from "@/types/conversation";
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { MarkdownMessage } from "@/components/markdown-message";
+import { ComposerAttach } from "@/components/composer-attach";
 import { ProtectedBadge } from "@/components/protected-badge";
-import { ImageReviewCard, ImageScanningCard } from "@/components/pages/image-review-card";
+import { takePendingUpload } from "@/lib/pending-upload";
+import { ImageBlockedCard, ImageReviewCard, ImageSoftScanPreview } from "@/components/pages/image-review-card";
 import {
   ParentApprovedCard,
   ParentPendingCard,
@@ -24,7 +27,7 @@ import {
 } from "@/components/pages/pii-guard-cards";
 import { pngDataUrl, redactImage } from "@/lib/safety-redact";
 
-type GuardState = "none" | "detected" | "rewritten" | "parent-pending" | "parent-approved" | "image-review";
+type GuardState = "none" | "detected" | "rewritten" | "parent-pending" | "parent-approved" | "image-review" | "image-blocked";
 
 type ChatProps = {
   conversationId?: string;
@@ -34,7 +37,9 @@ export function Chat({ conversationId }: ChatProps) {
   const router = useRouter();
   const { ready, createConversation, getConversation, appendMessage, renameConversation, removeConversation } = useConversationStore();
   const { addDraft } = useWritingStore();
-  const conversation = conversationId ? getConversation(conversationId) : undefined;
+  const [demoConversationId, setDemoConversationId] = useState(conversationId ?? "");
+  const activeConversationId = conversationId || demoConversationId;
+  const conversation = activeConversationId ? getConversation(activeConversationId) : undefined;
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [draft, setDraft] = useState("");
@@ -49,6 +54,7 @@ export function Chat({ conversationId }: ChatProps) {
   const [redactedImageUrl, setRedactedImageUrl] = useState("");
   const [redactedImageBase64, setRedactedImageBase64] = useState("");
   const [imageChanged, setImageChanged] = useState(false);
+  const [imageFields, setImageFields] = useState<string[]>([]);
   const [safetyTouched, setSafetyTouched] = useState(false);
 
   const started = useRef(false);
@@ -61,6 +67,7 @@ export function Chat({ conversationId }: ChatProps) {
     setRedactedImageUrl("");
     setRedactedImageBase64("");
     setImageChanged(false);
+    setImageFields([]);
     if (fileRef.current) {
       fileRef.current.value = "";
     }
@@ -73,8 +80,8 @@ export function Chat({ conversationId }: ChatProps) {
 
     started.current = true;
     const created = createConversation("新對話");
-    router.replace(`/chat/${created.id}`);
-  }, [conversationId, createConversation, ready, router]);
+    setDemoConversationId(created.id);
+  }, [conversationId, createConversation, ready]);
 
   useEffect(() => {
     if (!ready || !conversation || typeof window === "undefined") {
@@ -89,6 +96,16 @@ export function Chat({ conversationId }: ChatProps) {
     sessionStorage.removeItem("ai-guard-pending");
     setDraft(pending);
     void startGuard(pending);
+  }, [conversation?.id, ready]);
+
+  useEffect(() => {
+    if (!ready || !conversation) {
+      return;
+    }
+    const pendingFile = takePendingUpload();
+    if (pendingFile) {
+      void onPickImage(pendingFile);
+    }
   }, [conversation?.id, ready]);
 
   async function sendSafeText(
@@ -155,7 +172,10 @@ export function Chat({ conversationId }: ChatProps) {
       if (!response.ok || !content) {
         throw new Error(data.error || "暫時無法回覆。");
       }
-      appendMessage(conversation.id, { role: "assistant", content: applyOutboundSocraticHint(content, promptForModel) });
+      appendMessage(conversation.id, {
+        role: "assistant",
+        content: replaceVaultTokensForChild(applyOutboundSocraticHint(content, promptForModel)),
+      });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "暫時無法回覆。");
     } finally {
@@ -267,11 +287,27 @@ export function Chat({ conversationId }: ChatProps) {
     setSafetyTouched(true);
     setImageScanning(true);
     setError("");
+    const startedAt = Date.now();
     try {
       const result = await redactImage(conversation.id, file);
+      const remaining = Math.max(0, 5000 - (Date.now() - startedAt));
+      if (remaining > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, remaining));
+      }
+      if (result.blocked) {
+        URL.revokeObjectURL(previewUrl);
+        setOriginalImageUrl("");
+        setRedactedImageUrl("");
+        setRedactedImageBase64("");
+        setImageChanged(false);
+        setImageFields(result.fields);
+        setGuard("image-blocked");
+        return;
+      }
       setRedactedImageBase64(result.redactedPngBase64);
       setRedactedImageUrl(pngDataUrl(result.redactedPngBase64));
       setImageChanged(result.changed);
+      setImageFields(result.fields);
       setGuard("image-review");
     } catch (redactError) {
       URL.revokeObjectURL(previewUrl);
@@ -286,7 +322,7 @@ export function Chat({ conversationId }: ChatProps) {
     return <p className="px-8 py-10 text-[#8a968f]">正在開始新對話…</p>;
   }
 
-  const composerLocked = guard === "detected" || guard === "rewritten" || guard === "parent-pending" || guard === "image-review";
+  const composerLocked = guard === "detected" || guard === "rewritten" || guard === "parent-pending" || guard === "image-review" || guard === "image-blocked";
 
   return (
     <section className="flex min-h-[calc(100dvh-72px)] flex-col px-5 py-6 sm:px-10 lg:px-16">
@@ -301,7 +337,7 @@ export function Chat({ conversationId }: ChatProps) {
         {guard === "parent-pending" ? <h1 className="pt-2 text-xl font-bold leading-[30px] text-[#13221b]">已經問家長囉</h1> : null}
         {guard === "rewritten" ? <h1 className="pt-2 text-xl font-bold leading-[30px] text-[#13221b]">安全版本已準備好</h1> : null}
 
-        <div className="mt-6 flex-1 space-y-5 pb-28">
+        <div className={`mt-6 flex-1 space-y-5 ${guard === "image-review" || guard === "image-blocked" ? "pb-44" : "pb-28"}`}>
           {conversation.messages.map((message, index) =>
             message.role === "user" ? (
               <div className="ml-auto max-w-[520px] rounded-[24px] bg-[#eee6ff] px-5 py-4" key={`${message.content}-${index}`}>
@@ -322,9 +358,9 @@ export function Chat({ conversationId }: ChatProps) {
                 <ChatAiAvatar />
                 <div>
                   {message.blocked ? (
-                    <p className="text-[17px] leading-8">{stripSocraticInboundPrefix(message.content)}</p>
+                    <p className="text-[17px] leading-8">{replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))}</p>
                   ) : (
-                    <MarkdownMessage>{stripSocraticInboundPrefix(message.content)}</MarkdownMessage>
+                    <MarkdownMessage>{replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))}</MarkdownMessage>
                   )}
                   {message.blocked ? <p className="mt-2 text-sm text-[#c02d32]">這個問題沒有送給 AI。</p> : null}
                 </div>
@@ -332,13 +368,24 @@ export function Chat({ conversationId }: ChatProps) {
             )
           )}
 
-          {imageScanning ? <ImageScanningCard /> : null}
+          {imageScanning ? <ImageSoftScanPreview /> : null}
+
+          {guard === "image-blocked" ? (
+            <ImageBlockedCard
+              onReplace={() => {
+                clearImage();
+                setGuard("none");
+                fileRef.current?.click();
+              }}
+            />
+          ) : null}
 
           {guard === "image-review" && originalImageUrl && redactedImageUrl ? (
             <ImageReviewCard
               originalUrl={originalImageUrl}
               redactedUrl={redactedImageUrl}
               changed={imageChanged}
+              fields={imageFields}
               onUseSafe={() => {
                 const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
                 void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
@@ -450,15 +497,25 @@ export function Chat({ conversationId }: ChatProps) {
                 accept="image/*"
                 onChange={(event) => onPickImage(event.target.files?.[0])}
               />
-              <button className="grid size-12 place-items-center rounded-full text-[#d63a37]" onClick={() => fileRef.current?.click()} type="button" aria-label="新增附件">
-                <img className="size-8" src="/discover/composer-plus.svg" alt="" />
-              </button>
+              <ComposerAttach
+                disabled={composerLocked || busy}
+                onPickFile={(file) => void onPickImage(file)}
+                onUnsupported={setError}
+              />
               <input
                 className="min-w-0 flex-1 bg-transparent text-[18px] outline-none placeholder:text-[#8a968f]"
                 value={draft}
                 disabled={composerLocked || busy}
                 onChange={(event) => setDraft(event.target.value)}
-                placeholder={composerLocked ? "這裡有你的名字和學校，先不要送出" : "想知道什麼？可以打字或用說的"}
+                placeholder={
+                  imageScanning || guard === "image-review"
+                    ? "圖片已加入，送出前我會先幫你檢查"
+                    : guard === "image-blocked"
+                      ? "這張圖片沒有送出，可以換一張再問"
+                    : composerLocked
+                      ? "這裡有你的名字和學校，先不要送出"
+                      : "想知道什麼？可以打字或用說的"
+                }
                 autoComplete="off"
               />
               <button className="grid size-12 place-items-center rounded-full bg-[#d63a37] text-white disabled:bg-[#d7ddd9]" disabled={composerLocked || busy || !draft.trim()} type="submit" aria-label="送出問題">

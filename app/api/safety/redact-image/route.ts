@@ -1,4 +1,5 @@
 import { GatewayUnavailableError, redactImageWithGateway } from "@/lib/gateway";
+import { labelsForImageEntities } from "@/lib/safety-redact";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -18,12 +19,18 @@ export async function POST(request: Request) {
   try {
     const original = Buffer.from(await file.arrayBuffer());
     const redacted = await redactImageWithGateway(sessionId, file);
-    const changed = redacted.length !== original.length || !redacted.equals(original);
+    const changed = redacted.png.length !== original.length || !redacted.png.equals(original);
+
+    const blockReason = redacted.blockReason === "coverage" || redacted.blockReason === "sensitive" ? redacted.blockReason : null;
 
     return Response.json({
       source: "gateway",
       changed,
-      redactedPngBase64: redacted.toString("base64"),
+      redactedPngBase64: redacted.blocked ? "" : redacted.png.toString("base64"),
+      fields: labelsForImageEntities(redacted.entities),
+      coverage: redacted.coverage,
+      blocked: redacted.blocked,
+      blockReason,
     });
   } catch (error) {
     if (!(error instanceof GatewayUnavailableError)) {
