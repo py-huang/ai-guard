@@ -93,6 +93,13 @@ export function Chat({ conversationId }: ChatProps) {
       return;
     }
 
+    const pendingVoice = sessionStorage.getItem("ai-guard-pending-voice");
+    if (pendingVoice) {
+      sessionStorage.removeItem("ai-guard-pending-voice");
+      setVoiceOpen(true);
+      return;
+    }
+
     const pending = sessionStorage.getItem("ai-guard-pending");
     if (!pending) {
       return;

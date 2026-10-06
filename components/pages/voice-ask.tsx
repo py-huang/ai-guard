@@ -42,10 +42,15 @@ export function VoiceAsk({ onConfirm, onUseText }: Props) {
   const startedAtRef = useRef(0);
   const speechRef = useRef<BrowserSpeechRecognition | null>(null);
   const liveTextRef = useRef("");
+  const listenGenerationRef = useRef(0);
+  const speechRetryRef = useRef<number | null>(null);
 
   useEffect(() => {
     void startListening();
-    return () => stopHardware();
+    return () => {
+      listenGenerationRef.current += 1;
+      stopHardware();
+    };
   }, []);
 
   useEffect(() => {
@@ -61,7 +66,15 @@ export function VoiceAsk({ onConfirm, onUseText }: Props) {
   function stopHardware() {
     abortRef.current?.abort();
     abortRef.current = null;
-    speechRef.current?.stop();
+    if (speechRetryRef.current != null) {
+      window.clearTimeout(speechRetryRef.current);
+      speechRetryRef.current = null;
+    }
+    try {
+      speechRef.current?.stop();
+    } catch {
+      undefined;
+    }
     speechRef.current = null;
     processorRef.current?.disconnect();
     processorRef.current = null;
@@ -72,23 +85,42 @@ export function VoiceAsk({ onConfirm, onUseText }: Props) {
   }
 
   async function startListening() {
+    const generation = listenGenerationRef.current + 1;
+    listenGenerationRef.current = generation;
     stopHardware();
+    listenGenerationRef.current = generation;
     setPhase("listening");
     setSeconds(0);
     setLiveText("");
     setPreviewText("");
     chunksRef.current = [];
+    liveTextRef.current = "";
     startedAtRef.current = Date.now();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const context = new AudioContext();
-      await context.resume();
+      if (generation !== listenGenerationRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const context = new AudioContextCtor();
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+      if (generation !== listenGenerationRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        void context.close();
+        return;
+      }
       const source = context.createMediaStreamSource(stream);
       const processor = context.createScriptProcessor(4096, 1, 1);
       const mute = context.createGain();
       mute.gain.value = 0;
       processor.onaudioprocess = (event) => {
+        if (generation !== listenGenerationRef.current) {
+          return;
+        }
         chunksRef.current.push(new Float32Array(event.inputBuffer.getChannelData(0)));
       };
       source.connect(processor);
@@ -98,18 +130,22 @@ export function VoiceAsk({ onConfirm, onUseText }: Props) {
       contextRef.current = context;
       processorRef.current = processor;
       sampleRateRef.current = context.sampleRate;
-      startSpeechPreview();
+      startedAtRef.current = Date.now();
+      startSpeechPreview(generation);
     } catch {
-      setPhase("error");
+      if (generation === listenGenerationRef.current) {
+        setPhase("error");
+      }
     }
   }
 
-  function startSpeechPreview() {
+  function startSpeechPreview(generation: number) {
     const SpeechAPI = (window as Window & { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).SpeechRecognition
       || (window as Window & { webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).webkitSpeechRecognition;
     if (!SpeechAPI) {
       return;
     }
+
     const recognition = new SpeechAPI();
     recognition.lang = "zh-TW";
     recognition.continuous = true;
@@ -122,13 +158,35 @@ export function VoiceAsk({ onConfirm, onUseText }: Props) {
       liveTextRef.current = next.trim();
       setLiveText(liveTextRef.current);
     };
-    recognition.onerror = () => undefined;
+    recognition.onerror = () => {
+      if (generation !== listenGenerationRef.current || speechRef.current !== recognition) {
+        return;
+      }
+      scheduleSpeechStart(recognition, generation, 400);
+    };
     speechRef.current = recognition;
+    tryStartSpeech(recognition, generation, 0);
+  }
+
+  function tryStartSpeech(recognition: BrowserSpeechRecognition, generation: number, attempt: number) {
+    if (generation !== listenGenerationRef.current || speechRef.current !== recognition) {
+      return;
+    }
     try {
       recognition.start();
     } catch {
-      speechRef.current = null;
+      scheduleSpeechStart(recognition, generation, attempt === 0 ? 200 : 500);
     }
+  }
+
+  function scheduleSpeechStart(recognition: BrowserSpeechRecognition, generation: number, delay: number) {
+    if (speechRetryRef.current != null) {
+      window.clearTimeout(speechRetryRef.current);
+    }
+    speechRetryRef.current = window.setTimeout(() => {
+      speechRetryRef.current = null;
+      tryStartSpeech(recognition, generation, 1);
+    }, delay);
   }
 
   function collectRecording() {
@@ -236,11 +294,11 @@ export function VoiceAsk({ onConfirm, onUseText }: Props) {
         <div className="mt-8 flex flex-wrap gap-4">
           {phase === "listening" ? (
             <>
-              <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-solid border-[#d63a37] bg-white px-4 text-[15px] font-medium tracking-[0.1px] text-[#c02d32]" onClick={() => void startListening()} type="button">
+              <button className={secondaryButtonClass} onClick={() => void startListening()} type="button">
                 <img alt="" aria-hidden="true" height={20} src="/safety/icon-voice-refresh.svg" width={20} />
                 重說一次
               </button>
-              <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium tracking-[0.1px] text-white" onClick={() => void finishAndTranscribe()} type="button">
+              <button className={primaryButtonClass} onClick={() => void finishAndTranscribe()} type="button">
                 送出問題
                 <img alt="" aria-hidden="true" height={20} src="/safety/icon-arrow-right.svg" width={20} />
               </button>
@@ -248,32 +306,32 @@ export function VoiceAsk({ onConfirm, onUseText }: Props) {
           ) : null}
           {phase === "processing" ? (
             <>
-              <button className="inline-flex h-12 w-[150px] items-center justify-center rounded-2xl border border-solid border-[#d63a37] bg-white text-[15px] font-medium tracking-[0.1px] text-[#c02d32]" onClick={cancelProcessing} type="button">
+              <button className={`${secondaryButtonClass} w-[150px]`} onClick={cancelProcessing} type="button">
                 取消
               </button>
-              <button className="inline-flex h-12 w-[180px] items-center justify-center rounded-2xl bg-[#d63a37] text-[15px] font-medium tracking-[0.1px] text-white" disabled type="button">
+              <button className={`${primaryButtonClass} w-[180px] disabled:bg-[#d7ddd9] disabled:shadow-none`} disabled type="button">
                 處理中…
               </button>
             </>
           ) : null}
           {phase === "preview" ? (
             <>
-              <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-solid border-[#d63a37] bg-white px-4 text-[15px] font-medium tracking-[0.1px] text-[#c02d32]" onClick={() => void startListening()} type="button">
+              <button className={secondaryButtonClass} onClick={() => void startListening()} type="button">
                 <img alt="" aria-hidden="true" height={20} src="/safety/icon-voice-refresh.svg" width={20} />
                 重說一次
               </button>
-              <button className="inline-flex h-12 w-[180px] items-center justify-center rounded-2xl bg-[#d63a37] text-[15px] font-medium tracking-[0.1px] text-white disabled:bg-[#d7ddd9]" disabled={!previewText.trim()} onClick={() => onConfirm(previewText.trim())} type="button">
+              <button className={`${primaryButtonClass} w-[180px] disabled:bg-[#d7ddd9] disabled:shadow-none`} disabled={!previewText.trim()} onClick={() => onConfirm(previewText.trim())} type="button">
                 確認並送出
               </button>
             </>
           ) : null}
           {phase === "error" ? (
             <>
-              <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-solid border-[#d63a37] bg-white px-4 text-[15px] font-medium tracking-[0.1px] text-[#c02d32]" onClick={() => void startListening()} type="button">
+              <button className={secondaryButtonClass} onClick={() => void startListening()} type="button">
                 <img alt="" aria-hidden="true" height={20} src="/safety/icon-voice-refresh.svg" width={20} />
                 再試一次
               </button>
-              <button className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium tracking-[0.1px] text-white" onClick={onUseText} type="button">
+              <button className={primaryButtonClass} onClick={onUseText} type="button">
                 改用文字
                 <img alt="" aria-hidden="true" height={20} src="/safety/icon-arrow-right.svg" width={20} />
               </button>
@@ -285,6 +343,12 @@ export function VoiceAsk({ onConfirm, onUseText }: Props) {
     </section>
   );
 }
+
+const primaryButtonClass =
+  "inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium tracking-[0.1px] text-white transition-all duration-150 hover:bg-[#c02d32] hover:shadow-[0px_4px_5px_rgba(38,20,18,0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d63a37] active:bg-[#9d1a25] active:shadow-[inset_0px_2px_3px_0px_rgba(46,10,10,0.24)]";
+
+const secondaryButtonClass =
+  "inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-solid border-[#d63a37] bg-white px-4 text-[15px] font-medium tracking-[0.1px] text-[#c02d32] transition-all duration-150 hover:bg-[#fff0ee] hover:shadow-[0px_4px_5px_rgba(38,20,18,0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d63a37] active:border-[#c02d32] active:bg-[#ffe2df] active:shadow-[inset_0px_2px_3px_0px_rgba(46,10,10,0.24)]";
 
 function formatClock(total: number) {
   const safe = Math.max(0, total);

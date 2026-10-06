@@ -97,7 +97,20 @@ export function DiscoverHome() {
             placeholder="想知道什麼？可以打字或用說的"
             autoComplete="off"
           />
-          <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d7ddd9] text-[#aab4ae] disabled:cursor-not-allowed disabled:opacity-60" type="button" disabled aria-label="語音輸入目前無法使用" title="語音輸入目前無法使用">
+          <button
+            className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d63a37] text-[#d63a37] transition-colors duration-150 hover:bg-[#fff0ee] hover:shadow-[0px_4px_5px_rgba(38,20,18,0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d63a37] active:bg-[#ffe2df]"
+            onClick={() => {
+              sessionStorage.setItem("ai-guard-pending-voice", "1");
+              void navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                stream.getTracks().forEach((track) => track.stop());
+              }).catch(() => undefined);
+              const conversation = createConversation("新對話");
+              router.push(`/chat/${conversation.id}`);
+            }}
+            type="button"
+            aria-label="語音輸入"
+            title="語音輸入"
+          >
             <img className="size-6" src="/discover/composer-microphone.svg" alt="" aria-hidden="true" />
           </button>
           <button className="grid size-12 shrink-0 place-items-center rounded-full bg-[#d63a37] text-white hover:bg-[#bd2e2c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d63a37]" type="submit" aria-label="送出問題" title="送出問題">
