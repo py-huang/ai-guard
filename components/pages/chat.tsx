@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 
 import { CHILD_LEARNING_PARTNER_PROMPT } from "@/lib/child-llm-prompt";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
@@ -387,7 +388,30 @@ export function Chat({ conversationId }: ChatProps) {
                     <MarkdownMessage>{replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))}</MarkdownMessage>
                   )}
                   {message.blocked ? <p className="mt-2 text-sm text-[#c02d32]">這個問題沒有送給 AI。</p> : null}
-                  <SpeakButton text={replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))} />
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[#c02d32]">
+                    <SpeakButton showLabel text={replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))} />
+                    {!message.blocked ? (
+                      <>
+                        <button
+                          className="inline-flex min-h-11 items-center whitespace-nowrap py-2 text-[17px] font-semibold hover:text-[#a9232a] disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={busy || composerLocked}
+                          onClick={() => void startGuard("再說簡單一點")}
+                          type="button"
+                        >
+                          再說簡單一點
+                        </button>
+                        <button
+                          className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap py-2 text-[17px] font-semibold hover:text-[#a9232a] disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={busy || composerLocked}
+                          onClick={() => void startGuard("我想知道更多")}
+                          type="button"
+                        >
+                          我想知道更多
+                          <ArrowRight aria-hidden="true" size={26} strokeWidth={2.5} />
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             )

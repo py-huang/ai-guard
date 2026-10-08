@@ -145,6 +145,7 @@ DEFAULT_CATALOG: dict[str, tuple[str, ...]] = {
         "外國人滾出台灣",
         "外籍移工滾",
         "去死吧障礙",
+        "諷刺的話"
     ),
     "gambling": (
         "線上娛樂城儲值",
