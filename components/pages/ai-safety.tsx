@@ -2,39 +2,37 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { LessonQuiz } from "@/components/pages/image-lesson-quiz";
+import { SafetyChatTopics } from "@/components/pages/safety-chat-topics";
 
 const lessonHref = "/safety/privacy-lesson";
 
-const safeTopics = ["我喜歡的恐龍", "作文裡想表達的感受", "一道不會的數學題", "想了解的自然現象"];
+const safeTopics = ["怎麼設定安全密碼？", "網友問地址怎麼辦？", "遊戲要求提供密碼？"];
 const privateTopics = ["真實姓名與學校", "住家地址或精確位置", "電話、電子郵件", "密碼、證件與付款資料"];
 
 type InformationCardProps = {
   type: "safe" | "private";
   title: string;
   topics: string[];
-  href?: string;
+  interactiveTopics?: boolean;
+  promptPrefix?: string;
 };
 
-function InformationCard({ type, title, topics, href }: InformationCardProps) {
+function InformationCard({ type, title, topics, interactiveTopics = false, promptPrefix }: InformationCardProps) {
   const isSafe = type === "safe";
-  const className = `block min-h-[286px] rounded-[24px] p-[22px] ${
-    href
-      ? "transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
-      : ""
-  } ${isSafe ? "bg-[#ecf9f3]" : "bg-[#fff0ee]"}`;
+  const className = `block min-h-[286px] rounded-[24px] p-[22px] ${isSafe ? "bg-[#ecf9f3]" : "bg-[#fff0ee]"}`;
   const content = <>
     <span className={`inline-flex h-8 items-center rounded-2xl bg-white px-3 text-xs font-medium ${isSafe ? "text-[#177049]" : "text-[#c02d32]"}`}>
       {isSafe ? "可以安心聊" : "先不要分享"}
     </span>
     <h2 className="mt-4 text-[22px] leading-8 font-bold">{title}</h2>
     <ul className={`mt-4 space-y-3 text-sm leading-[22px] font-medium ${isSafe ? "text-[#177049]" : "text-[#c02d32]"}`}>
-      {topics.map((topic) => (
+      {interactiveTopics ? <SafetyChatTopics heading={title} topics={topics} promptPrefix={promptPrefix} /> : topics.map((topic) => (
         <li key={topic}>{isSafe ? "✓" : "—"}　{topic}</li>
       ))}
     </ul>
   </>;
 
-  return href ? <Link className={className} href={href}>{content}</Link> : <div className={className}>{content}</div>;
+  return <div className={className}>{content}</div>;
 }
 
 export function AiSafety() {
@@ -61,8 +59,8 @@ export function AiSafety() {
         </Link>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 md:gap-5">
-          <InformationCard type="safe" title="興趣、想法與學習問題" topics={safeTopics} href={lessonHref} />
-          <InformationCard type="private" title="能辨認你或保護帳號的資料" topics={privateTopics} href={lessonHref} />
+          <InformationCard type="safe" title="遇到下列狀況該怎麼辦？" topics={safeTopics} interactiveTopics />
+          <InformationCard type="private" title="能辨認你或保護帳號的資料" topics={privateTopics} interactiveTopics promptPrefix="為什麼不能上傳" />
         </div>
       </div>
     </section>
