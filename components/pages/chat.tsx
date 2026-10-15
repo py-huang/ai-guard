@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 
 import { CHILD_LEARNING_PARTNER_PROMPT } from "@/lib/child-llm-prompt";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
@@ -16,6 +15,7 @@ import type { GenerateWritingResponse } from "@/lib/writing";
 import type { ConversationMessage } from "@/types/conversation";
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { MarkdownMessage } from "@/components/markdown-message";
+import { ChildOutlineButton } from "@/components/child-outline-button";
 import { SpeakButton } from "@/components/speak-button";
 import { ComposerAttach } from "@/components/composer-attach";
 import { ProtectedBadge } from "@/components/protected-badge";
@@ -30,7 +30,7 @@ import {
   PiiDetectedCard,
   PiiRewriteCard,
 } from "@/components/pages/pii-guard-cards";
-import { pngDataUrl, redactImage } from "@/lib/safety-redact";
+import { pngDataUrl, redactImage, type ImageBlockReason } from "@/lib/safety-redact";
 
 type GuardState = "none" | "detected" | "rewritten" | "parent-pending" | "parent-approved" | "parent-revision" | "parent-declined" | "image-review" | "image-blocked";
 
@@ -60,6 +60,7 @@ export function Chat({ conversationId }: ChatProps) {
   const [redactedImageBase64, setRedactedImageBase64] = useState("");
   const [imageChanged, setImageChanged] = useState(false);
   const [imageFields, setImageFields] = useState<string[]>([]);
+  const [imageBlockReason, setImageBlockReason] = useState<ImageBlockReason | null>(null);
   const [safetyTouched, setSafetyTouched] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
 
@@ -74,6 +75,7 @@ export function Chat({ conversationId }: ChatProps) {
     setRedactedImageBase64("");
     setImageChanged(false);
     setImageFields([]);
+    setImageBlockReason(null);
     if (fileRef.current) {
       fileRef.current.value = "";
     }
@@ -314,6 +316,7 @@ export function Chat({ conversationId }: ChatProps) {
         setRedactedImageBase64("");
         setImageChanged(false);
         setImageFields(result.fields);
+        setImageBlockReason(result.blockReason);
         setGuard("image-blocked");
         return;
       }
@@ -388,27 +391,16 @@ export function Chat({ conversationId }: ChatProps) {
                     <MarkdownMessage>{replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))}</MarkdownMessage>
                   )}
                   {message.blocked ? <p className="mt-2 text-sm text-[#c02d32]">這個問題沒有送給 AI。</p> : null}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[#c02d32]">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <SpeakButton showLabel text={replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))} />
                     {!message.blocked ? (
                       <>
-                        <button
-                          className="inline-flex min-h-11 items-center whitespace-nowrap py-2 text-[17px] font-semibold hover:text-[#a9232a] disabled:cursor-not-allowed disabled:opacity-40"
-                          disabled={busy || composerLocked}
-                          onClick={() => void startGuard("再說簡單一點")}
-                          type="button"
-                        >
+                        <ChildOutlineButton disabled={busy || composerLocked} onClick={() => void startGuard("再說簡單一點")}>
                           再說簡單一點
-                        </button>
-                        <button
-                          className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap py-2 text-[17px] font-semibold hover:text-[#a9232a] disabled:cursor-not-allowed disabled:opacity-40"
-                          disabled={busy || composerLocked}
-                          onClick={() => void startGuard("我想知道更多")}
-                          type="button"
-                        >
+                        </ChildOutlineButton>
+                        <ChildOutlineButton disabled={busy || composerLocked} onClick={() => void startGuard("我想知道更多")}>
                           我想知道更多
-                          <ArrowRight aria-hidden="true" size={26} strokeWidth={2.5} />
-                        </button>
+                        </ChildOutlineButton>
                       </>
                     ) : null}
                   </div>
@@ -421,6 +413,7 @@ export function Chat({ conversationId }: ChatProps) {
 
           {guard === "image-blocked" ? (
             <ImageBlockedCard
+              reason={imageBlockReason}
               onReplace={() => {
                 clearImage();
                 setGuard("none");

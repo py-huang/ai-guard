@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
+import { useReadingAssist } from "@/components/reading-assist-provider";
+import { cn } from "@/lib/utils";
 
 function LoadingDots() {
   return (
@@ -111,19 +113,21 @@ type ImageParentDeclinedCardProps = {
 };
 
 const WHY_ITEMS = [
-  { n: "1", label: "高度私密的身體影像", highlight: false },
-  { n: "2", label: "暴力或血腥內容", highlight: false },
-  { n: "3", label: "偷拍或侵犯隱私", highlight: false },
-  { n: "4", label: "證件與金融資料", highlight: true },
-  { n: "5", label: "其他不適合兒童內容", highlight: false },
-];
+  { n: "1", label: "高度私密的身體影像", reason: "body" },
+  { n: "2", label: "暴力或血腥內容", reason: "violence" },
+  { n: "3", label: "偷拍或侵犯隱私", reason: "voyeur" },
+  { n: "4", label: "證件與金融資料", reason: "document" },
+  { n: "5", label: "其他不適合兒童內容", reason: "other" },
+] as const;
 
 type ImageBlockedCardProps = {
   onReplace: () => void;
+  reason?: string | null;
 };
 
-export function ImageBlockedCard({ onReplace }: ImageBlockedCardProps) {
+export function ImageBlockedCard({ onReplace, reason }: ImageBlockedCardProps) {
   const [whyOpen, setWhyOpen] = useState(false);
+  const { zhuyinEnabled } = useReadingAssist();
 
   return (
     <section className="w-full">
@@ -158,16 +162,24 @@ export function ImageBlockedCard({ onReplace }: ImageBlockedCardProps) {
         </div>
 
         {whyOpen ? (
-          <aside className="w-full max-w-[288px] rounded-3xl border border-solid border-[#dde3df] bg-white px-5 py-[22px]">
-            <p className="text-lg font-bold leading-7 text-[#13221b]">哪些圖片不應上傳？</p>
+          <aside
+            className={cn(
+              "shrink-0 rounded-3xl border border-solid border-[#dde3df] bg-white px-5 py-[22px]",
+              zhuyinEnabled ? "w-fit min-w-[288px] max-w-full" : "w-full max-w-[288px]",
+            )}
+          >
+            <p className={cn("text-lg font-bold leading-7 text-[#13221b]", zhuyinEnabled && "whitespace-nowrap")}>哪些圖片不應上傳？</p>
             <p className="mt-3.5 text-xs font-normal leading-[19px] text-[#506058]">我會用簡單的方式告訴你原因。</p>
             <ol className="mt-3.5 flex flex-col gap-3.5">
-              {WHY_ITEMS.map((item) => (
+              {WHY_ITEMS.map((item) => {
+                const highlight = reason === item.reason || (item.reason === "document" && (reason === "sensitive" || !reason)) || (item.reason === "other" && reason === "coverage") || (item.reason === "voyeur" && reason === "face");
+                return (
                 <li className="flex items-center gap-3.5" key={item.n}>
-                  <span className={`grid size-9 shrink-0 place-items-center rounded-xl text-[11px] font-bold ${item.highlight ? "bg-[#fff8d9] text-[#8a6400]" : "bg-[#f7f8f7] text-[#506058]"}`}>{item.n}</span>
-                  <span className="text-[13px] font-medium leading-[21px] text-[#13221b]">{item.label}</span>
+                  <span className={`grid size-9 shrink-0 place-items-center rounded-xl text-[11px] font-bold ${highlight ? "bg-[#fff8d9] text-[#8a6400]" : "bg-[#f7f8f7] text-[#506058]"}`}>{item.n}</span>
+                  <span className={cn("text-[13px] font-medium leading-[21px] text-[#13221b]", zhuyinEnabled && "whitespace-nowrap")}>{item.label}</span>
                 </li>
-              ))}
+                );
+              })}
             </ol>
           </aside>
         ) : null}

@@ -1,4 +1,4 @@
-export type ImageBlockReason = "coverage" | "sensitive";
+export type ImageBlockReason = "coverage" | "sensitive" | "document" | "body" | "violence" | "voyeur" | "other" | "face";
 
 export type ImageRedactResponse = {
   source: "gateway";
@@ -26,6 +26,7 @@ const IMAGE_FIELD_LABEL: Record<string, string> = {
   TW_BANK_ACCOUNT: "銀行帳號",
   ORGANIZATION: "機構",
   FACE: "人臉",
+  CREDIT_CARD: "信用卡",
 };
 
 export function labelsForImageEntities(entities: string[]) {

@@ -21,7 +21,8 @@ export async function POST(request: Request) {
     const redacted = await redactImageWithGateway(sessionId, file);
     const changed = redacted.png.length !== original.length || !redacted.png.equals(original);
 
-    const blockReason = redacted.blockReason === "coverage" || redacted.blockReason === "sensitive" ? redacted.blockReason : null;
+    const allowedReasons = new Set(["coverage", "sensitive", "document", "body", "violence", "voyeur", "other", "face"]);
+    const blockReason = redacted.blockReason && allowedReasons.has(redacted.blockReason) ? redacted.blockReason : null;
 
     return Response.json({
       source: "gateway",
