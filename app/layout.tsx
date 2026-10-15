@@ -9,6 +9,8 @@ import "./globals.css";
 const notoSansTc = Noto_Sans_TC({
   variable: "--font-noto-sans-tc",
   subsets: ["latin"],
+  display: "swap",
+  fallback: ["Microsoft JhengHei", "PingFang TC", "Noto Sans TC", "sans-serif"],
 });
 
 export const metadata: Metadata = {

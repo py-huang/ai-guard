@@ -217,14 +217,14 @@ html.zhuyin-on .zhuyin-light {
   font-size: calc(0.78em / var(--zhuyin-n, 3));
 }
 
-html.zhuyin-on aside {
+html.zhuyin-on aside[data-app-nav] {
   width: 16rem;
 }
 
-html.zhuyin-on aside a,
-html.zhuyin-on aside h2,
-html.zhuyin-on aside li,
-html.zhuyin-on aside p {
+html.zhuyin-on aside[data-app-nav] a,
+html.zhuyin-on aside[data-app-nav] h2,
+html.zhuyin-on aside[data-app-nav] li,
+html.zhuyin-on aside[data-app-nav] p {
   white-space: nowrap;
 }
 
@@ -234,7 +234,7 @@ html.zhuyin-on aside nav a {
   flex-wrap: nowrap;
 }
 
-html.zhuyin-on aside a[aria-label="新對話"] {
+html.zhuyin-on aside[data-app-nav] a[aria-label="新對話"] {
   width: 212px;
   max-width: 212px;
   flex-wrap: nowrap;

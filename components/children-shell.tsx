@@ -117,6 +117,7 @@ export function ChildrenShell({
             type="button"
           />
           <aside
+            data-app-nav=""
             id="mobile-navigation"
             className="fixed inset-x-0 top-20 z-40 bg-white px-6 py-6 shadow-lg lg:hidden"
           >
@@ -160,7 +161,7 @@ export function ChildrenShell({
       )}
 
       <ZhuyinScope className="mt-20 flex min-h-[calc(100dvh-80px)] lg:mt-[72px] lg:min-h-[calc(100dvh-72px)]">
-        <aside className="hidden w-[220px] shrink-0 flex-col bg-white px-4 pt-6 pb-7 lg:flex">
+        <aside data-app-nav="" className="hidden w-[220px] shrink-0 flex-col bg-white px-4 pt-6 pb-7 lg:flex">
           <a
             aria-label="新對話"
             className="flex h-12 w-[180px] self-center items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#bd2e2c]"
