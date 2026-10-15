@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react";
 
+import { childOutlineButtonClass } from "@/components/child-outline-button";
 import { speakText, stopSpeaking } from "@/lib/speak-text";
 
 type Props = {
@@ -39,7 +40,7 @@ export function SpeakButton({ text, showLabel = false }: Props) {
     <button
       aria-label={playing ? showLabel ? "停止朗讀" : "停止播放" : showLabel ? "朗讀" : "播放這段回覆"}
       className={showLabel
-        ? "inline-flex min-h-11 items-center gap-2 whitespace-nowrap py-2 text-[17px] font-semibold text-[#c02d32] hover:text-[#a9232a]"
+        ? childOutlineButtonClass
         : "mt-2 grid size-8 place-items-center rounded-full border border-solid border-[#dde3df] bg-white text-[#c02d32] hover:bg-[#fff0ee]"}
       onClick={() => {
         if (playing) {
