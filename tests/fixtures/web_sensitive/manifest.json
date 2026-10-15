@@ -1,0 +1,100 @@
+{
+  "note": "Wikimedia Commons 公開圖。不收錄真實國民身分證、色情、血腥或偷拍原圖。第 1–3、5 類若僅有風景照，會另外標註 overlay 以驗證 OCR 關鍵字路徑。",
+  "items": [
+    {
+      "id": "card_cvc2_visa",
+      "file": "card_cvc2_visa.png",
+      "expected": "document",
+      "source": "https://commons.wikimedia.org/wiki/File:CVC2SampleVisa.png",
+      "commons": "CVC2SampleVisa.png"
+    },
+    {
+      "id": "card_cvc2_visa_new",
+      "file": "card_cvc2_visa_new.png",
+      "expected": "document",
+      "source": "https://commons.wikimedia.org/wiki/File:CVC2SampleVisaNew.png",
+      "commons": "CVC2SampleVisaNew.png"
+    },
+    {
+      "id": "card_sogexia_mastercard",
+      "file": "card_sogexia_mastercard.png",
+      "expected": "document",
+      "source": "https://commons.wikimedia.org/wiki/File:Sogexia-mastercard.png",
+      "commons": "Sogexia-mastercard.png"
+    },
+    {
+      "id": "card_visa_logo",
+      "file": "card_visa_logo.png",
+      "expected": "document",
+      "source": "https://commons.wikimedia.org/wiki/File:VisaCard.png",
+      "commons": "VisaCard.png"
+    },
+    {
+      "id": "card_visa_climat",
+      "file": "card_visa_climat.jpg",
+      "expected": "document",
+      "source": "https://commons.wikimedia.org/wiki/File:Visa-climat.jpg",
+      "commons": "Visa-climat.jpg"
+    },
+    {
+      "id": "cards_credit_debit_pile",
+      "file": "cards_credit_debit_pile.png",
+      "expected": "document",
+      "source": "https://commons.wikimedia.org/wiki/File:Credit_and_debit_cards.png",
+      "commons": "Credit_and_debit_cards.png"
+    },
+    {
+      "id": "tw_passports_2021",
+      "file": "tw_passports_2021.jpg",
+      "expected": "document",
+      "source": "https://commons.wikimedia.org/wiki/File:Taiwan_passports_2021.jpg",
+      "commons": "Taiwan_passports_2021.jpg"
+    },
+    {
+      "id": "id_chiang_1965_historical",
+      "file": "id_chiang_1965_historical.jpg",
+      "expected": "document",
+      "source": "https://commons.wikimedia.org/wiki/File:ROC_National_ID_Card_of_Chiang_Kai-shek_19650417_face.jpg",
+      "commons": "ROC_National_ID_Card_of_Chiang_Kai-shek_19650417_face.jpg"
+    },
+    {
+      "id": "control_sunflower",
+      "file": "control_sunflower.jpg",
+      "expected": null,
+      "source": "https://commons.wikimedia.org/wiki/File:Sunflower_sky_backdrop.jpg",
+      "commons": "Sunflower_from_Silesia.jpg"
+    },
+    {
+      "id": "overlay_body_keyword",
+      "file": "overlay_body_keyword.jpg",
+      "expected": "body",
+      "source": "Wikimedia sunflower + 裸照 OCR stamp (not a nude photo)",
+      "commons": null,
+      "overlay": true
+    },
+    {
+      "id": "overlay_violence_keyword",
+      "file": "overlay_violence_keyword.jpg",
+      "expected": "violence",
+      "source": "Wikimedia sunflower + 超血腥屍體特寫 stamp",
+      "commons": null,
+      "overlay": true
+    },
+    {
+      "id": "overlay_voyeur_keyword",
+      "file": "overlay_voyeur_keyword.jpg",
+      "expected": "voyeur",
+      "source": "Wikimedia sunflower + 偷拍 stamp",
+      "commons": null,
+      "overlay": true
+    },
+    {
+      "id": "overlay_other_keyword",
+      "file": "overlay_other_keyword.jpg",
+      "expected": "other",
+      "source": "Wikimedia sunflower + 色情 stamp",
+      "commons": null,
+      "overlay": true
+    }
+  ]
+}

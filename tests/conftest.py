@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import os
+
+os.environ.setdefault("IMAGE_FORBID_VISION", "0")
+
 import pytest
 
 from safety_gateway.gateway import AISafetyGateway

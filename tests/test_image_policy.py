@@ -43,4 +43,10 @@ def test_coverage_allows_small_redaction() -> None:
 def test_id_document_is_high_sensitivity() -> None:
     blocked, reason = classify_image_share(0.1, ["PERSON", "TW_ID"])
     assert blocked is True
-    assert reason == "sensitive"
+    assert reason == "document"
+
+
+def test_any_detected_face_blocks_share() -> None:
+    blocked, reason = classify_image_share(0.05, ["FACE"])
+    assert blocked is True
+    assert reason == "face"

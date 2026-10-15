@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING
 from PIL import Image
 
 from safety_gateway.pii.faces import FaceBox, detect_faces_opencv, redact_face_boxes
-from safety_gateway.pii.ocr import ImageOcrUnavailable, build_ocr, isolate_runtime_caches
+from safety_gateway.pii.image_forbid import extra_forbid_entities
+from safety_gateway.pii.image_sensitive import detect_sensitive_boxes, ocr_payload_to_boxes
+from safety_gateway.pii.ocr import ImageOcrUnavailable, build_ocr, isolate_runtime_caches, ocr_payload
 
 if TYPE_CHECKING:
     from presidio_analyzer import AnalyzerEngine, PatternRecognizer
@@ -57,7 +59,7 @@ class InMemoryImageRedactor:
             opened.load()
             working = opened.convert("RGB")
 
-        entities = self._detected_entities(image_bytes, working)
+        entities, extra_boxes = self._detected_entities(image_bytes, working)
         if self._redact_faces:
             working = redact_face_boxes(working, self._face_detector(working))
 
@@ -79,26 +81,44 @@ class InMemoryImageRedactor:
                 ) from exc
             raise
 
+        if extra_boxes:
+            from PIL import ImageDraw
+
+            draw = ImageDraw.Draw(redacted)
+            for box in extra_boxes:
+                draw.rectangle(
+                    [box.left, box.top, box.left + box.width, box.top + box.height],
+                    fill=_BLACK_FILL,
+                )
+        if {"TW_ID", "CREDIT_CARD", "IMAGE_DOCUMENT", "IMAGE_BODY", "IMAGE_VIOLENCE", "IMAGE_VOYEUR", "IMAGE_OTHER", "FACE"} & set(entities):
+            from PIL import ImageDraw
+
+            draw = ImageDraw.Draw(redacted)
+            draw.rectangle([0, 0, redacted.size[0], redacted.size[1]], fill=_BLACK_FILL)
+
         output = io.BytesIO()
         redacted.save(output, format="PNG", optimize=True)
         return output.getvalue(), entities
 
-    def _detected_entities(self, image_bytes: bytes, working: Image.Image) -> list[str]:
+    def _detected_entities(self, image_bytes: bytes, working: Image.Image) -> tuple[list[str], list]:
         found: set[str] = set()
+        extra_boxes: list = []
         if self._redact_faces and self._face_detector(working):
             found.add("FACE")
-        if self._analyzer_engine is None:
-            return sorted(found)
+        payload: dict[str, list] | None = None
         try:
-            from safety_gateway.pii.ocr import ocr_lines
-
-            text = "\n".join(ocr_lines(image_bytes)).strip()
+            payload = ocr_payload(image_bytes)
         except Exception:
-            text = ""
-        if text:
-            hits = self._analyzer_engine.analyze(text=text, language="zh")
-            found.update(hit.entity_type for hit in hits if getattr(hit, "entity_type", None))
-        return sorted(found)
+            payload = None
+        if payload:
+            extra_boxes, layout_entities = detect_sensitive_boxes(ocr_payload_to_boxes(payload))
+            found.update(layout_entities)
+            text = "\n".join(str(item) for item in payload.get("text") or [] if str(item).strip())
+            found.update(extra_forbid_entities(text, image_bytes))
+            if text and self._analyzer_engine is not None:
+                hits = self._analyzer_engine.analyze(text=text, language="zh")
+                found.update(hit.entity_type for hit in hits if getattr(hit, "entity_type", None))
+        return sorted(found), extra_boxes
 
     def _engine_instance(self) -> ImageRedactorEngine:
         if self._engine is not None:

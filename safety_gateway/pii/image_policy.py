@@ -1,4 +1,4 @@
-"""Shareability rules for a redacted child photo: coverage and high-sensitivity PII."""
+"""Shareability rules for a redacted child photo: forbid categories then coverage."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ import io
 
 import numpy as np
 from PIL import Image
+
+from safety_gateway.pii.image_forbid import classify_forbidden_image
 
 COVERAGE_BLOCK_RATIO = 0.80
 HIGH_SENSITIVITY_ENTITIES = frozenset(
@@ -18,6 +20,12 @@ HIGH_SENSITIVITY_ENTITIES = frozenset(
         "IBAN_CODE",
         "US_BANK_NUMBER",
         "US_ITIN",
+        "IMAGE_DOCUMENT",
+        "IMAGE_BODY",
+        "IMAGE_VIOLENCE",
+        "IMAGE_VOYEUR",
+        "IMAGE_OTHER",
+        "FACE",
     }
 )
 
@@ -39,16 +47,24 @@ def redaction_coverage(original: bytes, redacted: bytes) -> float:
     return float(changed.mean())
 
 
-def classify_image_share(coverage: float, entities: list[str] | set[str]) -> tuple[bool, str | None]:
+def classify_image_share(
+    coverage: float,
+    entities: list[str] | set[str],
+    ocr_text: str = "",
+) -> tuple[bool, str | None]:
     """Return (blocked, reason) for child image sharing.
 
-    Current redaction can label OCR PII and faces. It does not classify
-    body, violence, or voyeurism. Those stay in the child-facing why list
-    as policy, not as a vision verdict.
+    Reasons align with the child why-list: body, violence, voyeur, document, other.
+    Coverage remains a last-resort block when most pixels were already painted.
     """
+    forbid = classify_forbidden_image(ocr_text, entities)
+    if forbid:
+        return True, forbid
     kinds = {item.upper() for item in entities}
+    if "FACE" in kinds:
+        return True, "face"
     if kinds & HIGH_SENSITIVITY_ENTITIES:
-        return True, "sensitive"
+        return True, "document"
     if coverage >= COVERAGE_BLOCK_RATIO:
         return True, "coverage"
     return False, None

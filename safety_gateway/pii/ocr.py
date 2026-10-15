@@ -40,7 +40,7 @@ class RapidOcrEngine(OCR):
         self._engine = None
 
     def perform_ocr(self, image: object, **kwargs: object) -> dict:
-        array = _as_rgb_array(image)
+        array, scale = prepare_ocr_array(image)
         result, _elapsed = self._rapid().__call__(array)
         payload: dict[str, list] = {
             "left": [],
@@ -53,8 +53,8 @@ class RapidOcrEngine(OCR):
         if not result:
             return payload
         for box, text, score in result:
-            xs = [point[0] for point in box]
-            ys = [point[1] for point in box]
+            xs = [point[0] / scale for point in box]
+            ys = [point[1] / scale for point in box]
             left = max(int(min(xs)) - 4, 0)
             top = max(int(min(ys)) - 4, 0)
             payload["left"].append(left)
@@ -87,14 +87,33 @@ def build_ocr() -> OCR:
 
 def ocr_lines(image_bytes: bytes) -> list[str]:
     """Return recognized lines; used by tests and status checks."""
+    payload = ocr_payload(image_bytes)
+    return [str(text) for text in payload.get("text") or [] if str(text).strip()]
+
+
+def ocr_payload(image_bytes: bytes) -> dict[str, list]:
     with Image.open(io.BytesIO(image_bytes)) as opened:
         opened.load()
-        array = np.array(opened.convert("RGB"))
-    engine = RapidOcrEngine()
-    result, _elapsed = engine._rapid()(array)
-    if not result:
-        return []
-    return [str(item[1]) for item in result]
+        image = opened.convert("RGB")
+    return RapidOcrEngine().perform_ocr(image)
+
+
+def prepare_ocr_array(image: object) -> tuple[np.ndarray, float]:
+    """Upscale small photos and invert dark card faces so RapidOCR sees digits."""
+    array = _as_rgb_array(image)
+    height, width = array.shape[:2]
+    scale = 1.0
+    longest = max(height, width)
+    if longest < 900:
+        scale = 900 / longest
+        resized = Image.fromarray(array).resize(
+            (max(int(width * scale), 1), max(int(height * scale), 1)),
+            Image.Resampling.LANCZOS,
+        )
+        array = np.array(resized.convert("RGB"))
+    if float(array.mean()) < 95:
+        array = 255 - array
+    return array, scale
 
 
 def _as_rgb_array(image: object) -> np.ndarray:

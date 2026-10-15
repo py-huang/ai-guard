@@ -133,7 +133,14 @@ class AISafetyGateway:
         request = ImageRedactRequest(session_id=session_id, image_bytes=image_bytes)
         redacted, detected_entities = self._image_redactor.redact_image_with_entities(request.image_bytes)
         coverage = min(1.0, max(0.0, redaction_coverage(request.image_bytes, redacted)))
-        blocked, block_reason = classify_image_share(coverage, detected_entities)
+        ocr_text = ""
+        try:
+            from safety_gateway.pii.ocr import ocr_lines
+
+            ocr_text = " ".join(ocr_lines(request.image_bytes))
+        except Exception:
+            ocr_text = ""
+        blocked, block_reason = classify_image_share(coverage, detected_entities, ocr_text=ocr_text)
         return ImageRedactResult(
             session_id=request.session_id,
             content_type="image/png",

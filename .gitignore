@@ -44,6 +44,10 @@ next-env.d.ts
 # local package stores
 .pnpm-store/
 
+# generated OCR experiment images
+/tests/fixtures/sensitive_images/
+/tests/fixtures/image-corpus/.vision-cache/
+
 # python
 .venv/
 venv/

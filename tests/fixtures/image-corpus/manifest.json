@@ -1,0 +1,702 @@
+[
+  {
+    "file": "tests/fixtures/image-corpus/01-body/01.jpg",
+    "source_title": "File:Alexandre Cabanel - The Birth of Venus - Google Art Project 2.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Alexandre_Cabanel_-_The_Birth_of_Venus_-_Google_Art_Project_2.jpg/1280px-Alexandre_Cabanel_-_The_Birth_of_Venus_-_Google_Art_Project_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/02.jpg",
+    "source_title": "File:Angelo Bronzino - Venus, Cupid, Folly and Time - National Gallery, London.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Angelo_Bronzino_-_Venus%2C_Cupid%2C_Folly_and_Time_-_National_Gallery%2C_London.jpg/1280px-Angelo_Bronzino_-_Venus%2C_Cupid%2C_Folly_and_Time_-_National_Gallery%2C_London.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/03.jpg",
+    "source_title": "File:Diego Velázquez - Rokeby Venus.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Diego_Vel%C3%A1zquez_-_Rokeby_Venus.jpg/1280px-Diego_Vel%C3%A1zquez_-_Rokeby_Venus.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/04.jpg",
+    "source_title": "File:François Boucher - The Triumph of Venus - Google Art Project.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Fran%C3%A7ois_Boucher_-_The_Triumph_of_Venus_-_Google_Art_Project.jpg/1280px-Fran%C3%A7ois_Boucher_-_The_Triumph_of_Venus_-_Google_Art_Project.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/05.jpg",
+    "source_title": "File:Giorgione - Sleeping Venus - Google Art Project 2.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Giorgione_-_Sleeping_Venus_-_Google_Art_Project_2.jpg/1280px-Giorgione_-_Sleeping_Venus_-_Google_Art_Project_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/06.jpg",
+    "source_title": "File:Giorgione - Sleeping Venus - Google Art Project 2FXD.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Giorgione_-_Sleeping_Venus_-_Google_Art_Project_2FXD.jpg/1280px-Giorgione_-_Sleeping_Venus_-_Google_Art_Project_2FXD.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/07.png",
+    "source_title": "File:Henrietta Rae (1859-1928) - Venus Enthroned (1902), vintage colour plate.png",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Henrietta_Rae_%281859-1928%29_-_Venus_Enthroned_%281902%29%2C_vintage_colour_plate.png/1280px-Henrietta_Rae_%281859-1928%29_-_Venus_Enthroned_%281902%29%2C_vintage_colour_plate.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/08.jpg",
+    "source_title": "File:Hermann Völkerling - Mars und Venus - 11065 - Bavarian State Painting Collections.jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Hermann_V%C3%B6lkerling_-_Mars_und_Venus_-_11065_-_Bavarian_State_Painting_Collections.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/09.jpg",
+    "source_title": "File:Julio Romero de Torres - Venus of Poetry - Google Art Project.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/Julio_Romero_de_Torres_-_Venus_of_Poetry_-_Google_Art_Project.jpg/1280px-Julio_Romero_de_Torres_-_Venus_of_Poetry_-_Google_Art_Project.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/10.jpg",
+    "source_title": "File:Peter Paul Rubens - The toilet of Venus.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Peter_Paul_Rubens_-_The_toilet_of_Venus.jpg/1280px-Peter_Paul_Rubens_-_The_toilet_of_Venus.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/11.jpg",
+    "source_title": "File:TITIAN - Venus Anadyomene (National Galleries of Scotland, c. 1520. Oil on canvas, 75.8 x 57.6 cm).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/TITIAN_-_Venus_Anadyomene_%28National_Galleries_of_Scotland%2C_c._1520._Oil_on_canvas%2C_75.8_x_57.6_cm%29.jpg/1280px-TITIAN_-_Venus_Anadyomene_%28National_Galleries_of_Scotland%2C_c._1520._Oil_on_canvas%2C_75.8_x_57.6_cm%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/12.jpg",
+    "source_title": "File:Venus and Cupid (c.1700) - Sebastiano Ricci.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b6/Venus_and_Cupid_%28c.1700%29_-_Sebastiano_Ricci.jpg/1280px-Venus_and_Cupid_%28c.1700%29_-_Sebastiano_Ricci.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/13.jpg",
+    "source_title": "File:Venus de Milo.JPG",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Venus_de_Milo.JPG/1280px-Venus_de_Milo.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/14.jpg",
+    "source_title": "File:Venus de Milo edited.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Venus_de_Milo_edited.jpg/1280px-Venus_de_Milo_edited.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/15.jpg",
+    "source_title": "File:William-Adolphe Bouguereau (1825-1905) - The Birth of Venus (1879).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bb/William-Adolphe_Bouguereau_%281825-1905%29_-_The_Birth_of_Venus_%281879%29.jpg/1280px-William-Adolphe_Bouguereau_%281825-1905%29_-_The_Birth_of_Venus_%281879%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude painting venus",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/16.jpg",
+    "source_title": "File:0 Vénus de l'Esquilin - Musei Capitolini - Rome.JPG",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/0_V%C3%A9nus_de_l%27Esquilin_-_Musei_Capitolini_-_Rome.JPG/1280px-0_V%C3%A9nus_de_l%27Esquilin_-_Musei_Capitolini_-_Rome.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude sculpture marble",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/17.jpg",
+    "source_title": "File:Esquiline Venus, M.C. inv. 1141, Roman, early Imperial era, marble - Musei Capitolini - Rome, Italy - DSC05884.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Esquiline_Venus%2C_M.C._inv._1141%2C_Roman%2C_early_Imperial_era%2C_marble_-_Musei_Capitolini_-_Rome%2C_Italy_-_DSC05884.jpg/1280px-Esquiline_Venus%2C_M.C._inv._1141%2C_Roman%2C_early_Imperial_era%2C_marble_-_Musei_Capitolini_-_Rome%2C_Italy_-_DSC05884.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude sculpture marble",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/18.jpg",
+    "source_title": "File:Esquiline Venus (Musei Capitolini)-2.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Esquiline_Venus_%28Musei_Capitolini%29-2.jpg/1280px-Esquiline_Venus_%28Musei_Capitolini%29-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude sculpture marble",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/19.jpg",
+    "source_title": "File:Esquiline Venus (Musei Capitolini).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b6/Esquiline_Venus_%28Musei_Capitolini%29.jpg/1280px-Esquiline_Venus_%28Musei_Capitolini%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude sculpture marble",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/01-body/20.jpg",
+    "source_title": "File:Esquiline Venus - Palazzo dei Conservatori - Musei Capitolini - Rome 2016.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Esquiline_Venus_-_Palazzo_dei_Conservatori_-_Musei_Capitolini_-_Rome_2016.jpg/1280px-Esquiline_Venus_-_Palazzo_dei_Conservatori_-_Musei_Capitolini_-_Rome_2016.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "nude sculpture marble",
+    "category": "01-body"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/01.jpg",
+    "source_title": "File:'Oorlogsleed', woman and child at the Battle of Waterloo.jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e1/%27Oorlogsleed%27%2C_woman_and_child_at_the_Battle_of_Waterloo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/02.jpg",
+    "source_title": "File:American 19th Century, Civil War Battle, 1861 or after, NGA 45961.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/American_19th_Century%2C_Civil_War_Battle%2C_1861_or_after%2C_NGA_45961.jpg/1280px-American_19th_Century%2C_Civil_War_Battle%2C_1861_or_after%2C_NGA_45961.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/03.jpg",
+    "source_title": "File:Battle at Lanka, Ramayana, Udaipur, 1649-53.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Battle_at_Lanka%2C_Ramayana%2C_Udaipur%2C_1649-53.jpg/1280px-Battle_at_Lanka%2C_Ramayana%2C_Udaipur%2C_1649-53.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/04.jpg",
+    "source_title": "File:Battle of Crysler's Farm.jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Battle_of_Crysler%27s_Farm.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/05.jpg",
+    "source_title": "File:Battle of Port Arthur crop2.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Battle_of_Port_Arthur_crop2.jpg/1280px-Battle_of_Port_Arthur_crop2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/06.jpg",
+    "source_title": "File:Battle of Sinop.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Battle_of_Sinop.jpg/1280px-Battle_of_Sinop.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/07.jpg",
+    "source_title": "File:Eastern Han-Three Kingdoms Battle Painting a.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Eastern_Han-Three_Kingdoms_Battle_Painting_a.jpg/1280px-Eastern_Han-Three_Kingdoms_Battle_Painting_a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/08.jpg",
+    "source_title": "File:Eastern Han-Three Kingdoms Battle Painting b.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Eastern_Han-Three_Kingdoms_Battle_Painting_b.jpg/1280px-Eastern_Han-Three_Kingdoms_Battle_Painting_b.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/09.jpg",
+    "source_title": "File:Painting of Guru Gobind Singh in battle.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Painting_of_Guru_Gobind_Singh_in_battle.jpg/1280px-Painting_of_Guru_Gobind_Singh_in_battle.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/10.png",
+    "source_title": "File:Price Raid.gif",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/Price_Raid.gif/1280px-Price_Raid.gif?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/11.jpg",
+    "source_title": "File:S-b war painting by Antoni Piotrowski.jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/S-b_war_painting_by_Antoni_Piotrowski.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/12.jpg",
+    "source_title": "File:Sargent, John Singer (RA) - Gassed - Google Art Project.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Sargent%2C_John_Singer_%28RA%29_-_Gassed_-_Google_Art_Project.jpg/1280px-Sargent%2C_John_Singer_%28RA%29_-_Gassed_-_Google_Art_Project.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/13.jpg",
+    "source_title": "File:Thure de Thulstrup - L. Prang and Co. - Battle of Gettysburg - Restoration by Adam Cuerden.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Thure_de_Thulstrup_-_L._Prang_and_Co._-_Battle_of_Gettysburg_-_Restoration_by_Adam_Cuerden.jpg/1280px-Thure_de_Thulstrup_-_L._Prang_and_Co._-_Battle_of_Gettysburg_-_Restoration_by_Adam_Cuerden.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/14.jpg",
+    "source_title": "File:Valmy Battle painting.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Valmy_Battle_painting.jpg/1280px-Valmy_Battle_painting.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "battle painting war",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/15.jpg",
+    "source_title": "File:British wounded Bernafay Wood 19 July 1916.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/British_wounded_Bernafay_Wood_19_July_1916.jpg/1280px-British_wounded_Bernafay_Wood_19_July_1916.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "wounded soldier painting",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/16.jpg",
+    "source_title": "File:En såret dansk kriger (1865 painting).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/En_s%C3%A5ret_dansk_kriger_%281865_painting%29.jpg/1280px-En_s%C3%A5ret_dansk_kriger_%281865_painting%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "wounded soldier painting",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/17.jpg",
+    "source_title": "File:First World War; two soldiers, one badly wounded, being comf Wellcome V0015798.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/First_World_War%3B_two_soldiers%2C_one_badly_wounded%2C_being_comf_Wellcome_V0015798.jpg/1280px-First_World_War%3B_two_soldiers%2C_one_badly_wounded%2C_being_comf_Wellcome_V0015798.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "wounded soldier painting",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/18.jpg",
+    "source_title": "File:Jean-Germain Drouais - Dying Athlete or Wounded Roman Soldier.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Jean-Germain_Drouais_-_Dying_Athlete_or_Wounded_Roman_Soldier.jpg/1280px-Jean-Germain_Drouais_-_Dying_Athlete_or_Wounded_Roman_Soldier.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "wounded soldier painting",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/19.jpg",
+    "source_title": "File:John Crome - A Barge with a Wounded Soldier - Google Art Project.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/John_Crome_-_A_Barge_with_a_Wounded_Soldier_-_Google_Art_Project.jpg/1280px-John_Crome_-_A_Barge_with_a_Wounded_Soldier_-_Google_Art_Project.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "wounded soldier painting",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/02-violence/20.jpg",
+    "source_title": "File:Jozef Hanula - Study of a Wounded Soldier - O 1152 - Slovak National Gallery.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Jozef_Hanula_-_Study_of_a_Wounded_Soldier_-_O_1152_-_Slovak_National_Gallery.jpg/1280px-Jozef_Hanula_-_Study_of_a_Wounded_Soldier_-_O_1152_-_Slovak_National_Gallery.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "wounded soldier painting",
+    "category": "02-violence"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/01.jpg",
+    "source_title": "File:A Soldier from the Alpha Company Engineers, Troops Battalion, 4th Brigade Combat Team, 101st Division searches for possible improvise explosive devices hidden on the side of a main - DPLA - 78e509d251bfe31d1446908629c126d8.jpeg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/A_Soldier_from_the_Alpha_Company_Engineers%2C_Troops_Battalion%2C_4th_Brigade_Combat_Team%2C_101st_Division_searches_for_possible_improvise_explosive_devices_hidden_on_the_side_of_a_main_-_DPLA_-_78e509d251bfe31d1446908629c126d8.jpeg/1280px-thumbnail.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "hidden camera device",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/02.jpg",
+    "source_title": "File:Galta Ji(Hidden Gem).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Galta_Ji%28Hidden_Gem%29.jpg/1280px-Galta_Ji%28Hidden_Gem%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "hidden camera device",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/03.jpg",
+    "source_title": "File:Galta Ji (Hidden Gem).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Galta_Ji_%28Hidden_Gem%29.jpg/1280px-Galta_Ji_%28Hidden_Gem%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "hidden camera device",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/04.png",
+    "source_title": "File:March 2018 Concealed Camera Binoculars (27183792868).png",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/March_2018_Concealed_Camera_Binoculars_%2827183792868%29.png/1280px-March_2018_Concealed_Camera_Binoculars_%2827183792868%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "hidden camera device",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/05.jpg",
+    "source_title": "File:Cell 102 at Stasi Prison.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Cell_102_at_Stasi_Prison.jpg/1280px-Cell_102_at_Stasi_Prison.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "security peephole door",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/06.jpg",
+    "source_title": "File:Cell Door Peephole at Stasi Prison.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Cell_Door_Peephole_at_Stasi_Prison.jpg/1280px-Cell_Door_Peephole_at_Stasi_Prison.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "security peephole door",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/07.jpg",
+    "source_title": "File:2005 Maserati 4200 GT - Flickr - The Car Spy (12).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/2005_Maserati_4200_GT_-_Flickr_-_The_Car_Spy_%2812%29.jpg/1280px-2005_Maserati_4200_GT_-_Flickr_-_The_Car_Spy_%2812%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "spy camera product",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/08.jpg",
+    "source_title": "File:Hubble Spies Tiny Galaxies Aglow with Star Birth.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Hubble_Spies_Tiny_Galaxies_Aglow_with_Star_Birth.jpg/1280px-Hubble_Spies_Tiny_Galaxies_Aglow_with_Star_Birth.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "spy camera product",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/09.jpg",
+    "source_title": "File:Hubble Spies a Tenuous Diffuse Galaxy(potw2217a).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Hubble_Spies_a_Tenuous_Diffuse_Galaxy%28potw2217a%29.jpg/1280px-Hubble_Spies_a_Tenuous_Diffuse_Galaxy%28potw2217a%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "spy camera product",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/10.jpg",
+    "source_title": "File:Spy Shop, Lea Bridge Road - 2022-10-08.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Spy_Shop%2C_Lea_Bridge_Road_-_2022-10-08.jpg/1280px-Spy_Shop%2C_Lea_Bridge_Road_-_2022-10-08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "spy camera product",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/01.jpg",
+    "source_title": "File:Credit-cards.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Credit-cards.jpg/1280px-Credit-cards.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "credit card visa",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/02.jpg",
+    "source_title": "File:Credit card of Daoheng Bank.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Credit_card_of_Daoheng_Bank.jpg/1280px-Credit_card_of_Daoheng_Bank.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "credit card visa",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/03.jpg",
+    "source_title": "File:Credit card samp.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Credit_card_samp.jpg/1280px-Credit_card_samp.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "credit card visa",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/04.jpg",
+    "source_title": "File:Credit card terminal in Laos.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Credit_card_terminal_in_Laos.jpg/1280px-Credit_card_terminal_in_Laos.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "credit card visa",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/05.png",
+    "source_title": "File:Revolut Premium Visa Infinite Card Midnight Blue.png",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Revolut_Premium_Visa_Infinite_Card_Midnight_Blue.png/1280px-Revolut_Premium_Visa_Infinite_Card_Midnight_Blue.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "credit card visa",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/06.jpg",
+    "source_title": "File:Three credit cards- Visa, Mastercard and American Express (close-up on logos).jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c6/Three_credit_cards-_Visa%2C_Mastercard_and_American_Express_%28close-up_on_logos%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "credit card visa",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/07.jpg",
+    "source_title": "File:Back of a Philippine Driver’s License (LTO) sample.jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/87/Back_of_a_Philippine_Driver%E2%80%99s_License_%28LTO%29_sample.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/08.jpg",
+    "source_title": "File:California fake id card driver license.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/California_fake_id_card_driver_license.jpg/1280px-California_fake_id_card_driver_license.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/09.jpg",
+    "source_title": "File:California fake id card driver license perforated.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/California_fake_id_card_driver_license_perforated.jpg/1280px-California_fake_id_card_driver_license_perforated.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/10.jpg",
+    "source_title": "File:Californian sample driver's license, 2025.jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/13/Californian_sample_driver%27s_license%2C_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/11.jpg",
+    "source_title": "File:Driver's license and identity card - Peru.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Driver%27s_license_and_identity_card_-_Peru.jpg/1280px-Driver%27s_license_and_identity_card_-_Peru.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/12.jpg",
+    "source_title": "File:Early computer generated Driver's License, printed on a punch-card.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/Early_computer_generated_Driver%27s_License%2C_printed_on_a_punch-card.jpg/1280px-Early_computer_generated_Driver%27s_License%2C_printed_on_a_punch-card.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/13.jpg",
+    "source_title": "File:Front of a Philippine Driver’s License (LTO) sample.jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Front_of_a_Philippine_Driver%E2%80%99s_License_%28LTO%29_sample.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/14.jpg",
+    "source_title": "File:MASSACHUSETTS DRIVER'S LICENSE & UNITED STATES PASSPORT CARD.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/MASSACHUSETTS_DRIVER%27S_LICENSE_%26_UNITED_STATES_PASSPORT_CARD.jpg/1280px-MASSACHUSETTS_DRIVER%27S_LICENSE_%26_UNITED_STATES_PASSPORT_CARD.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/15.jpg",
+    "source_title": "File:Minnesota fake id card driver license.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Minnesota_fake_id_card_driver_license.jpg/1280px-Minnesota_fake_id_card_driver_license.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/16.jpg",
+    "source_title": "File:Minnesota fake id card driver license perforated.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Minnesota_fake_id_card_driver_license_perforated.jpg/1280px-Minnesota_fake_id_card_driver_license_perforated.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/17.jpg",
+    "source_title": "File:Qualification Card for Second-Class Driver Georgiy Pavlovich Osipov, 1959.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/Qualification_Card_for_Second-Class_Driver_Georgiy_Pavlovich_Osipov%2C_1959.jpg/1280px-Qualification_Card_for_Second-Class_Driver_Georgiy_Pavlovich_Osipov%2C_1959.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "driver license card",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/18.png",
+    "source_title": "File:Carte identité électronique française (2021, recto).png",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Carte_identit%C3%A9_%C3%A9lectronique_fran%C3%A7aise_%282021%2C_recto%29.png/1280px-Carte_identit%C3%A9_%C3%A9lectronique_fran%C3%A7aise_%282021%2C_recto%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "identity card european",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/19.png",
+    "source_title": "File:EEA identity card requirements.png",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/EEA_identity_card_requirements.png/1280px-EEA_identity_card_requirements.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "identity card european",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/04-document/20.jpg",
+    "source_title": "File:New Croatian ID Card (Backside) (2021).jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/10/New_Croatian_ID_Card_%28Backside%29_%282021%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "identity card european",
+    "category": "04-document"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/01.jpg",
+    "source_title": "File:JOB, cigarette paper advertisement by Alfons Mucha, 1898.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/JOB%2C_cigarette_paper_advertisement_by_Alfons_Mucha%2C_1898.jpg/1280px-JOB%2C_cigarette_paper_advertisement_by_Alfons_Mucha%2C_1898.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/02.jpg",
+    "source_title": "File:Julius Klinger (Austrian graphic artist 1876–1942) - Olleschau Cigarettenhülsen und Papier (Cigarette paper and filter company advertising poster 1923, image from \"Poster Art in Vienna\", c. 1923 archive.org) 0049 Public domain.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/Julius_Klinger_%28Austrian_graphic_artist_1876%E2%80%931942%29_-_Olleschau_Cigarettenh%C3%BClsen_und_Papier_%28Cigarette_paper_and_filter_company_advertising_poster_1923%2C_image_from_%22Poster_Art_in_Vienna%22%2C_c._1923_archive.org%29_0049_Public_domain.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/03.jpg",
+    "source_title": "File:Julius Klinger (Austrian graphic artist 1876–1942) - TABU. Cigarette papers and filters advertising poster 1919 83,5 x 52,4 cm Wolfsonian-FIU WOLF007478 84.4.203 000 Public domain.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Julius_Klinger_%28Austrian_graphic_artist_1876%E2%80%931942%29_-_TABU._Cigarette_papers_and_filters_advertising_poster_1919_83%2C5_x_52%2C4_cm_Wolfsonian-FIU_WOLF007478_84.4.203_000_Public_domain.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/04.jpg",
+    "source_title": "File:Julius Klinger (Austrian graphic artist 1876–1942) - TABU. Cigarette papers and filters advertising poster 1919 83,5 x 52,4 cm Wolfsonian-FIU WOLF007479 84.4.204 000 Public domain.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Julius_Klinger_%28Austrian_graphic_artist_1876%E2%80%931942%29_-_TABU._Cigarette_papers_and_filters_advertising_poster_1919_83%2C5_x_52%2C4_cm_Wolfsonian-FIU_WOLF007479_84.4.204_000_Public_domain.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/05.jpg",
+    "source_title": "File:Julius Klinger (Austrian graphic artist 1876–1942) - TABU Antinicotin Cigarettenhülsen Papier (Cigarette paper and filter company advertising poster 1919, image from \"Poster Art in Vienna\", c. 1923 archive.org) 0047 Public domain.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Julius_Klinger_%28Austrian_graphic_artist_1876%E2%80%931942%29_-_TABU_Antinicotin_Cigarettenh%C3%BClsen_Papier_%28Cigarette_paper_and_filter_company_advertising_poster_1919%2C_image_from_%22Poster_Art_in_Vienna%22%2C_c._1923_archive.org%29_0047_Public_domain.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/06.jpg",
+    "source_title": "File:Julius Klinger (Austrian graphic artist 1876–1942) - Tabu. Cigarette paper advertising poster Wien 1919 126 x 94 cm Wolfsonian-FIU WOLF028538 XX1990.4065 000 Public domain.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Julius_Klinger_%28Austrian_graphic_artist_1876%E2%80%931942%29_-_Tabu._Cigarette_paper_advertising_poster_Wien_1919_126_x_94_cm_Wolfsonian-FIU_WOLF028538_XX1990.4065_000_Public_domain.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/07.jpg",
+    "source_title": "File:Julius Klinger (Austrian graphic artist 1876–1942) - Tabu Antinicotin. Poster 1919 129,5 x 97,2 cm Cigarette paper advertising offset color litograph Wolfsonian-FIU WOLF028537 XX1990.4064 000 Public domain.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Julius_Klinger_%28Austrian_graphic_artist_1876%E2%80%931942%29_-_Tabu_Antinicotin._Poster_1919_129%2C5_x_97%2C2_cm_Cigarette_paper_advertising_offset_color_litograph_Wolfsonian-FIU_WOLF028537_XX1990.4064_000_Public_domain.jpg/1280px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/08.jpg",
+    "source_title": "File:Minori Cigarette Poster by Hisui Sugiura.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Minori_Cigarette_Poster_by_Hisui_Sugiura.jpg/1280px-Minori_Cigarette_Poster_by_Hisui_Sugiura.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/09.jpg",
+    "source_title": "File:CasinoChips.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/CasinoChips.jpg/1280px-CasinoChips.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "casino chips gambling",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/10.jpg",
+    "source_title": "File:Gambling chips.jpg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/53/Gambling_chips.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "query": "casino chips gambling",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/11.jpg",
+    "source_title": "File:Marines, guests win prizes, build camraderie at H& HS; Casino Night 160108-M-SR938-097.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c6/Marines%2C_guests_win_prizes%2C_build_camraderie_at_H%26_HS%3B_Casino_Night_160108-M-SR938-097.jpg/1280px-Marines%2C_guests_win_prizes%2C_build_camraderie_at_H%26_HS%3B_Casino_Night_160108-M-SR938-097.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "casino chips gambling",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/12.jpg",
+    "source_title": "File:Monopoly houses and poker chips.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Monopoly_houses_and_poker_chips.jpg/1280px-Monopoly_houses_and_poker_chips.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "casino chips gambling",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/13.jpg",
+    "source_title": "File:Calumet Building, 1910 - East Chicago, Indiana (4218736734).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Calumet_Building%2C_1910_-_East_Chicago%2C_Indiana_%284218736734%29.jpg/1280px-Calumet_Building%2C_1910_-_East_Chicago%2C_Indiana_%284218736734%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "beer advertisement vintage",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/14.jpg",
+    "source_title": "File:Downtown Tuscaloosa Historic District Vintage Ad.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Downtown_Tuscaloosa_Historic_District_Vintage_Ad.jpg/1280px-Downtown_Tuscaloosa_Historic_District_Vintage_Ad.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "beer advertisement vintage",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/15.jpg",
+    "source_title": "File:Herne Kent 002.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Herne_Kent_002.jpg/1280px-Herne_Kent_002.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "beer advertisement vintage",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/16.jpg",
+    "source_title": "File:Lambton Brewing Co. Advert (37219154280).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/Lambton_Brewing_Co._Advert_%2837219154280%29.jpg/1280px-Lambton_Brewing_Co._Advert_%2837219154280%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "beer advertisement vintage",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/17.jpg",
+    "source_title": "File:Poland-01698 - Barkas V901-2 (1957-61) (31969998152).jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Poland-01698_-_Barkas_V901-2_%281957-61%29_%2831969998152%29.jpg/1280px-Poland-01698_-_Barkas_V901-2_%281957-61%29_%2831969998152%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "beer advertisement vintage",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/18.jpg",
+    "source_title": "File:Sign-1040944, Tralee, Co. Kerry, Ireland.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3b/Sign-1040944%2C_Tralee%2C_Co._Kerry%2C_Ireland.jpg/1280px-Sign-1040944%2C_Tralee%2C_Co._Kerry%2C_Ireland.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "beer advertisement vintage",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/11.jpg",
+    "source_title": "File:MASTER Sergeant (MSGT) Rob Alger, USAF, 138th Security Police Squadron, Oklahoma Air National Guard, runs a mirror under a vehicle to check for hidden weapons or explosive devices. - DPLA - 1cc5958578836dc1479ef626a5fd7b47.jpeg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/MASTER_Sergeant_%28MSGT%29_Rob_Alger%2C_USAF%2C_138th_Security_Police_Squadron%2C_Oklahoma_Air_National_Guard%2C_runs_a_mirror_under_a_vehicle_to_check_for_hidden_weapons_or_explosive_devices._-_DPLA_-_1cc5958578836dc1479ef626a5fd7b47.jpeg/1280px-thumbnail.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "hidden camera device",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/12.jpg",
+    "source_title": "File:Soldiers from the Alpha Company Engineers, Troops Battalion, 4th Brigade Combat Team, 101st Division search for possible improvise explosive devices hidden on the side of a main roa - DPLA - 4291628bd10a9cdccf3d2bdc1215b3f2.jpeg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Soldiers_from_the_Alpha_Company_Engineers%2C_Troops_Battalion%2C_4th_Brigade_Combat_Team%2C_101st_Division_search_for_possible_improvise_explosive_devices_hidden_on_the_side_of_a_main_roa_-_DPLA_-_4291628bd10a9cdccf3d2bdc1215b3f2.jpeg/1280px-thumbnail.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "hidden camera device",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/13.jpg",
+    "source_title": "File:1934-04-06 Blaupapier Spionage Sturmbannbefehl 77 Bescheingung.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/1934-04-06_Blaupapier_Spionage_Sturmbannbefehl_77_Bescheingung.jpg/1280px-1934-04-06_Blaupapier_Spionage_Sturmbannbefehl_77_Bescheingung.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "spy camera product",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/14.jpg",
+    "source_title": "File:Radiomuseet, Göteborg 18.JPG",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Radiomuseet%2C_G%C3%B6teborg_18.JPG/1280px-Radiomuseet%2C_G%C3%B6teborg_18.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "spy camera product",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/15.jpg",
+    "source_title": "File:Musgrove Park Hospital corridor.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Musgrove_Park_Hospital_corridor.jpg/1280px-Musgrove_Park_Hospital_corridor.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "CCTV camera indoor",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/16.jpg",
+    "source_title": "File:Barack Obama looking through the Oval Office door peephole.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Barack_Obama_looking_through_the_Oval_Office_door_peephole.jpg/1280px-Barack_Obama_looking_through_the_Oval_Office_door_peephole.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "door viewer peephole",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/17.jpg",
+    "source_title": "File:Brian Mosteller looks through a peephole in the Oval Office door.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Brian_Mosteller_looks_through_a_peephole_in_the_Oval_Office_door.jpg/1280px-Brian_Mosteller_looks_through_a_peephole_in_the_Oval_Office_door.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "door viewer peephole",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/18.jpg",
+    "source_title": "File:Door hole viewers Oct-2011 HK Ip4.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Door_hole_viewers_Oct-2011_HK_Ip4.jpg/1280px-Door_hole_viewers_Oct-2011_HK_Ip4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "door viewer peephole",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/19.jpg",
+    "source_title": "File:Door with viewers Oct-2011 HK Ip4.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Door_with_viewers_Oct-2011_HK_Ip4.jpg/1280px-Door_with_viewers_Oct-2011_HK_Ip4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "door viewer peephole",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/03-voyeur/20.jpg",
+    "source_title": "File:Gustave Doré - The Holy Bible - Plate CXLI, The Judas Kiss.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Gustave_Dor%C3%A9_-_The_Holy_Bible_-_Plate_CXLI%2C_The_Judas_Kiss.jpg/1280px-Gustave_Dor%C3%A9_-_The_Holy_Bible_-_Plate_CXLI%2C_The_Judas_Kiss.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "door viewer peephole",
+    "category": "03-voyeur"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/19.png",
+    "source_title": "File:Cigarette advertisement in Woodbine, Iowa 1940.webp",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/Cigarette_advertisement_in_Woodbine%2C_Iowa_1940.webp/1280px-Cigarette_advertisement_in_Woodbine%2C_Iowa_1940.webp?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  },
+  {
+    "file": "tests/fixtures/image-corpus/05-other/20.jpg",
+    "source_title": "File:Cigarettes Matossian.jpg",
+    "source_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Cigarettes_Matossian.jpg/1280px-Cigarettes_Matossian.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "query": "cigarette advertising poster",
+    "category": "05-other"
+  }
+]
