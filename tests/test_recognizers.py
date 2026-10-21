@@ -20,9 +20,11 @@ def test_phone_mobile_and_landline() -> None:
 def test_valid_tw_id_detected_invalid_ignored() -> None:
     engine = build_analyzer_engine()
     valid = engine.analyze(text="身分證 A123456789", language="zh")
-    invalid = engine.analyze(text="身分證 A123456780", language="zh")
+    invalid = engine.analyze(text="座號 A123456780", language="zh")
+    cued_typo = engine.analyze(text="身分證 A123456780", language="zh")
     assert any(hit.entity_type == "TW_ID" for hit in valid)
     assert all(hit.entity_type != "TW_ID" for hit in invalid)
+    assert any(hit.entity_type == "TW_ID" for hit in cued_typo)
 
 
 def test_school_and_location_and_person() -> None:
@@ -161,6 +163,31 @@ def test_taiwan_counterparts_of_presidio_ideas() -> None:
 
 def test_gregorian_cjk_date() -> None:
     assert "DATE_TIME" in _types("生日是 2013年3月2日")
+
+
+def test_appointment_date_is_not_birthday() -> None:
+    assert "DATE_TIME" not in _types("預約 112年5月10日 早上出發")
+    assert "DATE_TIME" not in _types("希望起租日押在113.06.01")
+
+
+def test_lunar_birthday_is_masked() -> None:
+    assert "DATE_TIME" in _types("我的農曆生日是己巳年八月初十早上六點生")
+
+
+def test_roc_slash_birthday_is_masked() -> None:
+    text = "生日是82/10/05，手機號碼一樣是這支"
+    engine = build_analyzer_engine()
+    hits = [text[h.start : h.end] for h in engine.analyze(text=text, language="zh") if h.entity_type == "DATE_TIME"]
+    assert "82/10/05" in hits
+    assert "DATE_TIME" not in _types("事故發生日期是113/02/28")
+
+
+def test_month_day_birthday_without_year() -> None:
+    engine = build_analyzer_engine()
+    text = "我的生日是九月二十八號 我要買什麼生日禮物"
+    hits = [text[hit.start : hit.end] for hit in engine.analyze(text=text, language="zh") if hit.entity_type == "DATE_TIME"]
+    assert "九月二十八號" in hits
+    assert "DATE_TIME" not in _types("九月有健康教育，我要買什麼禮物")
 
 
 def test_homework_not_over_redacted() -> None:

@@ -1,3 +1,5 @@
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
 export type ImageBlockReason = "coverage" | "sensitive" | "document" | "body" | "violence" | "voyeur" | "other" | "face";
 
 export type ImageRedactResponse = {

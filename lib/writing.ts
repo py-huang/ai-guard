@@ -40,7 +40,7 @@ export type WritingIntent = {
 };
 
 export async function classifyWritingIntent(input: string): Promise<WritingIntent> {
-  const text = await generateGeminiText({
+  const { text } = await generateGeminiText({
     messages: [
       { role: "system", content: getWritingSystemPrompt("classify") },
       { role: "user", content: input },
@@ -58,7 +58,7 @@ export async function classifyWritingIntent(input: string): Promise<WritingInten
 }
 
 export async function generateWritingPlan(subject: string) {
-  const text = await generateGeminiText({
+  const { text } = await generateGeminiText({
     messages: [
       { role: "system", content: getWritingSystemPrompt("chat") },
       { role: "user", content: `為題目「${subject}」建立引導寫作計畫。只回傳 JSON：{"steps":[string,string,string,string,string],"outline":[{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""},{"stage":string,"content":""}],"init_question":string}。請依題目為五個 stage 取具體、簡短且彼此不同的名稱；五步依序引導孩子決定寫作焦點、交代情境、描述事件或畫面、說出感受或想法、完成結尾。不要直接使用「主題、地點、細節、想法、結尾」當作 stage 名稱；init_question 只能問一個問題。` },
@@ -75,11 +75,12 @@ export async function generateWritingPlan(subject: string) {
 }
 
 export async function summarizeWritingStage(stage: string, messages: WritingMessage[]) {
-  return generateGeminiText({
+  const { text } = await generateGeminiText({
     messages: [
       { role: "system", content: getWritingSystemPrompt("summarize") },
       ...messages.map((message) => ({ role: message.role, content: message.content })),
       { role: "user", content: `目前階段：${stage}。只輸出摘要內容，不要加標題、引號或說明。` },
     ],
   });
+  return text;
 }

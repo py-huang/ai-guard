@@ -13,6 +13,14 @@ def test_tokens_are_stable_within_session() -> None:
     assert other == "<PERSON_2>"
 
 
+def test_alias_shares_the_same_person_token() -> None:
+    vault = InMemorySessionVault()
+    token = vault.get_or_create_token("s1", "PERSON", "陳小明")
+    alias = vault.alias_value("s1", "PERSON", "小明", "陳小明")
+    again = vault.get_or_create_token("s1", "PERSON", "小明")
+    assert token == alias == again == "<PERSON_1>"
+
+
 def test_sessions_are_isolated() -> None:
     vault = InMemorySessionVault()
     vault.get_or_create_token("s1", "SCHOOL", "中山國小")

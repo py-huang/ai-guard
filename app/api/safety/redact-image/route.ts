@@ -1,7 +1,5 @@
 import { GatewayUnavailableError, redactImageWithGateway } from "@/lib/gateway";
-import { labelsForImageEntities } from "@/lib/safety-redact";
-
-const MAX_BYTES = 4 * 1024 * 1024;
+import { labelsForImageEntities, MAX_IMAGE_BYTES } from "@/lib/safety-redact";
 
 export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
@@ -12,14 +10,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "請先選擇一張圖片。" }, { status: 400 });
   }
 
-  if (file.size > MAX_BYTES) {
+  if (file.size > MAX_IMAGE_BYTES) {
     return Response.json({ error: "這張圖片太大了，請換一張小一點的。" }, { status: 400 });
   }
 
   try {
-    const original = Buffer.from(await file.arrayBuffer());
     const redacted = await redactImageWithGateway(sessionId, file);
-    const changed = redacted.png.length !== original.length || !redacted.png.equals(original);
+    const changed = redacted.coverage > 0.002 || redacted.entities.length > 0;
 
     const allowedReasons = new Set(["coverage", "sensitive", "document", "body", "violence", "voyeur", "other", "face"]);
     const blockReason = redacted.blockReason && allowedReasons.has(redacted.blockReason) ? redacted.blockReason : null;

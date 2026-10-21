@@ -47,6 +47,15 @@ class InMemorySessionVault(BaseSessionVault):
             state.token_to_original[token] = original
             return token
 
+    def alias_value(self, session_id: str, entity_type: str, alias: str, canonical: str) -> str:
+        token = self.get_or_create_token(session_id, entity_type, canonical)
+        if alias == canonical:
+            return token
+        with self._lock:
+            state = self._state(session_id)
+            state.value_to_token[(entity_type, alias)] = token
+        return token
+
     def resolve_token(self, session_id: str, token: str) -> str | None:
         with self._lock:
             state = self._sessions.get(session_id)

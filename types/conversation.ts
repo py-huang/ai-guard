@@ -1,3 +1,7 @@
+export type ConversationSource = {
+  title: string;
+};
+
 export type ConversationMessage = {
   role: "user" | "assistant" | "system-note";
   content: string;
@@ -5,6 +9,7 @@ export type ConversationMessage = {
   blocked?: boolean;
   hasImage?: boolean;
   imagePreview?: string;
+  sources?: ConversationSource[];
 };
 
 export type Conversation = {

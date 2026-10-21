@@ -21,6 +21,10 @@ class BaseSessionVault(ABC):
     def get_or_create_token(self, session_id: str, entity_type: str, original: str) -> str:
         """Return a stable `<TYPE_N>` token for this value within the session."""
 
+    def alias_value(self, session_id: str, entity_type: str, alias: str, canonical: str) -> str:
+        """Make `alias` resolve to the same token as `canonical`."""
+        return self.get_or_create_token(session_id, entity_type, canonical)
+
     @abstractmethod
     def resolve_token(self, session_id: str, token: str) -> str | None:
         """Look up the original value for a previously issued token."""

@@ -5,7 +5,8 @@ from typing import Any
 
 from PIL import Image, ImageDraw
 
-from safety_gateway.pii.image import InMemoryImageRedactor
+from safety_gateway.pii.image import InMemoryImageRedactor, keep_image_person_span, _line_holds_person_name, _too_large_for_person
+from safety_gateway.pii.image_sensitive import SensitiveBox
 
 
 class _FakeEngine:
@@ -45,3 +46,18 @@ def test_redact_with_entities_reports_faces() -> None:
     png, entities = redactor.redact_image_with_entities(_png_bytes())
     assert png.startswith(b"\x89PNG")
     assert entities == ["FACE"]
+
+
+def test_form_labels_are_not_image_person_names() -> None:
+    assert keep_image_person_span("PAMIWAN") is False
+    assert keep_image_person_span("THAO") is False
+    assert keep_image_person_span("Taiwanese") is False
+    assert keep_image_person_span("Race/Ethnicity") is False
+    assert keep_image_person_span("王小明") is True
+    assert keep_image_person_span("Jane Doe") is True
+    assert keep_image_person_span("陳銘") is True
+    assert _line_holds_person_name("家長簽名 陳銘") is True
+    column = SensitiveBox(left=200, top=0, width=40, height=400, entity_type="PERSON")
+    assert _too_large_for_person(column, 400, 500) is True
+    signature = SensitiveBox(left=40, top=420, width=50, height=24, entity_type="PERSON")
+    assert _too_large_for_person(signature, 400, 500) is False

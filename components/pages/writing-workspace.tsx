@@ -72,6 +72,7 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
             { role: "system", content: `${getWritingSystemPrompt("chat")}\n目前寫作階段：${stage.stage}\n請直接回覆孩子下一句引導問題，不要加上角色名稱。` },
             ...requestMessages.map(({ role, content: messageContent }) => ({ role, content: messageContent })),
           ],
+          googleSearch: false,
         }),
       });
       const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }>; error?: string };

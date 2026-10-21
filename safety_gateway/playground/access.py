@@ -13,7 +13,7 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 
 SHARE_USERNAME = "demo"
-MAX_UPLOAD_BYTES = 3 * 1024 * 1024
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 _CHAT_RATE = 40
 _CHAT_WINDOW_SECONDS = 60.0
 

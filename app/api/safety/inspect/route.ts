@@ -18,6 +18,12 @@ const ENTITY_KIND: Record<string, PiiKind> = {
   SCHOOL_CLASS: "班級",
   STUDENT_ID: "學號",
   IG_HANDLE: "IG帳號",
+  TW_PASSPORT: "護照",
+  TW_DRIVER_LICENSE: "駕照",
+  TW_BANK_ACCOUNT: "帳號",
+  TW_HOUSEHOLD_NO: "戶號",
+  DATE_TIME: "生日",
+  CREDIT_CARD: "卡號",
 };
 
 export async function POST(request: Request) {

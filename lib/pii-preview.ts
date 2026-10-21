@@ -1,4 +1,20 @@
-export type PiiKind = "姓名" | "學校" | "班級" | "學號" | "IG帳號" | "電話" | "地址" | "Email" | "身分證" | "其他";
+export type PiiKind =
+  | "姓名"
+  | "學校"
+  | "班級"
+  | "學號"
+  | "IG帳號"
+  | "電話"
+  | "地址"
+  | "Email"
+  | "身分證"
+  | "護照"
+  | "駕照"
+  | "帳號"
+  | "戶號"
+  | "生日"
+  | "卡號"
+  | "其他";
 
 export type PiiHit = {
   kind: PiiKind;
@@ -85,7 +101,12 @@ function replacementFor(kind: PiiKind) {
     case "Email":
       return "";
     case "身分證":
-      return "";
+    case "護照":
+    case "駕照":
+    case "帳號":
+    case "戶號":
+    case "生日":
+    case "卡號":
     case "其他":
       return "";
   }

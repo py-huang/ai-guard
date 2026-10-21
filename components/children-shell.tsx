@@ -161,17 +161,17 @@ export function ChildrenShell({
       )}
 
       <ZhuyinScope className="mt-20 flex min-h-[calc(100dvh-80px)] lg:mt-[72px] lg:min-h-[calc(100dvh-72px)]">
-        <aside data-app-nav="" className="hidden w-[220px] shrink-0 flex-col bg-white px-4 pt-6 pb-7 lg:flex">
+        <aside data-app-nav="" className="sticky top-[72px] hidden h-[calc(100dvh-72px)] w-[220px] shrink-0 flex-col overflow-hidden bg-white px-4 pt-6 pb-5 lg:flex">
           <a
             aria-label="新對話"
-            className="flex h-12 w-[180px] self-center items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#bd2e2c]"
+            className="flex h-12 w-[180px] shrink-0 self-center items-center justify-center gap-1.5 rounded-2xl bg-[#d63a37] px-4 text-[15px] font-medium text-white transition-colors hover:bg-[#bd2e2c]"
             href="/chat"
           >
             <img className="size-5 shrink-0" src="/navigation/new-chat-plus.svg" alt="" aria-hidden="true" />
             <span className="whitespace-nowrap">新對話</span>
           </a>
 
-          <nav className="mt-4" aria-label="主要導覽">
+          <nav className="mt-4 shrink-0" aria-label="主要導覽">
             {navigationItems.map(({ label, href, iconSrc, activeIconSrc }) => {
               const isActive = activeItem === label;
 
@@ -204,9 +204,11 @@ export function ChildrenShell({
             })}
           </nav>
 
-          <RecentConversations />
+          <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
+            <RecentConversations />
+          </div>
 
-          <p className="mt-auto text-base font-medium text-[#8a968f]">低年級模式 · 7 歲</p>
+          <p className="mt-3 shrink-0 text-base font-medium text-[#8a968f]">低年級模式 · 7 歲</p>
         </aside>
 
         <main className="min-w-0 flex-1 bg-[#fffcf7]">{children}</main>

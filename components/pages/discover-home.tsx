@@ -80,7 +80,7 @@ export function DiscoverHome() {
         <h2 className="mt-3 text-[32px] leading-[1.4] font-bold sm:text-[40px] sm:leading-[56px]">今天想探索什麼？</h2>
         <p className="mt-1 text-[17px] leading-7 text-[#506058]">打字或用說的都可以，我們一起找答案。</p>
 
-        <form className="mt-[54px] flex h-[66px] max-w-[820px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" onSubmit={submitMessage}>
+        <form className="mt-[54px] flex h-[66px] max-w-[820px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" noValidate onSubmit={submitMessage}>
           <ComposerAttach
             onPickFile={(file) => {
               setPendingUpload(file);

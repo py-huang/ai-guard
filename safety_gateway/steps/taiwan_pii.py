@@ -8,6 +8,7 @@ from presidio_analyzer import AnalyzerEngine, RecognizerResult
 from presidio_anonymizer import AnonymizerEngine
 
 from safety_gateway.pii.analyzer import build_analyzer_engine
+from safety_gateway.pii.person_aliases import alias_hits
 from safety_gateway.pii.tokenizer import anonymize_with_vault, select_non_overlapping
 from safety_gateway.schemas import DetectedEntity
 from safety_gateway.steps.base import BaseGuardStep, GuardContext
@@ -23,7 +24,7 @@ class TaiwanPIIGuardStep(BaseGuardStep):
         analyzer: AnalyzerEngine | None = None,
         anonymizer: AnonymizerEngine | None = None,
         language: str = "zh",
-        score_threshold: float = 0.4,
+        score_threshold: float = 0.1,
     ) -> None:
         self._vault = vault
         self._analyzer = analyzer or build_analyzer_engine()
@@ -42,6 +43,12 @@ class TaiwanPIIGuardStep(BaseGuardStep):
             score_threshold=self._score_threshold,
         )
         selected = select_non_overlapping(analyzer_results)
+        extra_names = [
+            context.text[item.start : item.end] for item in selected if item.entity_type == "PERSON"
+        ]
+        selected = select_non_overlapping(
+            [*selected, *alias_hits(context.text, self._vault, context.session_id, extra_names)]
+        )
         tokenized = anonymize_with_vault(
             text=context.text,
             session_id=context.session_id,

@@ -12,6 +12,7 @@ from presidio_analyzer.predefined_recognizers import SpacyRecognizer
 from safety_gateway.nlp import get_nlp_engine
 from safety_gateway.pii.presidio_defaults import build_predefined_recognizers_for_zh
 from safety_gateway.pii.recognizers import build_taiwan_recognizers
+from safety_gateway.pii.taiwan_names import is_plausible_tw_name
 
 _ID_LIKE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.\-_/]{4,}$")
 _CJK_CHAR = re.compile(r"[\u4e00-\u9fa5]")
@@ -53,12 +54,15 @@ class TaiwanSpacyRecognizer(SpacyRecognizer):
 
 
 def _keep_spacy_person(span: str) -> bool:
-    """zh_core_web_md tags 電話 as PERSON; keep 3+ CJK names or Latin names."""
+    """Keep Latin names, 3+ CJK names, or 2-character names with a Taiwan surname."""
     if _ID_LIKE.fullmatch(span):
         return False
     if _LATIN_CHAR.search(span):
         return True
-    return len(_CJK_CHAR.findall(span)) >= 3
+    cjk = len(_CJK_CHAR.findall(span))
+    if cjk >= 3:
+        return True
+    return cjk == 2 and is_plausible_tw_name(span)
 
 
 def build_analyzer_engine(
@@ -83,6 +87,6 @@ def build_analyzer_engine(
         registry=registry,
         nlp_engine=nlp_engine,
         supported_languages=["zh"],
-        default_score_threshold=0.4,
+        default_score_threshold=0.1,
         context_aware_enhancer=PassThroughContextEnhancer(),  # type: ignore[arg-type]
     )

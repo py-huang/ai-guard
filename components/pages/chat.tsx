@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CHILD_LEARNING_PARTNER_PROMPT } from "@/lib/child-llm-prompt";
+import { childSafeErrorMessage, isDisasterRumor, needsLiveSearch } from "@/lib/disaster-rumor";
+import { looksLikeWriting } from "@/lib/writing-intent";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
 import { inspectSafety, toPiiPreview } from "@/lib/safety-inspect";
 import { applyOutboundSocraticHint, stripSocraticInboundPrefix } from "@/lib/socratic";
@@ -30,7 +32,7 @@ import {
   PiiDetectedCard,
   PiiRewriteCard,
 } from "@/components/pages/pii-guard-cards";
-import { pngDataUrl, redactImage, type ImageBlockReason } from "@/lib/safety-redact";
+import { MAX_IMAGE_BYTES, pngDataUrl, redactImage, type ImageBlockReason } from "@/lib/safety-redact";
 
 type GuardState = "none" | "detected" | "rewritten" | "parent-pending" | "parent-approved" | "parent-revision" | "parent-declined" | "image-review" | "image-blocked";
 
@@ -182,17 +184,28 @@ export function Chat({ conversationId }: ChatProps) {
           ...(imageBase64 ? { image: { mimeType: "image/png", data: imageBase64 } } : {}),
         }),
       });
-      const data = (await response.json()) as { choices?: { message?: { content?: string } }[]; error?: string };
-      const content = data.choices?.[0]?.message?.content?.trim();
+      const data = (await response.json().catch(() => null)) as {
+        choices?: { message?: { content?: string } }[];
+        grounding?: { sources?: { title?: string }[] };
+        error?: string;
+      } | null;
+      const content = data?.choices?.[0]?.message?.content?.trim();
       if (!response.ok || !content) {
-        throw new Error(data.error || "暫時無法回覆。");
+        throw new Error(data?.error || "暫時無法回覆。");
       }
+      const sources = (data.grounding?.sources ?? [])
+        .map((source) => source.title?.trim())
+        .filter((title): title is string => Boolean(title))
+        .filter((title, index, list) => list.indexOf(title) === index)
+        .slice(0, 4)
+        .map((title) => ({ title }));
       appendMessage(conversation.id, {
         role: "assistant",
         content: replaceVaultTokensForChild(applyOutboundSocraticHint(content, promptForModel)),
+        ...(sources.length ? { sources } : {}),
       });
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "暫時無法回覆。");
+      setError(childSafeErrorMessage(sendError));
     } finally {
       setBusy(false);
     }
@@ -220,7 +233,7 @@ export function Chat({ conversationId }: ChatProps) {
 
       if (result.hits.length === 0) {
         const isFirstTextMessage = conversation.messages.length === 0 && !redactedImageBase64;
-        if (isFirstTextMessage) {
+        if (isFirstTextMessage && looksLikeWriting(text) && !needsLiveSearch(text) && !isDisasterRumor(text)) {
           let isThemeMode = false;
           try {
             const classifyResponse = await fetch("/api/theme/writing/classify", {
@@ -273,7 +286,7 @@ export function Chat({ conversationId }: ChatProps) {
       setSafetyTouched(true);
       setGuard("detected");
     } catch (inspectError) {
-      setError(inspectError instanceof Error ? inspectError.message : "現在沒辦法檢查這句話。");
+      setError(childSafeErrorMessage(inspectError));
     } finally {
       setBusy(false);
     }
@@ -290,6 +303,11 @@ export function Chat({ conversationId }: ChatProps) {
 
   async function onPickImage(file: File | undefined) {
     if (!file || !conversation) {
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError("這張圖片超過 5MB，請換一張小一點的。");
       return;
     }
 
@@ -324,7 +342,11 @@ export function Chat({ conversationId }: ChatProps) {
       setRedactedImageUrl(pngDataUrl(result.redactedPngBase64));
       setImageChanged(result.changed);
       setImageFields(result.fields);
-      setGuard("image-review");
+      if (result.changed || result.fields.length > 0) {
+        setGuard("image-review");
+        return;
+      }
+      setGuard("none");
     } catch (redactError) {
       URL.revokeObjectURL(previewUrl);
       setOriginalImageUrl("");
@@ -391,6 +413,16 @@ export function Chat({ conversationId }: ChatProps) {
                     <MarkdownMessage>{replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))}</MarkdownMessage>
                   )}
                   {message.blocked ? <p className="mt-2 text-sm text-[#c02d32]">這個問題沒有送給 AI。</p> : null}
+                  {message.sources?.length ? (
+                    <div className="mt-2 rounded-[16px] bg-[#f3f7f4] px-3 py-2 text-sm leading-6 text-[#506058]">
+                      <p>有查過即時資料</p>
+                      <ul className="mt-1 list-disc pl-5">
+                        {message.sources.map((source) => (
+                          <li key={source.title}>{source.title}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <SpeakButton showLabel text={replaceVaultTokensForChild(stripSocraticInboundPrefix(message.content))} />
                     {!message.blocked ? (
@@ -591,7 +623,16 @@ export function Chat({ conversationId }: ChatProps) {
           <p className="mt-8 text-xs font-medium leading-[19px] text-[#c02d32]">等待中的原問題不會送出；你仍可繼續探索其他內容。</p>
         ) : (
           <>
-            <form className="sticky bottom-4 mt-8 flex h-[66px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" onSubmit={submitComposer}>
+            {guard === "none" && originalImageUrl && redactedImageBase64 ? (
+              <div className="mt-6 flex items-center gap-3 rounded-[18px] bg-[#ecf9f3] px-3 py-2">
+                <img alt="" className="h-12 w-12 rounded-[12px] object-cover" src={originalImageUrl} />
+                <p className="min-w-0 flex-1 text-sm text-[#177049]">這張圖沒有需要藏的資料，可以直接問。</p>
+                <button className="text-sm text-[#c02d32]" onClick={clearImage} type="button">
+                  移除
+                </button>
+              </div>
+            ) : null}
+            <form className="sticky bottom-4 mt-8 flex h-[66px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" noValidate onSubmit={submitComposer}>
               <input
                 ref={fileRef}
                 className="hidden"
@@ -610,7 +651,11 @@ export function Chat({ conversationId }: ChatProps) {
                 disabled={composerLocked || busy}
                 onChange={(event) => setDraft(event.target.value)}
                 placeholder={
-                  imageScanning || guard === "image-review" || guard === "parent-approved"
+                  imageScanning
+                    ? "圖片已加入，送出前我會先幫你檢查"
+                    : guard === "none" && redactedImageBase64
+                      ? "圖片已加入，可以直接問"
+                    : guard === "image-review" || guard === "parent-approved"
                     ? "圖片已加入，送出前我會先幫你檢查"
                     : guard === "image-blocked"
                       ? "這張圖片沒有送出，可以換一張再問"

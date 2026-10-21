@@ -56,6 +56,10 @@ export function ComposerAttach({ disabled, onPickFile, onUnsupported }: Props) {
       onUnsupported?.("現在只能先檢查圖片，作業檔之後再一起看。");
       return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      onUnsupported?.("這張圖片超過 5MB，請換一張小一點的。");
+      return;
+    }
     onPickFile(file);
   }
 

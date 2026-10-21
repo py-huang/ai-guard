@@ -1,9 +1,11 @@
+import { DISASTER_RUMOR_REPLY, isDisasterRumor, needsLiveSearch } from "@/lib/disaster-rumor";
 import { GeminiBusyError, generateGeminiText, type GeminiChatMessage } from "@/lib/gemini";
 
 type ChatCompletionRequest = {
   temperature?: unknown;
   messages?: unknown;
   image?: unknown;
+  googleSearch?: unknown;
 };
 
 function isChatMessage(value: unknown): value is GeminiChatMessage {
@@ -31,11 +33,23 @@ export async function POST(request: Request) {
   }
 
   try {
-    const content = await generateGeminiText({ messages, temperature, image });
+    const lastUser = [...messages].reverse().find((message) => message.role === "user")?.content ?? "";
+    const googleSearch = body?.googleSearch === true || (body?.googleSearch !== false && needsLiveSearch(lastUser));
+    const { text, sources, searchQueries } = await generateGeminiText({ messages, temperature, image, googleSearch });
 
-    return Response.json({ choices: [{ message: { role: "assistant", content } }] });
+    return Response.json({
+      choices: [{ message: { role: "assistant", content: text } }],
+      grounding: { sources, searchQueries },
+    });
   } catch (error) {
     console.error("Chat completion failed", error);
+    const lastUser = [...messages].reverse().find((message) => message.role === "user")?.content ?? "";
+    if (isDisasterRumor(lastUser)) {
+      return Response.json({
+        choices: [{ message: { role: "assistant", content: DISASTER_RUMOR_REPLY } }],
+        grounding: { sources: [], searchQueries: [] },
+      });
+    }
     if (error instanceof GeminiBusyError) {
       return Response.json({ error: error.message, retryable: true }, { status: 503 });
     }

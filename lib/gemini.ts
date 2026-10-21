@@ -16,11 +16,23 @@ export type GeminiChatMessage = {
   content: string;
 };
 
+export type GroundingSource = {
+  title: string;
+  uri: string;
+};
+
+export type GenerateGeminiResult = {
+  text: string;
+  sources: GroundingSource[];
+  searchQueries: string[];
+};
+
 type GenerateGeminiTextOptions = {
   messages: GeminiChatMessage[];
   responseMimeType?: "application/json";
   temperature?: number;
   image?: { mimeType: string; data: string };
+  googleSearch?: boolean;
 };
 
 function getGeminiClient() {
@@ -33,17 +45,20 @@ function getGeminiClient() {
   return new GoogleGenAI({ apiKey });
 }
 
-function getGeminiModel() {
-  const model = process.env.GEMINI_MODEL;
-
-  if (!model) {
+function getGeminiModels() {
+  const primary = process.env.GEMINI_MODEL?.trim();
+  const extra = (process.env.GEMINI_FALLBACK_MODELS ?? "gemini-3.5-flash-lite,gemini-flash-latest")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const models = [primary, ...extra].filter((item, index, list): item is string => Boolean(item) && list.indexOf(item) === index);
+  if (!models.length) {
     throw new Error("GEMINI_MODEL is not configured.");
   }
-
-  return model;
+  return models;
 }
 
-export async function generateGeminiText({ messages, responseMimeType, temperature, image }: GenerateGeminiTextOptions) {
+export async function generateGeminiText({ messages, responseMimeType, temperature, image, googleSearch }: GenerateGeminiTextOptions): Promise<GenerateGeminiResult> {
   const systemInstruction = messages
     .filter((message) => message.role === "system")
     .map((message) => message.content)
@@ -67,39 +82,49 @@ export async function generateGeminiText({ messages, responseMimeType, temperatu
   }
 
   const client = getGeminiClient();
-  const model = getGeminiModel();
-  const maxAttempts = 3;
+  const models = getGeminiModels();
+  const useSearch = Boolean(googleSearch && !responseMimeType);
   let lastError: unknown;
 
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+  const requestOnce = async (model: string, search: boolean) => {
+    const response = await client.models.generateContent({
+      model,
+      contents,
+      config: {
+        ...(systemInstruction ? { systemInstruction } : {}),
+        ...(responseMimeType ? { responseMimeType } : {}),
+        ...(temperature === undefined ? {} : { temperature }),
+        ...(search ? { tools: [{ googleSearch: {} }] } : {}),
+      },
+    });
+    const text = response.text?.trim();
+    if (!text) {
+      throw new Error("Gemini returned an empty response.");
+    }
+    return { text, ...extractGrounding(response) };
+  };
+
+  for (const model of models) {
     try {
-      const response = await client.models.generateContent({
-        model,
-        contents,
-        config: {
-          ...(systemInstruction ? { systemInstruction } : {}),
-          ...(responseMimeType ? { responseMimeType } : {}),
-          ...(temperature === undefined ? {} : { temperature }),
-        },
-      });
-      const text = response.text?.trim();
-
-      if (!text) {
-        throw new Error("Gemini returned an empty response.");
-      }
-
-      return text;
+      return await withTimeout(requestOnce(model, useSearch), useSearch ? 8000 : 16000);
     } catch (error) {
       lastError = error;
-      if (!isRetryableGeminiError(error) || attempt === maxAttempts - 1) {
-        break;
+      logGeminiFailure(model, useSearch, error);
+      if (useSearch) {
+        try {
+          return await withTimeout(requestOnce(model, false), 16000);
+        } catch (fallbackError) {
+          lastError = fallbackError;
+          logGeminiFailure(model, false, fallbackError);
+        }
       }
-      await wait(600 * 2 ** attempt);
     }
   }
 
   if (isRetryableGeminiError(lastError)) {
-    throw new GeminiBusyError();
+    const busy = new GeminiBusyError();
+    busy.cause = lastError;
+    throw busy;
   }
 
   throw lastError instanceof Error ? lastError : new Error("Gemini request failed.");
@@ -158,14 +183,70 @@ export async function transcribeGeminiAudio(audio: { mimeType: string; data: str
   throw lastError instanceof Error ? lastError : new Error("Gemini request failed.");
 }
 
+function extractGrounding(response: {
+  candidates?: Array<{
+    groundingMetadata?: {
+      webSearchQueries?: string[];
+      groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
+    };
+  }>;
+}): { sources: GroundingSource[]; searchQueries: string[] } {
+  const meta = response.candidates?.[0]?.groundingMetadata;
+  const seen = new Set<string>();
+  const sources: GroundingSource[] = [];
+  for (const chunk of meta?.groundingChunks ?? []) {
+    const uri = chunk.web?.uri?.trim();
+    if (!uri || seen.has(uri)) {
+      continue;
+    }
+    seen.add(uri);
+    const title = chunk.web?.title?.trim() || safeHostTitle(uri);
+    sources.push({ title, uri });
+  }
+  return {
+    sources,
+    searchQueries: (meta?.webSearchQueries ?? []).filter((query) => typeof query === "string" && query.trim()),
+  };
+}
+
+function safeHostTitle(uri: string) {
+  try {
+    return new URL(uri).hostname.replace(/^www\./, "");
+  } catch {
+    return "網路資料";
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number) {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 }
 
+function logGeminiFailure(model: string, googleSearch: boolean, error: unknown) {
+  const status = error && typeof error === "object" && "status" in error ? Number((error as { status: unknown }).status) : 0;
+  const message = error instanceof Error ? error.message.slice(0, 280) : String(error).slice(0, 280);
+  console.error("Gemini generateContent failed", { model, googleSearch, status, message });
+}
+
 function isRetryableGeminiError(error: unknown) {
   const status = error && typeof error === "object" && "status" in error ? Number((error as { status: unknown }).status) : 0;
   const blob = error instanceof Error ? `${error.message} ${error.name}` : String(error);
-  return status === 429 || status === 503 || status === 504 || /unavailable|high demand|overloaded|resource.?exhausted|try again later|timeout|deadline exceeded/i.test(blob);
+  return status === 429 || status === 503 || status === 504 || /unavailable|high demand|overloaded|resource.?exhausted|try again later|timeout|deadline exceeded|did not match the expected pattern/i.test(blob);
 }

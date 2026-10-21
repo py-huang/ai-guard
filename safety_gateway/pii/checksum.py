@@ -49,3 +49,15 @@ def is_valid_tw_national_id(value: str) -> bool:
     digits = (region // 10, region % 10, *(int(ch) for ch in candidate[1:]))
     weighted = sum(digit * weight for digit, weight in zip(digits, TW_ID_WEIGHTS, strict=True))
     return weighted % 10 == 0
+
+
+def generate_test_tw_national_id(letter: str = "A", gender: str = "1", body: str = "2345678") -> str:
+    """Build a checksum-valid fake ID. `body` is 7 digits after the gender digit."""
+    prefix = f"{letter.upper()}{gender}{body}"
+    if len(prefix) != 9 or not prefix[1].isdigit():
+        raise ValueError("letter + gender + 7-digit body required")
+    region = TW_ID_LETTER_CODES[prefix[0]]
+    digits = [region // 10, region % 10, *(int(ch) for ch in prefix[1:])]
+    acc = sum(digit * weight for digit, weight in zip(digits, TW_ID_WEIGHTS[:-1], strict=True))
+    check = (10 - (acc % 10)) % 10
+    return f"{prefix}{check}"

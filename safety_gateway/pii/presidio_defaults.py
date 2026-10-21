@@ -8,7 +8,6 @@ from presidio_analyzer import EntityRecognizer
 from presidio_analyzer.predefined_recognizers import (
     CreditCardRecognizer,
     CryptoRecognizer,
-    DateRecognizer,
     EmailRecognizer,
     IbanRecognizer,
     IpRecognizer,
@@ -76,11 +75,6 @@ def build_predefined_recognizers_for_zh() -> list[EntityRecognizer]:
             name="CryptoRecognizer_zh",
         ),
         lambda: IbanRecognizer(supported_language="zh", name="IbanRecognizer_zh"),
-        lambda: DateRecognizer(
-            supported_language="zh",
-            context=_ZH_CONTEXT["DATE_TIME"],
-            name="DateRecognizer_zh",
-        ),
         lambda: PhoneRecognizer(
             supported_language="zh",
             supported_regions=("US", "GB", "TW"),

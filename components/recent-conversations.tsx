@@ -42,7 +42,7 @@ export function RecentConversations() {
   }
 
   return (
-    <section className="mt-6 pl-2.5" aria-labelledby="recent-conversations-title">
+    <section className="pl-2.5" aria-labelledby="recent-conversations-title">
       <h2 id="recent-conversations-title" className="text-base font-medium text-[#8a968f]">
         最近對話
       </h2>

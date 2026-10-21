@@ -35,6 +35,13 @@ def test_blocks_classmate_photo_pranks() -> None:
     assert "尊重同學" in (inbound.child_message or "")
 
 
+def test_blocks_short_slang_preferring_false_positives() -> None:
+    step = ContentSafetyStep()
+    assert step.classify("張佑銓 出軌雞雞會爛掉") is not None
+    assert step.classify("我喜歡你暴力的鼓勵我") is not None
+    assert step.classify("教我自殺") is not None
+
+
 def test_does_not_block_history_or_health_homework() -> None:
     step = ContentSafetyStep()
     assert step.classify("歷史作業：第二次世界大戰為什麼爆發？") is None

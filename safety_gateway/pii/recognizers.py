@@ -14,6 +14,12 @@ from presidio_analyzer import (
 from presidio_analyzer.nlp_engine import NlpArtifacts
 
 from safety_gateway.pii.checksum import is_valid_tw_national_id
+from safety_gateway.pii.taiwan_names import (
+    COMPOUND_SURNAMES,
+    SINGLE_SURNAMES,
+    resolved_person_span,
+    surname_prefix,
+)
 
 _CJK = r"\u4e00-\u9fa5"
 _ASCII_BOUND_LEFT = r"(?<![A-Za-z0-9])"
@@ -67,28 +73,50 @@ class TaiwanPhoneRecognizer(PatternRecognizer):
         )
 
 
-class TaiwanNationalIDRecognizer(PatternRecognizer):
-    """National ID `[A-Z][1289]\\d{8}` with official alphabet-weight checksum."""
+class TaiwanNationalIDRecognizer(EntityRecognizer):
+    """National ID: checksum-valid always; format-only when 身分證 cue is nearby."""
 
-    PATTERNS: ClassVar[list[Pattern]] = [
-        Pattern(
-            name="tw_national_id",
-            regex=rf"{_ASCII_BOUND_LEFT}[A-Z][1289]\d{{8}}{_ASCII_BOUND_RIGHT}",
-            score=0.4,
-        ),
-    ]
+    _ID = re.compile(rf"{_ASCII_BOUND_LEFT}([A-Z][1289]\d{{8}}){_ASCII_BOUND_RIGHT}")
+    _CUE = re.compile(r"身分證|身份證|統號|身分證字號")
 
     def __init__(self) -> None:
         super().__init__(
-            supported_entity="TW_ID",
+            supported_entities=["TW_ID"],
             name="TaiwanNationalIDRecognizer",
             supported_language="zh",
-            patterns=self.PATTERNS,
-            context=["身分證", "身份證", "統號", "身分證字號"],
         )
 
-    def validate_result(self, pattern_text: str) -> bool:
-        return is_valid_tw_national_id(pattern_text)
+    def load(self) -> None:
+        return None
+
+    def analyze(
+        self,
+        text: str,
+        entities: list[str],
+        nlp_artifacts: NlpArtifacts | None = None,
+    ) -> list[RecognizerResult]:
+        if entities and "TW_ID" not in entities:
+            return []
+        results: list[RecognizerResult] = []
+        for match in self._ID.finditer(text):
+            value = match.group(1)
+            window = text[max(0, match.start() - 12) : match.end() + 4]
+            cued = bool(self._CUE.search(window))
+            if is_valid_tw_national_id(value):
+                score = 0.85
+            elif cued:
+                score = 0.55
+            else:
+                continue
+            results.append(
+                RecognizerResult(
+                    entity_type="TW_ID",
+                    start=match.start(1),
+                    end=match.end(1),
+                    score=score,
+                )
+            )
+        return results
 
 
 class TaiwanSchoolRecognizer(EntityRecognizer):
@@ -181,6 +209,15 @@ class TaiwanLocationRecognizer(PatternRecognizer):
             ),
             score=0.7,
         ),
+        Pattern(
+            name="tw_english_address",
+            regex=(
+                r"(?:(?:\d+F\.,\s*)?No\.\s*\d+,\s*(?:Ln\.\s*\d+,\s*)?(?:Sec\.\s*\d+,\s*)?"
+                r"[A-Za-z .]{4,40}(?:Rd|St|Blvd)\.,?\s*[A-Za-z .]{3,40}"
+                r"(?:Dist\.)?,?\s*(?:New\s+)?[A-Za-z ]{3,20}City[^,]{0,20})"
+            ),
+            score=0.65,
+        ),
     ]
 
     def __init__(self) -> None:
@@ -195,32 +232,12 @@ class TaiwanLocationRecognizer(PatternRecognizer):
     def invalidate_result(self, pattern_text: str) -> bool:
         """Drop city-only hits; require district or a street-level component."""
         has_district = bool(re.search(r"(?:區|鄉|鎮)", pattern_text))
-        has_street = bool(re.search(r"(?:路|街|大道|段|巷|弄|號|号|樓)", pattern_text))
+        has_street = bool(re.search(r"(?:路|街|大道|段|巷|弄|號|号|樓|Rd|St|Blvd|No\.)", pattern_text))
         return not (has_district or has_street)
 
 
 class ChinesePersonRecognizer(EntityRecognizer):
     """Chinese names with common surnames and child-context cues (我叫/我是/同學/小朋友)."""
-
-    COMPOUND_SURNAMES: ClassVar[tuple[str, ...]] = (
-        "歐陽",
-        "司馬",
-        "上官",
-        "諸葛",
-        "東方",
-        "夏侯",
-        "慕容",
-        "司徒",
-        "司空",
-        "申屠",
-        "長孫",
-        "宇文",
-    )
-    SINGLE_SURNAMES: ClassVar[str] = (
-        "陳林黃張李王吳劉蔡楊許鄭謝郭洪邱曾廖賴徐周葉蘇莊呂江何蕭羅高潘簡朱鍾游"
-        "彭詹胡施沈余盧梁趙顏柯翁魏孫戴范鄧曹傅薛丁卓馬蔣藍宋杜姚石龔馮于韓唐阮"
-        "童白溫方連田董鄒巫尤錢尹黎易湯陶康姜武賀嚴顧孟龍萬段雷鮑史崔孔白方"
-    )
 
     def __init__(self) -> None:
         super().__init__(
@@ -228,7 +245,7 @@ class ChinesePersonRecognizer(EntityRecognizer):
             name="ChinesePersonRecognizer",
             supported_language="zh",
         )
-        surname = rf"(?:{'|'.join(self.COMPOUND_SURNAMES)}|[{self.SINGLE_SURNAMES}])"
+        surname = rf"(?:{'|'.join(COMPOUND_SURNAMES)}|[{SINGLE_SURNAMES}])"
         given = rf"[{_CJK}]{{1,2}}"
         name = rf"(?P<name>{surname}{given})"
         self._patterns = (
@@ -245,6 +262,10 @@ class ChinesePersonRecognizer(EntityRecognizer):
             re.compile(rf"(?:同學|小朋友)\s*{name}"),
             re.compile(rf"{name}\s*(?=同學|小朋友|老師|先生|小姐|女士)"),
             re.compile(rf"(?:我跟|我和|我與|跟|和|與)\s*{name}(?=先生|小姐|女士|老師|同學)"),
+            # 姓＋名 after a start, comma, space, or 請問／是 — no dictionary, no verb list.
+            re.compile(
+                rf"(?:^|(?<=[\s，,。！？；;：:\n、問請是有跟和與給把被對向找幫讓叫在到從用看聽說的])){name}"
+            ),
         )
 
     def load(self) -> None:
@@ -262,10 +283,11 @@ class ChinesePersonRecognizer(EntityRecognizer):
         seen: set[tuple[int, int]] = set()
         for pattern in self._patterns:
             for match in pattern.finditer(text):
-                start, end = match.span("name")
-                span = (start, end)
-                if span in seen or start == end:
+                raw = match.span("name")
+                span = resolved_person_span(text, raw[0], raw[1])
+                if span is None or span in seen or span[0] == span[1]:
                     continue
+                start, end = span
                 seen.add(span)
                 results.append(
                     RecognizerResult(
@@ -275,7 +297,38 @@ class ChinesePersonRecognizer(EntityRecognizer):
                         score=0.85,
                     )
                 )
+        for start, end in _scan_plausible_names(text):
+            span = (start, end)
+            if span in seen:
+                continue
+            seen.add(span)
+            results.append(
+                RecognizerResult(
+                    entity_type="PERSON",
+                    start=start,
+                    end=end,
+                    score=0.8,
+                )
+            )
         return results
+
+
+def _scan_plausible_names(text: str) -> list[tuple[int, int]]:
+    """High-recall sweep: any 姓＋1–2 名 window, prefer the longer span."""
+    found: list[tuple[int, int]] = []
+    index = 0
+    length = len(text)
+    while index < length:
+        prefix = surname_prefix(text[index : index + 2])
+        if not prefix:
+            index += 1
+            continue
+        max_end = min(index + len(prefix) + 2, length)
+        span = resolved_person_span(text, index, max_end)
+        if span is not None:
+            found.append(span)
+        index += 1
+    return found
 
 
 class EnglishPersonRecognizer(EntityRecognizer):
@@ -287,15 +340,17 @@ class EnglishPersonRecognizer(EntityRecognizer):
             name="EnglishPersonRecognizer",
             supported_language="zh",
         )
-        given = r"[A-Za-z][a-z]{1,20}"
+        given = r"[A-Z][a-z]{1,20}(?:-[A-Z][a-z]{1,20})?"
         full = rf"(?P<name>{given}(?:\s+{given}){{0,2}})"
         self._patterns = (
             re.compile(
-                rf"(?:我叫|名叫|名字是|名字叫|我的名字是|My name is)\s*{full}",
-                re.IGNORECASE,
+                rf"(?:我叫|名叫|名字是|名字叫|我的名字是|My name is|我是|填寫的是|申請人)\s*{full}",
             ),
-            re.compile(rf"(?:同學|小朋友)\s*{full}"),
-            re.compile(rf"{full}\s*(?=同學|小朋友)"),
+            re.compile(rf"(?:同學|小朋友|乘客名單有)\s*{full}"),
+            re.compile(rf"{full}\s*(?=同學|小朋友|的健保卡)"),
+            re.compile(rf"(?:我是)(?P<name>小[{_CJK}])(?=的媽媽|的爸爸|的家長)"),
+            re.compile(rf"(?:傳統姓名|英文姓名)[，,是為]*\s*{full}"),
+            re.compile(rf"(?P<name>{given}\s+{given})(?=，|。|和Lee|和)"),
         )
 
     def load(self) -> None:
@@ -329,30 +384,67 @@ class EnglishPersonRecognizer(EntityRecognizer):
         return results
 
 
-class TaiwanDateRecognizer(PatternRecognizer):
-    """民國 / 西元年月日 — counterpart of Presidio DATE_TIME. Bare「3月」不算。"""
+class TaiwanDateRecognizer(EntityRecognizer):
+    """Only personal birthdays — not 預約／作業／起租日."""
 
-    PATTERNS: ClassVar[list[Pattern]] = [
-        Pattern(
-            name="roc_date",
-            regex=r"民國\s*\d{2,3}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日",
-            score=0.75,
+    _DATES = (
+        re.compile(r"民國\s*\d{2,3}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日"),
+        re.compile(r"(?:19|20)\d{2}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日"),
+        re.compile(r"(?<![0-9])1[0-2]\d\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日"),
+        re.compile(r"(?<![0-9])1[0-2]\d[./]\d{1,2}[./]\d{1,2}(?![0-9])"),
+        re.compile(r"(?:19|20)\d{2}[-/]\d{1,2}[-/]\d{1,2}"),
+        re.compile(r"[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]年[^，。]{0,8}(?:初[一二三四五六七八九十]|[一二三四五六七八九十]+日)"),
+        re.compile(r"(?<![0-9])\d{2}年次"),
+        re.compile(r"(?<![0-9])\d{2}/\d{1,2}/\d{1,2}(?![0-9])"),
+        # 九月二十八號 / 9月28日 — year omitted, only with 生日 cue
+        re.compile(
+            r"(?:1[0-2]|[1-9]|十[一二]|[正一二三四五六七八九十])\s*月\s*"
+            r"(?:3[01]|[12]\d|[1-9]|三十[一]?|二十[一二三四五六七八九]?|"
+            r"[一二]?十[一二三四五六七八九]?|[一二三四五六七八九]|廿[一二三四五六七八九]?)"
+            r"\s*(?:號|日)"
         ),
-        Pattern(
-            name="cjk_gregorian_date",
-            regex=r"(?:19|20)\d{2}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日",
-            score=0.7,
-        ),
-    ]
+    )
+    # (?<!發)生日：不要把「事故發生日期」裡的「生日」當線索
+    _CUE = re.compile(r"(?<!發)生日|出生年月日|出生日期|農曆生日|出生|birthday|(?<![0-9])\d{2}年次", re.IGNORECASE)
 
     def __init__(self) -> None:
         super().__init__(
-            supported_entity="DATE_TIME",
+            supported_entities=["DATE_TIME"],
             name="TaiwanDateRecognizer",
             supported_language="zh",
-            patterns=self.PATTERNS,
-            context=["生日", "日期", "民國"],
         )
+
+    def load(self) -> None:
+        return None
+
+    def analyze(
+        self,
+        text: str,
+        entities: list[str],
+        nlp_artifacts: NlpArtifacts | None = None,
+    ) -> list[RecognizerResult]:
+        if entities and "DATE_TIME" not in entities:
+            return []
+        results: list[RecognizerResult] = []
+        seen: set[tuple[int, int]] = set()
+        for pattern in self._DATES:
+            for match in pattern.finditer(text):
+                window = text[max(0, match.start() - 20) : match.end() + 6]
+                if not self._CUE.search(window):
+                    continue
+                span = (match.start(), match.end())
+                if span in seen:
+                    continue
+                seen.add(span)
+                results.append(
+                    RecognizerResult(
+                        entity_type="DATE_TIME",
+                        start=match.start(),
+                        end=match.end(),
+                        score=0.8,
+                    )
+                )
+        return results
 
 
 class _LabeledValueRecognizer(EntityRecognizer):
@@ -427,6 +519,21 @@ class TaiwanSchoolClassRecognizer(PatternRecognizer):
         )
 
 
+class CuedEmailRecognizer(_LabeledValueRecognizer):
+    """Catch 信箱 addresses Presidio TLD checks sometimes drop."""
+
+    def __init__(self) -> None:
+        ident = r"(?P<value>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})"
+        super().__init__(
+            entity_type="EMAIL_ADDRESS",
+            name="CuedEmailRecognizer",
+            score=0.9,
+            patterns=(
+                re.compile(rf"(?:信箱|寄到)[:：]?\s*{ident}"),
+            ),
+        )
+
+
 class InstagramHandleRecognizer(_LabeledValueRecognizer):
     """Instagram / IG handle. Needs an IG cue so English words are not swallowed."""
 
@@ -452,7 +559,7 @@ class TaiwanStudentIdRecognizer(_LabeledValueRecognizer):
             name="TaiwanStudentIdRecognizer",
             score=0.9,
             patterns=(
-                re.compile(rf"(?:學號)[:：是為]?\s*(?P<value>\d{{3,10}})"),
+                re.compile(rf"(?:學號)[:：是為]?\s*(?P<value>[A-Z]?\d{{3,10}})"),
             ),
         )
 
@@ -461,13 +568,13 @@ class TaiwanPassportRecognizer(_LabeledValueRecognizer):
     """護照號碼 — counterpart of US_PASSPORT. 9 chars, not the 10-char national ID."""
 
     def __init__(self) -> None:
-        ident = r"(?P<value>[A-Z]{1,2}\d{7,8})"
+        ident = r"(?P<value>(?:[A-Z]{1,2})?\d{8,9})"
         super().__init__(
             entity_type="TW_PASSPORT",
             name="TaiwanPassportRecognizer",
             score=0.9,
             patterns=(
-                re.compile(rf"(?:護照號碼|護照號|護照)[:：是為]?\s*{ident}"),
+                re.compile(rf"(?:護照號碼|護照號|護照)(?:[，,]號碼)?[:：是為]?\s*{ident}"),
             ),
         )
 
@@ -482,7 +589,7 @@ class TaiwanDriverLicenseRecognizer(_LabeledValueRecognizer):
             name="TaiwanDriverLicenseRecognizer",
             score=0.88,
             patterns=(
-                re.compile(rf"(?:駕照號碼|駕照字號|駕駛執照|駕照)[:：是為]?\s*{ident}"),
+                re.compile(rf"(?:駕照號碼|駕照字號|駕駛執照|駕照)[^A-Z0-9]{{0,16}}{ident}"),
             ),
         )
 
@@ -491,13 +598,39 @@ class TaiwanBankAccountRecognizer(_LabeledValueRecognizer):
     """郵局/銀行帳號 — counterpart of US_BANK_NUMBER. Needs a label so raw digits pass."""
 
     def __init__(self) -> None:
-        ident = r"(?P<value>\d{8,16})"
+        ident = r"(?P<value>\d{4,16})"
+        card = r"(?P<value>(?:\d[ -]?){13,19}\d)"
+        ref = r"(?P<value>[A-Z]{1,3}\d{6,12})"
         super().__init__(
             entity_type="TW_BANK_ACCOUNT",
             name="TaiwanBankAccountRecognizer",
             score=0.9,
             patterns=(
-                re.compile(rf"(?:郵局帳號|銀行帳號|匯款帳號|帳號)[:：是為]?\s*{ident}"),
+                re.compile(rf"(?:郵局帳號|銀行帳號|匯款帳號|薪轉帳戶|帳號末五碼|帳號|卡號末四碼|工號)[:：是為]?[^0-9]{{0,8}}{ident}"),
+                re.compile(rf"(?:信用卡號|信用卡|卡號)[:：是為]?\s*{card}"),
+                re.compile(rf"(?:保單號碼|維修單號|退貨的單號|單號|員工編號|會員)[:：是為]?\s*{ref}"),
+                re.compile(
+                    rf"(?:員工編號|員編|會員編號|編號|訂房代號)[:：是為]?\s*"
+                    rf"(?P<value>[A-Z]{{1,3}}\d{{3,14}}|[A-Z]{{2,4}}-\d{{6,10}}|[A-Z]{{2}}\d{{4}}|\d{{6,12}})"
+                ),
+                re.compile(rf"(?:保單號碼)[:：是為]?\s*(?P<value>\d{{8,14}}|\d{{4}}-\d{{2}}[A-Z0-9]{{2}}\d{{6}})"),
+            ),
+        )
+
+
+class TaiwanHouseholdNoRecognizer(_LabeledValueRecognizer):
+    """戶口名簿戶號 / 稅籍編號."""
+
+    def __init__(self) -> None:
+        ident = r"(?P<value>[A-Z]?\d{7,12})"
+        super().__init__(
+            entity_type="TW_HOUSEHOLD_NO",
+            name="TaiwanHouseholdNoRecognizer",
+            score=0.88,
+            patterns=(
+                re.compile(rf"(?:戶口名簿)?戶號[:：是為]?\s*{ident}"),
+                re.compile(rf"(?:房屋)?稅籍編號[:：是為]?[，,]?[^A-Z0-9]{{0,24}}(?P<value>[A-Z]?\d{{8,14}})"),
+                re.compile(rf"戶號印著(?P<value>[A-Z]?\d{{7,12}})"),
             ),
         )
 
@@ -588,6 +721,7 @@ def build_taiwan_recognizers() -> list[EntityRecognizer]:
         TaiwanSchoolClassRecognizer(),
         TaiwanStudentIdRecognizer(),
         InstagramHandleRecognizer(),
+        CuedEmailRecognizer(),
         TaiwanLocationRecognizer(),
         ChinesePersonRecognizer(),
         EnglishPersonRecognizer(),
@@ -595,5 +729,6 @@ def build_taiwan_recognizers() -> list[EntityRecognizer]:
         TaiwanPassportRecognizer(),
         TaiwanDriverLicenseRecognizer(),
         TaiwanBankAccountRecognizer(),
+        TaiwanHouseholdNoRecognizer(),
         TaiwanOrganizationRecognizer(),
     ]
