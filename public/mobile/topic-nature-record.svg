@@ -1,0 +1,7 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Frame">
+<path id="Vector" d="M16 2H8C4.68629 2 2 4.68629 2 8V16C2 19.3137 4.68629 22 8 22H16C19.3137 22 22 19.3137 22 16V8C22 4.68629 19.3137 2 16 2Z" fill="#E7F7F0"/>
+<path id="Vector_2" d="M6 16.75C6 9.5 10.5 5.5 18.25 5.75C18.5 13.5 14.5 18.25 7.25 18.25" fill="#52B788"/>
+<path id="Vector_3" d="M7 18C8.01122 16.2809 9.10425 14.8073 10.3453 13.4632M10.3453 13.4632C11.23 12.505 12.1899 11.6127 13.249 10.7444M10.3453 13.4632L10.75 13.5M10.3453 13.4632L8 13.25M13.249 10.7444C14.3771 9.81935 15.6178 8.92147 17 8M13.249 10.7444L13.25 10.75M13.249 10.7444L12.75 8" stroke-width="1.25" stroke-linecap="round" stroke="#176B50"/>
+</g>
+</svg>

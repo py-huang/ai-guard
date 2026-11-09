@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     "trycloudflare.com",
     "*.trycloudflare.com",
   ],
+  devIndicators: false,
   typescript: {
     ignoreBuildErrors: true,
   },
