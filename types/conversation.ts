@@ -2,6 +2,8 @@ export type ConversationSource = {
   title: string;
 };
 
+export type ConversationCategory = "text" | "voice";
+
 export type ConversationMessage = {
   role: "user" | "assistant" | "system-note";
   content: string;
@@ -16,6 +18,7 @@ export type Conversation = {
   id: string;
   title: string;
   updatedAt: number;
+  category: ConversationCategory;
   topic?: string;
   messages: ConversationMessage[];
 };

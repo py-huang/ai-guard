@@ -85,7 +85,7 @@ export function MobileDashboard() {
                       <img src={recordIcon(conversation)} width="24" height="24" alt="" aria-hidden="true" />
                       <span className="min-w-0 flex-1 overflow-hidden">
                         <span className="block truncate text-[13px] leading-5 tracking-[0.1px]">{conversation.title}</span>
-                        <span className="block truncate text-[11px] leading-[18px] tracking-[0.2px] text-[#506058]">{conversation.topic?.trim() || "文字"} · {timeLabel(conversation.updatedAt)}</span>
+                        <span className="block truncate text-[11px] leading-[18px] tracking-[0.2px] text-[#506058]">{conversation.category === "voice" ? "語音" : conversation.topic?.trim() || "文字"} · {timeLabel(conversation.updatedAt)}</span>
                       </span>
                       <img src="/mobile/chevron-right.svg" width="20" height="20" alt="" aria-hidden="true" />
                     </Link>

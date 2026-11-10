@@ -2,16 +2,17 @@
 
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
-import type { Conversation, ConversationMessage } from "@/types/conversation";
+import type { Conversation, ConversationCategory, ConversationMessage } from "@/types/conversation";
 
 const STORAGE_KEY = "ai-guard-conversations";
 
 type ConversationStoreValue = {
   ready: boolean;
   conversations: Conversation[];
-  createConversation: (title: string, firstMessage?: ConversationMessage) => Conversation;
+  createConversation: (title: string, firstMessage?: ConversationMessage, category?: ConversationCategory) => Conversation;
   appendMessage: (id: string, message: ConversationMessage) => void;
   replaceMessages: (id: string, messages: ConversationMessage[]) => void;
+  setConversationCategory: (id: string, category: ConversationCategory) => void;
   renameConversation: (id: string, title: string) => void;
   removeConversation: (id: string) => void;
   getConversation: (id: string) => Conversation | undefined;
@@ -79,11 +80,18 @@ function readStoredConversations(): Conversation[] {
         .filter((conversation) => conversation && typeof conversation.id === "string" && typeof conversation.title === "string" && Array.isArray(conversation.messages))
         .map((conversation) => {
           if (seen.has(conversation.id)) {
-            return { ...conversation, id: createConversationId() };
+            return {
+              ...conversation,
+              id: createConversationId(),
+              category: conversation.category === "voice" ? "voice" : "text",
+            };
           }
 
           seen.add(conversation.id);
-          return conversation;
+          return {
+            ...conversation,
+            category: conversation.category === "voice" ? "voice" : "text",
+          };
         }),
     );
   } catch {
@@ -108,11 +116,12 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
     persistConversations(conversations);
   }, [conversations, ready]);
 
-  const createConversation = useCallback((title: string, firstMessage?: ConversationMessage) => {
+  const createConversation = useCallback((title: string, firstMessage?: ConversationMessage, category: ConversationCategory = "text") => {
     const conversation: Conversation = {
       id: createConversationId(),
       title: title.trim() || "新對話",
       updatedAt: Date.now(),
+      category,
       messages: firstMessage ? [firstMessage] : [],
     };
 
@@ -138,6 +147,14 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
     );
   }
 
+  function setConversationCategory(id: string, category: ConversationCategory) {
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === id ? { ...conversation, category } : conversation
+      )
+    );
+  }
+
   function renameConversation(id: string, title: string) {
     setConversations((current) =>
       current.map((conversation) =>
@@ -155,7 +172,7 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
   }
 
   return (
-    <ConversationStoreContext.Provider value={{ ready, conversations, createConversation, appendMessage, replaceMessages, renameConversation, removeConversation, getConversation }}>
+    <ConversationStoreContext.Provider value={{ ready, conversations, createConversation, appendMessage, replaceMessages, setConversationCategory, renameConversation, removeConversation, getConversation }}>
       {children}
     </ConversationStoreContext.Provider>
   );

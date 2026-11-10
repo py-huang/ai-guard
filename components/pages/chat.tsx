@@ -42,7 +42,7 @@ type ChatProps = {
 
 export function Chat({ conversationId }: ChatProps) {
   const router = useRouter();
-  const { ready, createConversation, getConversation, appendMessage, renameConversation, removeConversation } = useConversationStore();
+  const { ready, createConversation, getConversation, appendMessage, setConversationCategory, renameConversation, removeConversation } = useConversationStore();
   const { addDraft } = useWritingStore();
   const [demoConversationId, setDemoConversationId] = useState(conversationId ?? "");
   const activeConversationId = conversationId || demoConversationId;
@@ -193,7 +193,7 @@ export function Chat({ conversationId }: ChatProps) {
       if (!response.ok || !content) {
         throw new Error(data?.error || "暫時無法回覆。");
       }
-      const sources = (data.grounding?.sources ?? [])
+      const sources = (data?.grounding?.sources ?? [])
         .map((source) => source.title?.trim())
         .filter((title): title is string => Boolean(title))
         .filter((title, index, list) => list.indexOf(title) === index)
@@ -367,7 +367,10 @@ export function Chat({ conversationId }: ChatProps) {
           setVoiceOpen(false);
           void startGuard(text);
         }}
-        onUseText={() => setVoiceOpen(false)}
+        onUseText={() => {
+          setVoiceOpen(false);
+          setConversationCategory(conversation.id, "text");
+        }}
       />
     );
   }

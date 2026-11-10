@@ -84,7 +84,7 @@ export function DiscoverHome() {
           <ComposerAttach
             onPickFile={(file) => {
               setPendingUpload(file);
-              const conversation = createConversation("新對話");
+              const conversation = createConversation("新對話", undefined, "voice");
               router.push(`/chat/${conversation.id}`);
             }}
           />
