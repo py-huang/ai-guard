@@ -1,5 +1,6 @@
-import { MobilePlaceholder } from "@/components/mobile-placeholder";
+import { MobileNotifications } from "@/components/pages/mobile-notifications";
+import { Suspense } from "react";
 
 export default function MobileNotifyPage() {
-  return <MobilePlaceholder title="通知" message="目前沒有新通知。" />;
+  return <Suspense><MobileNotifications /></Suspense>;
 }

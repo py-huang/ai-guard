@@ -24,7 +24,7 @@ type HistoryRecord = {
   metadataCategory: string;
   href: string;
   icon: HistoryIcon;
-  status: "待確認" | "處理中" | "已回覆";
+  status: "待確認" | "處理中" | "已回覆" | "已保護";
   statusTone: "safe" | "pending";
   description?: string;
 };
@@ -74,10 +74,10 @@ function conversationIcon(
   category: ConversationCategory,
   hasImage: boolean,
   wasProtected: boolean,
-  wasBlocked: boolean,
+  hasPendingReview: boolean,
 ): HistoryIcon {
   if (hasImage) {
-    return wasBlocked ? historyIcons.pendingImage : wasProtected ? historyIcons.protectedImage : historyIcons.imageTask;
+    return hasPendingReview ? historyIcons.pendingImage : wasProtected ? historyIcons.protectedImage : historyIcons.imageTask;
   }
 
   if (category === "voice") {
@@ -103,9 +103,12 @@ function conversationIcon(
 
 function conversationRecord(conversation: Conversation): HistoryRecord {
   const userMessages = conversation.messages.filter((message) => message.role === "user");
-  const hasImage = userMessages.some((message) => message.hasImage);
+  const hasImage = userMessages.some((message) => message.hasImage)
+    || (conversation.safetyEvents ?? []).some((event) => event.category === "image");
   const wasProtected = userMessages.some((message) => message.protected);
-  const wasBlocked = conversation.messages.some((message) => message.blocked);
+  const wasBlocked = conversation.messages.some((message) => message.blocked)
+    || (conversation.safetyEvents ?? []).some((event) => event.type === "critical");
+  const hasPendingReview = (conversation.safetyEvents ?? []).some((event) => event.type === "pending" && event.status === "pending");
   const hasReply = conversation.messages.some((message) => message.role === "assistant");
   const category: ConversationCategory = conversation.category === "voice" ? "voice" : "text";
 
@@ -116,10 +119,12 @@ function conversationRecord(conversation: Conversation): HistoryRecord {
     category,
     metadataCategory: hasImage ? "圖片" : category === "voice" ? "語音" : "文字",
     href: `/mobile/history/${conversation.id}`,
-    icon: conversationIcon(conversation, category, hasImage, wasProtected, wasBlocked),
-    status: wasBlocked ? "待確認" : hasReply ? "已回覆" : "處理中",
-    statusTone: wasBlocked || !hasReply ? "pending" : "safe",
-    description: wasBlocked
+    icon: conversationIcon(conversation, category, hasImage, wasProtected || wasBlocked, hasPendingReview),
+    status: hasPendingReview ? "待確認" : wasBlocked ? "已保護" : hasReply ? "已回覆" : "處理中",
+    statusTone: hasPendingReview || (!wasBlocked && !hasReply) ? "pending" : "safe",
+    description: hasPendingReview
+      ? "等待家長確認。"
+      : wasBlocked
       ? "安全檢查已攔截這則內容。"
       : wasProtected
         ? "個資已自動保護，無需家長核准。"
@@ -251,6 +256,8 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
   const messages = conversation?.messages.filter((message) => message.role !== "system-note") ?? draft?.chat_history ?? [];
   const timestamp = conversation?.updatedAt ?? draft?.updatedAt;
   const hasProtectedMessages = messages.some((message) => "protected" in message && message.protected);
+  const hasBlockedContent = messages.some((message) => "blocked" in message && message.blocked)
+    || (conversation?.safetyEvents ?? []).some((event) => event.type === "critical");
   const hasAssistantReply = messages.some((message) => message.role === "assistant");
   const conversationType = conversation?.category === "voice" ? "Web 語音" : "Web 文字";
   const topic = conversation?.topic || (draft ? "作業" : "");
@@ -277,7 +284,7 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="px-4 pt-3">
           <p className="text-[12px] leading-[19px] text-[#13221b]">
-            小宇 · {conversationType} · {detailTime}{hasProtectedMessages ? " · 已保護" : ""}
+            小宇 · {conversationType} · {detailTime}{hasProtectedMessages || hasBlockedContent ? " · 已保護" : ""}
           </p>
         </div>
         <div className="flex flex-col gap-4 px-4 pb-6 pt-4">

@@ -4,6 +4,21 @@ export type ConversationSource = {
 
 export type ConversationCategory = "text" | "voice";
 
+export type SafetyEventStatus = "pending" | "approved" | "revision" | "declined" | "cancelled" | "completed";
+
+export type SafetyEvent = {
+  id: string;
+  type: "critical" | "pending" | "protected";
+  createdAt: number;
+  category: ConversationCategory | "image";
+  maskedOriginal?: string;
+  safeText?: string;
+  fields?: string[];
+  status?: SafetyEventStatus;
+  read?: boolean;
+  acknowledged?: boolean;
+};
+
 export type ConversationMessage = {
   role: "user" | "assistant" | "system-note";
   content: string;
@@ -21,4 +36,5 @@ export type Conversation = {
   category: ConversationCategory;
   topic?: string;
   messages: ConversationMessage[];
+  safetyEvents?: SafetyEvent[];
 };

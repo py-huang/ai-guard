@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       childMessage: result.child_message,
       processedText: result.processed_text,
       hits,
-      safeText: safeText || text,
+      safeText: safeText || (hits.length ? "個人資料已隱藏" : text),
     });
   } catch (error) {
     if (!(error instanceof GatewayUnavailableError)) {

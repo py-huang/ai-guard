@@ -30,6 +30,35 @@ export function toPiiPreview(text: string, result: SafetyInspectResponse): PiiPr
   };
 }
 
+export function maskPiiOriginal(text: string, hits: PiiHit[]): string | undefined {
+  if (!text || hits.length === 0 || hits.some((hit) => !hit.value || !text.includes(hit.value))) {
+    return undefined;
+  }
+
+  const spans: { start: number; end: number }[] = [];
+  for (const { value } of hits) {
+    let start = text.indexOf(value);
+    while (start !== -1) {
+      spans.push({ start, end: start + value.length });
+      start = text.indexOf(value, start + 1);
+    }
+  }
+  spans.sort((a, b) => a.start - b.start || b.end - a.end);
+
+  let masked = "";
+  let position = 0;
+  for (let index = 0; index < spans.length; index++) {
+    const span = spans[index];
+    let end = span.end;
+    while (index + 1 < spans.length && spans[index + 1].start <= end) {
+      end = Math.max(end, spans[++index].end);
+    }
+    masked += `${text.slice(position, span.start)}[已遮蔽]`;
+    position = end;
+  }
+  return masked + text.slice(position);
+}
+
 export async function inspectSafety(sessionId: string, text: string) {
   const response = await fetch("/api/safety/inspect", {
     method: "POST",

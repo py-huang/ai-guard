@@ -1,22 +1,58 @@
 "use client";
 
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
-import type { Conversation, ConversationCategory, ConversationMessage } from "@/types/conversation";
+import type { Conversation, ConversationCategory, ConversationMessage, SafetyEvent } from "@/types/conversation";
 
 const STORAGE_KEY = "ai-guard-conversations";
+
+type NewSafetyNotification = {
+  conversationId: string;
+  event: SafetyEvent;
+};
+
+function isVisibleSafetyNotification(event: SafetyEvent) {
+  return event.type === "pending" ? event.status === "pending" : !event.acknowledged;
+}
 
 type ConversationStoreValue = {
   ready: boolean;
   conversations: Conversation[];
+  newSafetyNotification: NewSafetyNotification | null;
+  dismissSafetyNotification: (notification: NewSafetyNotification) => void;
   createConversation: (title: string, firstMessage?: ConversationMessage, category?: ConversationCategory) => Conversation;
   appendMessage: (id: string, message: ConversationMessage) => void;
+  addSafetyEvent: (id: string, event: SafetyEvent) => void;
+  updateSafetyEvent: (id: string, eventId: string, changes: Partial<Pick<SafetyEvent, "status" | "read" | "acknowledged">>) => void;
   replaceMessages: (id: string, messages: ConversationMessage[]) => void;
   setConversationCategory: (id: string, category: ConversationCategory) => void;
   renameConversation: (id: string, title: string) => void;
   removeConversation: (id: string) => void;
   getConversation: (id: string) => Conversation | undefined;
 };
+
+function findNewestNotification(
+  previous: Conversation[],
+  next: Conversation[],
+): NewSafetyNotification | null {
+  const previousEventIds = new Set(previous.flatMap((conversation) =>
+    (conversation.safetyEvents ?? []).map((event) => `${conversation.id}:${event.id}`),
+  ));
+  let newest: NewSafetyNotification | null = null;
+
+  for (const conversation of next) {
+    for (const event of conversation.safetyEvents ?? []) {
+      if (previousEventIds.has(`${conversation.id}:${event.id}`) || !isVisibleSafetyNotification(event)) {
+        continue;
+      }
+      if (!newest || event.createdAt >= newest.event.createdAt) {
+        newest = { conversationId: conversation.id, event };
+      }
+    }
+  }
+
+  return newest;
+}
 
 const ConversationStoreContext = createContext<ConversationStoreValue | null>(null);
 
@@ -102,11 +138,32 @@ function readStoredConversations(): Conversation[] {
 export function ConversationStoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [newSafetyNotification, setNewSafetyNotification] = useState<NewSafetyNotification | null>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
 
   useEffect(() => {
-    setConversations(readStoredConversations());
+    const storedConversations = readStoredConversations();
+    conversationsRef.current = storedConversations;
+    setConversations(storedConversations);
     setReady(true);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY) {
+        const nextConversations = readStoredConversations();
+        const notification = findNewestNotification(conversationsRef.current, nextConversations);
+        if (notification) {
+          setNewSafetyNotification(notification);
+        }
+        conversationsRef.current = nextConversations;
+        setConversations(nextConversations);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   useEffect(() => {
     if (!ready) {
@@ -137,6 +194,33 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
           : conversation
       )
     );
+  }
+
+  function addSafetyEvent(id: string, event: SafetyEvent) {
+    if (isVisibleSafetyNotification(event)) {
+      setNewSafetyNotification({ conversationId: id, event });
+    }
+    setConversations((current) => current.map((conversation) =>
+      conversation.id === id
+        ? { ...conversation, safetyEvents: [...(conversation.safetyEvents ?? []), event] }
+        : conversation
+    ));
+  }
+
+  const dismissSafetyNotification = useCallback((notification: NewSafetyNotification) => {
+    setNewSafetyNotification((current) =>
+      current?.conversationId === notification.conversationId && current.event.id === notification.event.id
+        ? null
+        : current,
+    );
+  }, []);
+
+  function updateSafetyEvent(id: string, eventId: string, changes: Partial<Pick<SafetyEvent, "status" | "read" | "acknowledged">>) {
+    setConversations((current) => current.map((conversation) =>
+      conversation.id === id
+        ? { ...conversation, safetyEvents: conversation.safetyEvents?.map((event) => event.id === eventId ? { ...event, ...changes } : event) }
+        : conversation
+    ));
   }
 
   function replaceMessages(id: string, messages: ConversationMessage[]) {
@@ -172,7 +256,7 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
   }
 
   return (
-    <ConversationStoreContext.Provider value={{ ready, conversations, createConversation, appendMessage, replaceMessages, setConversationCategory, renameConversation, removeConversation, getConversation }}>
+    <ConversationStoreContext.Provider value={{ ready, conversations, newSafetyNotification, dismissSafetyNotification, createConversation, appendMessage, addSafetyEvent, updateSafetyEvent, replaceMessages, setConversationCategory, renameConversation, removeConversation, getConversation }}>
       {children}
     </ConversationStoreContext.Provider>
   );

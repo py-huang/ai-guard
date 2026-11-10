@@ -7,14 +7,14 @@ import { CHILD_LEARNING_PARTNER_PROMPT } from "@/lib/child-llm-prompt";
 import { childSafeErrorMessage, isDisasterRumor, needsLiveSearch } from "@/lib/disaster-rumor";
 import { looksLikeWriting } from "@/lib/writing-intent";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
-import { inspectSafety, toPiiPreview } from "@/lib/safety-inspect";
+import { inspectSafety, maskPiiOriginal, toPiiPreview } from "@/lib/safety-inspect";
 import { applyOutboundSocraticHint, stripSocraticInboundPrefix } from "@/lib/socratic";
 import { replaceVaultTokensForChild } from "@/lib/vault-tokens";
 import type { PiiPreview } from "@/lib/pii-preview";
 import { useConversationStore } from "@/store/conversation-store";
 import { useWritingStore } from "@/store/writing-store";
 import type { GenerateWritingResponse } from "@/lib/writing";
-import type { ConversationMessage } from "@/types/conversation";
+import type { ConversationMessage, SafetyEvent, SafetyEventStatus } from "@/types/conversation";
 import { ChatAiAvatar } from "@/components/chat-ai-avatar";
 import { MarkdownMessage } from "@/components/markdown-message";
 import { ChildOutlineButton } from "@/components/child-outline-button";
@@ -42,7 +42,7 @@ type ChatProps = {
 
 export function Chat({ conversationId }: ChatProps) {
   const router = useRouter();
-  const { ready, createConversation, getConversation, appendMessage, setConversationCategory, renameConversation, removeConversation } = useConversationStore();
+  const { ready, createConversation, getConversation, appendMessage, addSafetyEvent, updateSafetyEvent, setConversationCategory, renameConversation, removeConversation } = useConversationStore();
   const { addDraft } = useWritingStore();
   const [demoConversationId, setDemoConversationId] = useState(conversationId ?? "");
   const activeConversationId = conversationId || demoConversationId;
@@ -67,6 +67,64 @@ export function Chat({ conversationId }: ChatProps) {
   const [voiceOpen, setVoiceOpen] = useState(false);
 
   const started = useRef(false);
+  const pendingEventId = useRef<string | null>(null);
+  const restoredConversationId = useRef<string | null>(null);
+
+  function recordEvent(type: SafetyEvent["type"], details: Partial<Pick<SafetyEvent, "maskedOriginal" | "safeText" | "fields" | "category" | "status">> = {}) {
+    if (!conversation) return "";
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    addSafetyEvent(conversation.id, { id, type, createdAt: Date.now(), category: conversation.category, ...details });
+    return id;
+  }
+
+  function resolvePending(status: SafetyEventStatus) {
+    if (conversation && pendingEventId.current) {
+      updateSafetyEvent(conversation.id, pendingEventId.current, { status });
+      if (status === "cancelled" || status === "completed") pendingEventId.current = null;
+    }
+  }
+
+  function askParent(isImage: boolean) {
+    if (pendingEventId.current) resolvePending("cancelled");
+    pendingEventId.current = recordEvent("pending", {
+      category: isImage ? "image" : conversation?.category,
+      maskedOriginal: !isImage && preview ? maskPiiOriginal(rawDraft, preview.hits) : undefined,
+      safeText: isImage ? undefined : preview?.safeText,
+      fields: isImage ? imageFields : preview?.hits.map((hit) => hit.kind),
+      status: "pending",
+    });
+    setGuard("parent-pending");
+  }
+
+  useEffect(() => {
+    if (!ready || !conversation) return;
+    if (restoredConversationId.current !== conversation.id) {
+      restoredConversationId.current = conversation.id;
+      pendingEventId.current = null;
+      const event = [...(conversation.safetyEvents ?? [])].reverse().find(
+        (item) => item.type === "pending" && item.status !== "cancelled" && item.status !== "completed",
+      );
+      if (event) {
+        pendingEventId.current = event.id;
+        if (event.category === "image") {
+          // Restore a persisted review without restoring the discarded image.
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setError("圖片不會儲存在紀錄中。回到對話後，請重新上傳圖片並再次進行安全檢查。");
+        } else if (event.safeText) {
+          setPreview({ safeText: event.safeText, hits: [], highlighted: [{ text: event.safeText, sensitive: false }] });
+          setRawDraft(event.safeText);
+        }
+      }
+    }
+    const pending = conversation.safetyEvents?.find((item) => item.id === pendingEventId.current);
+    if (!pending || (pending.category === "image" && !redactedImageUrl)) return;
+    if (pending.status === "pending") setGuard("parent-pending");
+    if (pending.status === "approved") setGuard("parent-approved");
+    if (pending.status === "revision") setGuard("parent-revision");
+    if (pending.status === "declined") setGuard("parent-declined");
+  }, [ready, conversation, redactedImageUrl]);
 
   function clearImage() {
     if (originalImageUrl) {
@@ -159,10 +217,23 @@ export function Chat({ conversationId }: ChatProps) {
 
     const blocked = classifyUnsafeText(text);
     if (blocked) {
+      recordEvent("critical");
+      resolvePending("completed");
       appendMessage(conversation.id, { role: "assistant", content: CHILD_BLOCK_REPLY, blocked: true });
       setBusy(false);
       return;
     }
+
+    if (options?.protected || (safetyTouched && (preview || imageChanged || imageFields.length > 0))) {
+      const pendingEvent = conversation.safetyEvents?.find((event) => event.id === pendingEventId.current);
+      recordEvent("protected", {
+        category: options?.hasImage ? "image" : conversation.category,
+        maskedOriginal: options?.hasImage ? undefined : (preview ? maskPiiOriginal(rawDraft, preview.hits) : undefined) ?? pendingEvent?.maskedOriginal,
+        safeText: options?.hasImage ? undefined : visibleText,
+        fields: options?.hasImage ? imageFields : preview?.hits.map((hit) => hit.kind),
+      });
+    }
+    resolvePending("completed");
 
     try {
       const history = [...conversation.messages, userMessage]
@@ -221,6 +292,7 @@ export function Chat({ conversationId }: ChatProps) {
     try {
       const result = await inspectSafety(conversation.id, text);
       if (result.blocked) {
+        recordEvent("critical");
         appendMessage(conversation.id, { role: "user", content: result.safeText || "這個問題先不要繼續。" });
         appendMessage(conversation.id, {
           role: "assistant",
@@ -311,6 +383,11 @@ export function Chat({ conversationId }: ChatProps) {
       return;
     }
 
+    if (pendingEventId.current && !redactedImageUrl) {
+      const previous = conversation.safetyEvents?.find((event) => event.id === pendingEventId.current);
+      resolvePending(previous?.status === "pending" ? "cancelled" : "completed");
+    }
+
     if (originalImageUrl) {
       URL.revokeObjectURL(originalImageUrl);
     }
@@ -328,6 +405,7 @@ export function Chat({ conversationId }: ChatProps) {
         await new Promise((resolve) => window.setTimeout(resolve, remaining));
       }
       if (result.blocked) {
+        recordEvent("critical", { category: "image" });
         URL.revokeObjectURL(previewUrl);
         setOriginalImageUrl("");
         setRedactedImageUrl("");
@@ -467,7 +545,7 @@ export function Chat({ conversationId }: ChatProps) {
                 const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
                 void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
               }}
-              onAskParent={() => setGuard("parent-pending")}
+              onAskParent={() => askParent(true)}
               onReplace={() => {
                 clearImage();
                 setGuard("none");
@@ -481,7 +559,7 @@ export function Chat({ conversationId }: ChatProps) {
               original={rawDraft}
               preview={preview}
               onRewrite={() => setGuard("rewritten")}
-              onAskParent={() => setGuard("parent-pending")}
+              onAskParent={() => askParent(false)}
               onEditSelf={() => {
                 setDraft(rawDraft);
                 setGuard("none");
@@ -496,7 +574,7 @@ export function Chat({ conversationId }: ChatProps) {
                 setDraft(preview.safeText);
                 setGuard("none");
               }}
-              onAskParent={() => setGuard("parent-pending")}
+              onAskParent={() => askParent(false)}
               onEditSelf={() => {
                 setDraft(rawDraft);
                 setGuard("none");
@@ -512,39 +590,43 @@ export function Chat({ conversationId }: ChatProps) {
                 void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
               }}
               onReplace={() => {
+                resolvePending("cancelled");
                 clearImage();
                 setGuard("none");
                 fileRef.current?.click();
               }}
               onAskElse={() => {
+                resolvePending("cancelled");
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
                 setSafetyTouched(false);
                 clearImage();
               }}
-              onDemoApprove={() => setGuard("parent-approved")}
-              onDemoDecline={() => setGuard("parent-declined")}
+              onDemoApprove={() => resolvePending("approved")}
+              onDemoDecline={() => resolvePending("declined")}
             />
           ) : null}
 
           {guard === "parent-pending" && preview && !redactedImageUrl ? (
             <ParentPendingCard
               safeText={preview.safeText}
-              onUseSafe={() => setGuard("rewritten")}
+              onUseSafe={() => { resolvePending("cancelled"); setGuard("rewritten"); }}
               onEdit={() => {
+                resolvePending("cancelled");
                 setDraft(rawDraft);
                 setGuard("none");
               }}
               onAskElse={() => {
+                resolvePending("cancelled");
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
                 setSafetyTouched(false);
               }}
-              onDemoApprove={() => setGuard("parent-approved")}
-              onDemoRevise={() => setGuard("parent-revision")}
-              onDemoDecline={() => setGuard("parent-declined")}
+              onDemoApprove={() => resolvePending("approved")}
+              onDemoRevise={() => resolvePending("revision")}
+              onDemoDecline={() => resolvePending("declined")}
             />
           ) : null}
 
@@ -564,10 +646,12 @@ export function Chat({ conversationId }: ChatProps) {
               safeText={preview.safeText}
               onContinue={() => void sendSafeText(preview.safeText, { protected: true })}
               onEdit={() => {
+                resolvePending("completed");
                 setDraft(rawDraft);
                 setGuard("none");
               }}
               onAskElse={() => {
+                resolvePending("completed");
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
@@ -580,21 +664,35 @@ export function Chat({ conversationId }: ChatProps) {
             <ParentRevisionCard
               safeText={preview.safeText}
               onEdit={() => {
+                resolvePending("completed");
                 setDraft(rawDraft);
                 setGuard("none");
               }}
-              onUseSafe={() => setGuard("rewritten")}
+              onUseSafe={() => { resolvePending("completed"); setGuard("rewritten"); }}
             />
+          ) : null}
+
+          {guard === "parent-revision" && redactedImageUrl ? (
+            <section className="space-y-4 rounded-[24px] bg-[#fff0ee] p-6">
+              <h2 className="text-xl font-bold">家長想請你再改一下</h2>
+              <p className="text-sm leading-6 text-[#506058]">請換一張圖片，或改用文字提問。新內容會再次進行安全檢查。</p>
+              <div className="flex flex-wrap gap-3">
+                <button type="button" className="h-12 rounded-2xl bg-[#d63a37] px-4 font-medium text-white" onClick={() => { resolvePending("completed"); clearImage(); setGuard("none"); fileRef.current?.click(); }}>換一張圖片</button>
+                <button type="button" className="h-12 rounded-2xl border border-[#d63a37] px-4 font-medium text-[#c02d32]" onClick={() => { resolvePending("completed"); clearImage(); setGuard("none"); }}>改用文字提問</button>
+              </div>
+            </section>
           ) : null}
 
           {guard === "parent-declined" && preview && !redactedImageUrl ? (
             <ParentDeclinedCard
               safeText={preview.safeText}
               onEdit={() => {
+                resolvePending("completed");
                 setDraft(rawDraft);
                 setGuard("none");
               }}
               onAskElse={() => {
+                resolvePending("completed");
                 setDraft("");
                 setGuard("none");
                 setPreview(null);
@@ -607,11 +705,13 @@ export function Chat({ conversationId }: ChatProps) {
             <ImageParentDeclinedCard
               question={draft.trim() || undefined}
               onReplace={() => {
+                resolvePending("completed");
                 clearImage();
                 setGuard("none");
                 fileRef.current?.click();
               }}
               onUseText={() => {
+                resolvePending("completed");
                 clearImage();
                 setGuard("none");
               }}

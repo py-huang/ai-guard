@@ -31,9 +31,18 @@ function recordIcon(conversation: Conversation) {
 export function MobileDashboard() {
   const { ready, conversations } = useConversationStore();
   const recent = [...conversations].sort((left, right) => right.updatedAt - left.updatedAt).slice(0, 3);
+  const pendingCount = ready
+    ? conversations.reduce((count, conversation) => count + (conversation.safetyEvents ?? []).filter(
+      (event) => event.type === "pending" && event.status === "pending",
+    ).length, 0)
+    : 0;
+  const hasUnacknowledgedHighRisk = ready && conversations.some((conversation) =>
+    (conversation.safetyEvents ?? []).some((event) => event.type === "critical" && !event.acknowledged),
+  );
   const topicCount = ready
     ? new Set(conversations.map(({ topic }) => topic?.trim()).filter((topic): topic is string => Boolean(topic))).size
     : 0;
+  const safetyState = hasUnacknowledgedHighRisk ? "critical" : pendingCount > 0 ? "pending" : "safe";
 
   return (
     <section className="flex h-full flex-col bg-[#fffcf7]">
@@ -50,17 +59,56 @@ export function MobileDashboard() {
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="flex flex-col gap-4 px-4 py-4">
-          <section className="flex h-[222px] shrink-0 flex-col gap-[14px] overflow-hidden rounded-[24px] border border-[#ddf5ea] bg-[#ecf9f3] p-[18px]" aria-label="安全狀態">
+          <section
+            className={`flex h-[222px] shrink-0 flex-col gap-[14px] overflow-hidden rounded-[24px] border p-[18px] ${
+              safetyState === "critical"
+                ? "border-[#ffe2df] bg-[#fff0ee]"
+                : safetyState === "pending"
+                  ? "border-[#dde3df] bg-[#ffe7d7]"
+                  : "border-[#ddf5ea] bg-[#ecf9f3]"
+            }`}
+            aria-label={safetyState === "critical" ? "高風險安全提醒" : safetyState === "pending" ? "待確認事項" : "安全狀態"}
+          >
             <div className="flex min-h-0 flex-1 items-center gap-1 overflow-hidden">
               <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="text-[11px] font-bold leading-[18px] text-[#177049]">安心守護中</p>
-                <h2 className="text-[18px] font-bold leading-7">今天一切正常</h2>
-                <p className="text-[13px] leading-5 text-[#506058]">目前沒有需要你處理的安全事件。</p>
+                {safetyState === "critical" ? (
+                  <>
+                    <p className="text-[11px] font-bold leading-[18px] text-[#c93636]">需要你的關注</p>
+                    <h2 className="text-[18px] font-bold leading-7">偵測到高風險<br />安全訊息</h2>
+                    <p className="text-[13px] leading-5 text-[#506058]">已採取安全處理，請先確認孩子安全。</p>
+                  </>
+                ) : safetyState === "pending" ? (
+                  <>
+                    <p className="text-[11px] font-bold leading-[18px] text-[#a35a2d]">家庭守護</p>
+                    <h2 className="text-[18px] font-bold leading-7">{pendingCount} 件等待確認</h2>
+                    <p className="text-[13px] leading-5 text-[#506058]">查看文字與圖片的審核進度；個資保護會自動完成。</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[11px] font-bold leading-[18px] text-[#177049]">安心守護中</p>
+                    <h2 className="text-[18px] font-bold leading-7">今天一切正常</h2>
+                    <p className="text-[13px] leading-5 text-[#506058]">目前沒有需要你處理的安全事件。</p>
+                  </>
+                )}
               </div>
-              <img src="/mobile/guardian-safe.svg" width="112" height="112" alt="安心守護" />
+              <img
+                src={safetyState === "critical" ? "/mobile/notify-critical.svg" : safetyState === "pending" ? "/mobile/notify-pending.svg" : "/mobile/guardian-safe.svg"}
+                width="112"
+                height="112"
+                alt=""
+              />
             </div>
-            <Link className="flex h-12 shrink-0 items-center justify-center rounded-2xl border border-[#177049] bg-white px-4 text-[15px] font-medium leading-5 tracking-[0.1px] text-[#177049]" href="/mobile/history/">
-              查看本週提問
+            <Link
+              className={`flex h-12 shrink-0 items-center justify-center rounded-2xl border bg-white px-4 text-[15px] font-medium leading-5 tracking-[0.1px] ${
+                safetyState === "critical"
+                  ? "border-[#c93636] text-[#c93636]"
+                  : safetyState === "pending"
+                    ? "border-[#a35a2d] text-[#a35a2d]"
+                    : "border-[#177049] text-[#177049]"
+              }`}
+              href={safetyState === "critical" ? "/mobile/notify/" : safetyState === "pending" ? "/mobile/confirm/" : "/mobile/history/"}
+            >
+              {safetyState === "critical" ? "查看安全提醒" : safetyState === "pending" ? "立即查看" : "查看本週提問"}
             </Link>
           </section>
 
@@ -68,7 +116,7 @@ export function MobileDashboard() {
             <div className="flex items-center gap-2">
               <Metric icon="/mobile/metric-interactions.svg" value={ready ? conversations.length : 0} label="互動紀錄" />
               <Metric icon="/mobile/metric-topics.svg" value={topicCount} label="使用主題" />
-              <Metric icon="/mobile/metric-pending.svg" value={0} label="待確認" accent />
+              <Metric icon="/mobile/metric-pending.svg" value={pendingCount} label="待確認" accent />
             </div>
           </section>
 

@@ -1,5 +1,6 @@
-import { MobilePlaceholder } from "@/components/mobile-placeholder";
+import { MobileNotifications } from "@/components/pages/mobile-notifications";
+import { Suspense } from "react";
 
 export default function MobileConfirmPage() {
-  return <MobilePlaceholder title="待確認" message="目前沒有待確認事項。" />;
+  return <Suspense><MobileNotifications confirmationsOnly /></Suspense>;
 }
