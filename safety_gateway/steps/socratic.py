@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import ClassVar, Literal
 
 from safety_gateway.steps.base import BaseGuardStep, GuardContext
 
 HintLevel = Literal["gentle", "medium", "strict"]
+
+_MAX_TRACKED_SESSIONS = 5000
 
 HOMEWORK_CUES = (
     "作業",
@@ -51,7 +54,7 @@ class SocraticPedagogyStep(BaseGuardStep):
         self.hint_level = hint_level
         self._cues = cues
         self._enabled = enabled
-        self._homework_sessions: dict[str, bool] = {}
+        self._homework_sessions: OrderedDict[str, bool] = OrderedDict()
 
     def looks_like_answer_dump(self, text: str) -> bool:
         return any(cue in text for cue in self._cues)
@@ -62,6 +65,9 @@ class SocraticPedagogyStep(BaseGuardStep):
             return context
         if self.looks_like_answer_dump(context.text):
             self._homework_sessions[context.session_id] = True
+            self._homework_sessions.move_to_end(context.session_id)
+            while len(self._homework_sessions) > _MAX_TRACKED_SESSIONS:
+                self._homework_sessions.popitem(last=False)
             context.metadata["socratic_mode"] = True
             if not context.text.startswith("【教學模式】"):
                 context.text = INBOUND_PREFIX + context.text

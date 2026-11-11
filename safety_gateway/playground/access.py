@@ -33,8 +33,7 @@ class SharePasswordMiddleware(BaseHTTPMiddleware):
         expected = share_password()
         if not expected:
             return await call_next(request)
-        hostname = (request.url.hostname or "").lower()
-        if hostname in {"127.0.0.1", "localhost", "::1"}:
+        if _is_direct_local_request(request):
             return await call_next(request)
         if not _valid_basic(request.headers.get("authorization", ""), expected):
             return PlainTextResponse(
@@ -72,6 +71,25 @@ class ChatRateLimiter:
                 return False
             self._hits.append(now)
             return True
+
+
+_LOOPBACK = {"127.0.0.1", "localhost", "::1"}
+# Tunnels (cloudflared, ngrok) connect from 127.0.0.1 too, but always add one of these.
+_PROXY_HEADERS = ("x-forwarded-for", "x-forwarded-host", "forwarded", "cf-connecting-ip", "cf-ray")
+
+
+def _is_direct_local_request(request: Request) -> bool:
+    """True only for a browser on this machine talking to us directly.
+
+    The ``Host`` header is client-controlled, so it is never trusted on its own: the TCP
+    peer must be loopback and no reverse-proxy header may be present.
+    """
+    peer = request.client.host if request.client else ""
+    if peer not in _LOOPBACK:
+        return False
+    if any(request.headers.get(name) for name in _PROXY_HEADERS):
+        return False
+    return (request.url.hostname or "").lower() in _LOOPBACK
 
 
 def _valid_basic(header: str, expected_password: str) -> bool:

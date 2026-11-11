@@ -164,8 +164,18 @@ def test_share_password_requires_http_basic(monkeypatch) -> None:  # type: ignor
     assert allowed.status_code == 200
     wrong_user = client.get("/", auth=("admin", "demo-pass-1"))
     assert wrong_user.status_code == 401
-    local = client.get("/", headers={"Host": "127.0.0.1"})
+    # A remote caller cannot walk in by claiming Host: 127.0.0.1.
+    spoofed = client.get("/", headers={"Host": "127.0.0.1"})
+    assert spoofed.status_code == 401
+
+    local_client = TestClient(create_app(), client=("127.0.0.1", 50000))
+    local = local_client.get("/", headers={"Host": "127.0.0.1"})
     assert local.status_code == 200
+    # A tunnel also connects from loopback, but it forwards the real caller.
+    tunneled = local_client.get(
+        "/", headers={"Host": "127.0.0.1", "X-Forwarded-For": "203.0.113.9"}
+    )
+    assert tunneled.status_code == 401
 
 
 def test_chat_blocks_bathroom_photo_request_without_calling_llm() -> None:

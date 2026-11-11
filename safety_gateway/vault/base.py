@@ -40,3 +40,10 @@ class BaseSessionVault(ABC):
     @abstractmethod
     def clear_session(self, session_id: str) -> None:
         """Drop all mappings for a session (e.g. child logout / TTL expiry)."""
+
+    def clear_all(self) -> None:
+        """Drop every session held by *this process* (shutdown hook).
+
+        Optional: shared stores such as Redis should leave this as a no-op and rely on
+        TTL instead of wiping other instances' data.
+        """

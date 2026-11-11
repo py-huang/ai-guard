@@ -107,8 +107,8 @@ TUNABLES: list[dict[str, str]] = [
     },
     {
         "name": "家長稽核保留",
-        "where": "InMemoryAuditLog(max_events=200)",
-        "detail": "可改 TTL、改接資料庫。預設存代號化文本；家長頁可用 vault 還原。生產應加密與權限控管。",
+        "where": "InMemoryAuditLog(max_events=200, max_sessions=1000)",
+        "detail": "每個 session 最多保留 max_events 筆、最多 max_sessions 個 session（LRU 淘汰）。可改接資料庫。預設存代號化文本；家長頁可用 vault 還原。生產應加密與權限控管。",
     },
     {
         "name": "Session Vault",

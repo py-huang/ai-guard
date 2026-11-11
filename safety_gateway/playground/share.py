@@ -18,6 +18,7 @@ _CLOUDFLARED_URL = (
     "https://github.com/cloudflare/cloudflared/releases/download/"
     "2026.9.0/cloudflared-darwin-arm64.tgz"
 )
+PLAYGROUND_PORT = 8766
 _URL_RE = re.compile(r"https://[a-z0-9.-]+\.(ngrok-free\.app|ngrok\.io|trycloudflare\.com)")
 
 
@@ -25,12 +26,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="把本機 127.0.0.1 服務打成暫時 HTTPS（playground 或 Next 主專案）"
     )
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--port", type=int, default=8766)
     args = parser.parse_args()
     password = os.environ.get("PLAYGROUND_SHARE_PASSWORD", "").strip()
-    if args.port == 8765 and not password:
+    if args.port == PLAYGROUND_PORT and not password:
         print(
-            "分享 playground 時請先設 PLAYGROUND_SHARE_PASSWORD 再重啟 8765。\n"
+            "分享 playground 時請先設 PLAYGROUND_SHARE_PASSWORD 再重啟 playground（埠 8766）。\n"
             "分享 Next 主專案請用 --port 3001（正式版）或 --port 3000。",
             file=sys.stderr,
         )
@@ -39,7 +40,7 @@ def main() -> None:
         print(f"127.0.0.1:{args.port} 沒有在聽。請先開本機服務。", file=sys.stderr)
         raise SystemExit(2)
 
-    if password and args.port == 8765:
+    if password and args.port == PLAYGROUND_PORT:
         print("通行碼使用者名稱：demo")
         print(f"通行碼：{password}")
         print("只傳給要試用的人。用完請 Ctrl+C 停隧道。")

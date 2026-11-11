@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from collections import OrderedDict
 from threading import Lock
 
 from safety_gateway.gateway import AISafetyGateway
@@ -50,12 +51,24 @@ class ChatTurnResult(StrictModel):
 
 
 class PlaygroundChat:
-    def __init__(self, gateway: AISafetyGateway, max_history: int = 12) -> None:
+    def __init__(
+        self,
+        gateway: AISafetyGateway,
+        max_history: int = 12,
+        max_sessions: int = 500,
+    ) -> None:
         self._gateway = gateway
         self._max_history = max_history
+        self._max_sessions = max(1, max_sessions)
         self._lock = Lock()
-        self._histories: dict[str, list[dict[str, str]]] = {}
-        self._evidence: dict[str, list[ChatTurnResult]] = {}
+        # LRU-bounded so a demo left running cannot grow without limit.
+        self._histories: OrderedDict[str, list[dict[str, str]]] = OrderedDict()
+        self._evidence: OrderedDict[str, list[ChatTurnResult]] = OrderedDict()
+
+    def _evict_locked(self) -> None:
+        for store in (self._histories, self._evidence):
+            while len(store) > self._max_sessions:
+                store.popitem(last=False)
 
     def reset(self, session_id: str) -> None:
         with self._lock:
@@ -244,6 +257,8 @@ class PlaygroundChat:
         with self._lock:
             pending.append({"role": "assistant", "content": llm_raw})
             self._histories[session_id] = pending[-self._max_history :]
+            self._histories.move_to_end(session_id)
+            self._evict_locked()
         outbound = self._gateway.process_outbound(session_id, llm_raw)
         originals = [entity.original for entity in inbound.entities]
         exposed = inbound.processed_text + "\n" + llm_raw
@@ -279,3 +294,5 @@ class PlaygroundChat:
             turns = self._evidence.setdefault(session_id, [])
             turns.append(stored)
             self._evidence[session_id] = turns[-20:]
+            self._evidence.move_to_end(session_id)
+            self._evict_locked()

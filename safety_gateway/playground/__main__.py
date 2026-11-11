@@ -8,7 +8,7 @@ import uvicorn
 def main() -> None:
     parser = argparse.ArgumentParser(description="AI Guard local playground")
     parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--port", type=int, default=8766)
     args = parser.parse_args()
     uvicorn.run(
         "safety_gateway.playground.app:app",

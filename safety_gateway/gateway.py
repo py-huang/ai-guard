@@ -25,8 +25,10 @@ from safety_gateway.schemas import (
     SafetyProcessResult,
 )
 from safety_gateway.steps.base import BaseGuardStep, GuardContext
+from safety_gateway.steps.content_model import ContentModel
 from safety_gateway.steps.content_safety import ContentSafetyStep
 from safety_gateway.steps.parent_audit import ParentAuditStep
+from safety_gateway.steps.socratic import INBOUND_PREFIX as SOCRATIC_INBOUND_PREFIX
 from safety_gateway.steps.socratic import SocraticPedagogyStep
 from safety_gateway.steps.taiwan_pii import TaiwanPIIGuardStep
 from safety_gateway.vault.base import BaseSessionVault
@@ -49,6 +51,7 @@ class AISafetyGateway:
         image_redactor: InMemoryImageRedactor | None = None,
         audit_log: InMemoryAuditLog | None = None,
         face_detector: FaceDetector | None = None,
+        content_model: ContentModel | None = None,
     ) -> None:
         self._vault = vault or InMemorySessionVault()
         pii = _find_pii_step(inbound_steps) or TaiwanPIIGuardStep(vault=self._vault)
@@ -60,7 +63,11 @@ class AISafetyGateway:
         socratic = _find_socratic_step(inbound_steps) or _find_socratic_step(outbound_steps)
         if socratic is None:
             socratic = SocraticPedagogyStep()
-        safety = ContentSafetyStep()
+        safety = _find_safety_step(inbound_steps) or ContentSafetyStep(model=content_model)
+        # Re-check chain: PII tokenization + content safety only. No Socratic prefix and
+        # no audit event, so a server can re-verify text it already processed once.
+        self._safety = safety
+        self._sanitize_steps: tuple[BaseGuardStep, ...] = (pii, safety)
         self._inbound_steps: tuple[BaseGuardStep, ...] = tuple(
             inbound_steps
             if inbound_steps is not None
@@ -75,6 +82,10 @@ class AISafetyGateway:
             analyzer_engine=pii.analyzer
         )
         self._face_detector = face_detector or detect_faces_opencv
+
+    @property
+    def safety_step(self) -> ContentSafetyStep:
+        return self._safety
 
     @property
     def vault(self) -> BaseSessionVault:
@@ -103,6 +114,54 @@ class AISafetyGateway:
         for step in self._inbound_steps:
             context = step.process_inbound(context)
         return _result(context, "inbound")
+
+    def sanitize_text(self, session_id: str, text: str) -> SafetyProcessResult:
+        """Idempotent pre-LLM check used for server-side enforcement.
+
+        Runs only PII tokenization and content safety. Unlike ``process_inbound`` it
+        neither prefixes the Socratic instruction nor writes a parent-audit event, so it
+        is safe to call on text that was already inspected (history, model output).
+        Running it twice on its own output returns the same text.
+        """
+        request = InboundRequest(session_id=session_id, text=text)
+        normalized = _normalize_fullwidth_alnum(request.text)
+        # Our own Socratic instruction contains "蘇格拉底", which the name recognizer would
+        # happily tokenize. Keep that trusted prefix out of the scan and put it back after.
+        prefix = SOCRATIC_INBOUND_PREFIX if normalized.startswith(SOCRATIC_INBOUND_PREFIX) else ""
+        body = normalized[len(prefix) :]
+        context = GuardContext(
+            session_id=request.session_id,
+            text=body,
+            original_text=body,
+            metadata={"had_image": False, "faces_detected": 0},
+        )
+        for step in self._sanitize_steps:
+            context = step.process_inbound(context)
+        if prefix and not context.blocked:
+            context.text = prefix + context.text
+            context.original_text = prefix + context.original_text
+        return _result(context, "inbound")
+
+    def moderate_output(self, session_id: str, text: str) -> SafetyProcessResult:
+        """Content-safety check on model output only.
+
+        Deliberately no PII tokenization: the model only ever saw placeholders, and the
+        name recognizer would turn ordinary words in a reply (e.g. 蘇格拉底) into tokens.
+        No audit event and no Socratic hint either; callers add those if they want them.
+        """
+        request = OutboundRequest(session_id=session_id, text=text)
+        context = GuardContext(
+            session_id=request.session_id,
+            text=request.text,
+            original_text=request.text,
+        )
+        context = self._safety.process_outbound(context)
+        return _result(context, "outbound")
+
+    def reset_session(self, session_id: str) -> None:
+        """Forget everything held for one session (vault mappings and audit events)."""
+        self._vault.clear_session(session_id)
+        self._parent.log.clear_session(session_id)
 
     def process_outbound(self, session_id: str, text: str) -> SafetyProcessResult:
         request = OutboundRequest(session_id=session_id, text=text)
@@ -183,6 +242,10 @@ def _find_pii_step(steps: Sequence[BaseGuardStep] | None) -> TaiwanPIIGuardStep 
 
 def _find_parent_step(steps: Sequence[BaseGuardStep] | None) -> ParentAuditStep | None:
     return _find_step(steps, ParentAuditStep)
+
+
+def _find_safety_step(steps: Sequence[BaseGuardStep] | None) -> ContentSafetyStep | None:
+    return _find_step(steps, ContentSafetyStep)
 
 
 def _find_socratic_step(steps: Sequence[BaseGuardStep] | None) -> SocraticPedagogyStep | None:
