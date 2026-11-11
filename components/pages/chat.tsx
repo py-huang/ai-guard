@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { CHILD_LEARNING_PARTNER_PROMPT } from "@/lib/child-llm-prompt";
 import { childSafeErrorMessage, isDisasterRumor, needsLiveSearch } from "@/lib/disaster-rumor";
 import { looksLikeWriting } from "@/lib/writing-intent";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
@@ -245,13 +244,9 @@ export function Chat({ conversationId }: ChatProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: CHILD_LEARNING_PARTNER_PROMPT,
-            },
-            ...history,
-          ],
+          // The server owns the system prompt and re-checks every message; we only send turns.
+          sessionId: conversation.id,
+          messages: history,
           ...(imageBase64 ? { image: { mimeType: "image/png", data: imageBase64 } } : {}),
         }),
       });

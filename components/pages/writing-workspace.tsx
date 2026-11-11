@@ -7,7 +7,6 @@ import { ArrowRight, LoaderCircle, Send } from "lucide-react";
 import { MarkdownMessage } from "@/components/markdown-message";
 import { SpeakButton } from "@/components/speak-button";
 import { useWritingStore } from "@/store/writing-store";
-import { getWritingSystemPrompt } from "../../lib/writing-prompts";
 import type { WritingMessage } from "@/lib/writing";
 
 type WritingWorkspaceProps = {
@@ -68,10 +67,11 @@ export function WritingWorkspace({ themeId }: WritingWorkspaceProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            { role: "system", content: `${getWritingSystemPrompt("chat")}\n目前寫作階段：${stage.stage}\n請直接回覆孩子下一句引導問題，不要加上角色名稱。` },
-            ...requestMessages.map(({ role, content: messageContent }) => ({ role, content: messageContent })),
-          ],
+          // The server builds the writing-coach system prompt from the profile + stage.
+          profile: "writing",
+          writingStage: stage.stage,
+          sessionId: activeDraft.id,
+          messages: requestMessages.map(({ role, content: messageContent }) => ({ role, content: messageContent })),
           googleSearch: false,
         }),
       });

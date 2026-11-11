@@ -4,6 +4,7 @@ const CHILD_TOKEN_LABEL: Record<string, string> = {
   SCHOOL_CLASS: "班級",
   STUDENT_ID: "學號",
   IG_HANDLE: "這個帳號",
+  LINE_ID: "這個帳號",
   PHONE_NUMBER: "電話",
   LOCATION: "這個城市",
   EMAIL_ADDRESS: "信箱",

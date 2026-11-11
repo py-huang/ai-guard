@@ -1,4 +1,7 @@
 import { GeminiBusyError, transcribeGeminiAudio } from "@/lib/gemini";
+import { getConfig } from "@/lib/server/config";
+import { enforceRateLimit, jsonError, PayloadTooLargeError, readJsonBody, tooLargeResponse } from "@/lib/server/http";
+import { logError } from "@/lib/server/log";
 
 type TranscribeRequest = {
   mimeType?: unknown;
@@ -6,22 +9,40 @@ type TranscribeRequest = {
 };
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as TranscribeRequest | null;
+  const limited = enforceRateLimit(request, "voice");
+  if (limited) {
+    return limited;
+  }
+
+  const { limits } = getConfig();
+  let body: TranscribeRequest | null;
+  try {
+    body = await readJsonBody<TranscribeRequest>(request, limits.audioBodyBytes);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return tooLargeResponse();
+    }
+    throw error;
+  }
+
   const data = typeof body?.data === "string" ? body.data.trim() : "";
-  const mimeType = typeof body?.mimeType === "string" && body.mimeType.trim() ? body.mimeType.trim() : "audio/wav";
+  const mimeType = typeof body?.mimeType === "string" && body.mimeType.trim() ? body.mimeType.trim().slice(0, 64) : "audio/wav";
 
   if (!data) {
-    return Response.json({ error: "沒有收到語音。" }, { status: 400 });
+    return jsonError("沒有收到語音。", 400);
+  }
+  if (data.length > limits.maxAudioBase64Chars) {
+    return tooLargeResponse();
   }
 
   try {
     const text = await transcribeGeminiAudio({ mimeType, data });
-    return Response.json({ text });
+    return Response.json({ text }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    console.error("Voice transcribe failed", error);
+    logError("voice_transcribe_failed", error);
     if (error instanceof GeminiBusyError) {
-      return Response.json({ error: error.message, retryable: true }, { status: 503 });
+      return jsonError(error.message, 503, { retryable: true });
     }
-    return Response.json({ error: "現在沒辦法把語音變成文字。" }, { status: 502 });
+    return jsonError("現在沒辦法把語音變成文字。", 502);
   }
 }

@@ -1,5 +1,9 @@
-import { GatewayUnavailableError, inspectWithGateway } from "@/lib/gateway";
+import { GatewayRejectedError, GatewayUnavailableError, inspectWithGateway } from "@/lib/gateway";
 import { inspectPii, type PiiKind } from "@/lib/pii-preview";
+import { getConfig } from "@/lib/server/config";
+import { enforceRateLimit, jsonError, parseSessionId, PayloadTooLargeError, readJsonBody, tooLargeResponse } from "@/lib/server/http";
+import { logError, logWarn } from "@/lib/server/log";
+import { SAFETY_REJECTED_MESSAGE, SAFETY_UNAVAILABLE_MESSAGE } from "@/lib/server/safety";
 import { stripSocraticInboundPrefix } from "@/lib/socratic";
 
 type InspectBody = {
@@ -18,6 +22,7 @@ const ENTITY_KIND: Record<string, PiiKind> = {
   SCHOOL_CLASS: "班級",
   STUDENT_ID: "學號",
   IG_HANDLE: "IG帳號",
+  LINE_ID: "帳號",
   TW_PASSPORT: "護照",
   TW_DRIVER_LICENSE: "駕照",
   TW_BANK_ACCOUNT: "帳號",
@@ -27,12 +32,31 @@ const ENTITY_KIND: Record<string, PiiKind> = {
 };
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as InspectBody | null;
-  const sessionId = typeof body?.sessionId === "string" ? body.sessionId.trim() : "";
+  const limited = enforceRateLimit(request, "inspect");
+  if (limited) {
+    return limited;
+  }
+
+  const config = getConfig();
+  let body: InspectBody | null;
+  try {
+    body = await readJsonBody<InspectBody>(request, config.limits.jsonBodyBytes);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return tooLargeResponse();
+    }
+    throw error;
+  }
+
+  const sessionId = parseSessionId(body?.sessionId);
   const text = typeof body?.text === "string" ? body.text.trim() : "";
 
   if (!sessionId || !text) {
-    return Response.json({ error: "請先輸入問題。" }, { status: 400 });
+    return jsonError("請先輸入問題。", 400);
+  }
+
+  if (text.length > config.limits.maxUserTextChars) {
+    return jsonError(SAFETY_REJECTED_MESSAGE, 400);
   }
 
   try {
@@ -56,27 +80,42 @@ export async function POST(request: Request) {
       .replace(/\s{2,}/g, " ")
       .trim();
 
-    return Response.json({
-      source: "gateway",
-      blocked: result.blocked,
-      childMessage: result.child_message,
-      processedText: result.processed_text,
-      hits,
-      safeText: safeText || (hits.length ? "個人資料已隱藏" : text),
-    });
+    return Response.json(
+      {
+        source: "gateway",
+        blocked: result.blocked,
+        childMessage: result.child_message,
+        processedText: result.processed_text,
+        hits,
+        safeText: safeText || (hits.length ? "個人資料已隱藏" : text),
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
-    if (!(error instanceof GatewayUnavailableError)) {
-      console.error("Safety inspect failed", error);
+    if (error instanceof GatewayRejectedError) {
+      return jsonError(SAFETY_REJECTED_MESSAGE, 400);
     }
 
-    const local = inspectPii(text);
-    return Response.json({
-      source: "local",
-      blocked: false,
-      childMessage: null,
-      processedText: local.safeText,
-      hits: local.hits,
-      safeText: local.safeText,
-    });
+    if (error instanceof GatewayUnavailableError && config.gateway.allowLocalFallback) {
+      // Development convenience only (never honoured in production): weak local rules.
+      logWarn("inspect_local_fallback", { reason: error.reason });
+      const local = inspectPii(text);
+      return Response.json({
+        source: "local",
+        blocked: false,
+        childMessage: null,
+        processedText: local.safeText,
+        hits: local.hits,
+        safeText: local.safeText,
+      });
+    }
+
+    if (!(error instanceof GatewayUnavailableError)) {
+      logError("inspect_failed", error);
+    } else {
+      logWarn("inspect_unavailable", { reason: error.reason });
+    }
+    // Fail closed: without a verdict the text must not be treated as safe.
+    return jsonError(SAFETY_UNAVAILABLE_MESSAGE, 503, { retryable: true });
   }
 }

@@ -23,6 +23,7 @@ const IMAGE_FIELD_LABEL: Record<string, string> = {
   SCHOOL_CLASS: "班級",
   STUDENT_ID: "學號",
   IG_HANDLE: "IG帳號",
+  LINE_ID: "LINE帳號",
   TW_PASSPORT: "護照",
   TW_DRIVER_LICENSE: "駕照",
   TW_BANK_ACCOUNT: "銀行帳號",

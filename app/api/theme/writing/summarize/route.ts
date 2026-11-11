@@ -1,3 +1,15 @@
+import { getConfig } from "@/lib/server/config";
+import { enforceRateLimit, jsonError, PayloadTooLargeError, readJsonBody, tooLargeResponse } from "@/lib/server/http";
+import { logError } from "@/lib/server/log";
+import {
+  ephemeralSessionId,
+  forgetSession,
+  moderateModelOutput,
+  SAFETY_UNAVAILABLE_MESSAGE,
+  SafetyUnavailableError,
+  sanitizeForModel,
+} from "@/lib/server/safety";
+import { replaceVaultTokensForChild } from "@/lib/vault-tokens";
 import { summarizeWritingStage, type WritingMessage } from "@/lib/writing";
 
 type SummarizeRequest = {
@@ -15,19 +27,58 @@ function isWritingMessage(value: unknown): value is WritingMessage {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as SummarizeRequest | null;
-  const stage = typeof body?.stage === "string" ? body.stage.trim() : "";
-  const messages = Array.isArray(body?.messages) ? body.messages.filter(isWritingMessage) : [];
+  const limited = enforceRateLimit(request, "writing");
+  if (limited) {
+    return limited;
+  }
+
+  const { limits } = getConfig();
+  let body: SummarizeRequest | null;
+  try {
+    body = await readJsonBody<SummarizeRequest>(request, limits.jsonBodyBytes * 4);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return tooLargeResponse();
+    }
+    throw error;
+  }
+
+  const stage = typeof body?.stage === "string" ? body.stage.replace(/\s+/g, " ").trim().slice(0, 60) : "";
+  const messages = (Array.isArray(body?.messages) ? body.messages.filter(isWritingMessage) : []).slice(-limits.maxHistoryMessages * 2);
   const hasUserMessage = messages.some((message) => message.role === "user" && message.content.trim());
 
   if (!stage || !hasUserMessage) {
-    return Response.json({ error: "請先完成這一步的對話。" }, { status: 400 });
+    return jsonError("請先完成這一步的對話。", 400);
+  }
+  if (messages.some((message) => message.role === "user" && message.content.length > limits.maxModelUserTextChars)) {
+    return jsonError("這句話太長了，請分成幾句再問。", 400);
   }
 
+  const sessionId = ephemeralSessionId();
   try {
-    return Response.json({ content: await summarizeWritingStage(stage, messages) });
+    const checked: WritingMessage[] = [];
+    for (const message of messages) {
+      if (message.role === "assistant") {
+        checked.push({ ...message, content: message.content.slice(0, limits.maxAssistantTextChars) });
+        continue;
+      }
+      const verdict = await sanitizeForModel(sessionId, message.content);
+      checked.push({ ...message, content: verdict.blocked ? "（略）" : verdict.text });
+    }
+
+    const summary = await summarizeWritingStage(stage, checked);
+    const moderated = await moderateModelOutput(sessionId, summary.slice(0, 20_000));
+    if (moderated.blocked) {
+      return jsonError("暫時無法整理這一步。", 502);
+    }
+    return Response.json({ content: replaceVaultTokensForChild(moderated.text) });
   } catch (error) {
-    console.error("Writing stage summary failed", error);
-    return Response.json({ error: "暫時無法整理這一步。" }, { status: 502 });
+    if (error instanceof SafetyUnavailableError) {
+      return jsonError(SAFETY_UNAVAILABLE_MESSAGE, 503, { retryable: true });
+    }
+    logError("writing_summary_failed", error);
+    return jsonError("暫時無法整理這一步。", 502);
+  } finally {
+    forgetSession(sessionId);
   }
 }
