@@ -253,3 +253,24 @@ html.zhuyin-on aside[data-app-nav] a[aria-label="新對話"] {
   animation: ag-soft-scan 5s linear forwards;
   transform-origin: left center;
 }
+
+@keyframes watch-wave {
+  0%,
+  100% {
+    transform: scaleY(0.38);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.watch-wave-bar {
+  transform-origin: center;
+  animation: watch-wave 1.15s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watch-wave-bar {
+    animation: none;
+  }
+}
