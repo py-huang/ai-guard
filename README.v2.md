@@ -74,8 +74,8 @@ pnpm dev
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e ".[playground]"
-.venv/bin/python -m safety_gateway.playground --host 127.0.0.1 --port 8765
+.venv/bin/pip install -e ".[server]"
+.venv/bin/python -m safety_gateway.server --host 127.0.0.1 --port 8765
 ```
 
 Windows（PowerShell）：
@@ -88,11 +88,11 @@ pnpm dev
 
 ```powershell
 py -3.11 -m venv .venv
-.venv\Scripts\python -m pip install -e ".[playground]"
-.venv\Scripts\python -m safety_gateway.playground --host 127.0.0.1 --port 8765
+.venv\Scripts\python -m pip install -e ".[server]"
+.venv\Scripts\python -m safety_gateway.server --host 127.0.0.1 --port 8765
 ```
 
-`pip install -e ".[playground]"`：以可編輯模式安裝本專案，並加上 FastAPI playground。中文 spaCy 模型 `zh-core-web-md` 會一併安裝，不必再執行 `spacy download`。
+`pip install -e ".[server]"`：以可編輯模式安裝本專案，並加上 FastAPI 服務（生產用 `safety_gateway.server`）。中文 spaCy 模型 `zh-core-web-md` 會一併安裝，不必再執行 `spacy download`。
 
 * 網站: [http://localhost:3000](http://localhost:3000)
 * Gateway: [http://127.0.0.1:8765](http://127.0.0.1:8765)
