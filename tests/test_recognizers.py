@@ -233,3 +233,121 @@ def test_spacy_does_not_label_phone_word_as_person() -> None:
     person_hits = [hit for hit in hits if hit.entity_type == "PERSON"]
     assert id_hits
     assert all("A123456789" not in "身分證 A123456789"[hit.start:hit.end] for hit in person_hits)
+
+
+def _spans(text: str, entity: str) -> list[str]:
+    engine = build_analyzer_engine()
+    return [text[h.start : h.end] for h in engine.analyze(text=text, language="zh") if h.entity_type == entity]
+
+
+@pytest.mark.parametrize(
+    ("text", "entity", "secret"),
+    [
+        ("我的手機是零九一二三四五六七八", "PHONE_NUMBER", "零九一二三四五六七八"),
+        ("洞九幺二三四五六七八是我的電話", "PHONE_NUMBER", "洞九幺二三四五六七八"),
+        ("身分證 A 123 456 789", "TW_ID", "A 123 456 789"),
+        ("身分證 a-123456789", "TW_ID", "a-123456789"),
+        ("寄到 xiaoming at gmail dot com", "EMAIL_ADDRESS", "xiaoming at gmail dot com"),
+        ("寄到 xiaoming小老鼠gmail點com", "EMAIL_ADDRESS", "xiaoming小老鼠gmail點com"),
+        ("寄到 xiaoming＠gmail.com", "EMAIL_ADDRESS", "xiaoming＠gmail.com"),
+        ("我的LINE ID是 xiaoming_0912", "LINE_ID", "xiaoming_0912"),
+        ("line: xiao.ming99", "LINE_ID", "xiao.ming99"),
+    ],
+)
+def test_evasive_spellings_are_caught(text: str, entity: str, secret: str) -> None:
+    assert secret in _spans(text, entity), text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "一二三四五六七八九十，我會數到十",  # counting, no 零九 prefix
+        "零九年的時候發生了什麼事",  # 零九年 is a year, not a phone
+        "第三題的答案是九十八",
+        "我們排成一條線 line up 準備出發",
+        "Line is a messaging app, 這個 line 很長",
+        "我喜歡用 LINE 聊天",
+        "A 1 2 3 是什麼意思",  # short, no checksum, no cue
+        "請問 cat at home 是什麼意思",
+        "我們 at school 玩得很開心",
+        "他點了 dot 圖案的杯子",
+    ],
+)
+def test_ordinary_sentences_are_not_flagged_by_the_new_rules(text: str) -> None:
+    types = _types(text)
+    assert not ({"LINE_ID", "TW_ID", "EMAIL_ADDRESS"} & types), (text, types)
+    assert "PHONE_NUMBER" not in types, (text, types)
+
+
+# ---- precision of the uncued name sweep (found by scripts/eval_corpus.py on benign corpora) ----
+
+
+def _persons(text: str) -> list[str]:
+    engine = _engine_for_precision()
+    return [text[r.start : r.end] for r in engine.analyze(text=text, language="zh") if r.entity_type == "PERSON"]
+
+
+_ENGINE = None
+
+
+def _engine_for_precision():
+    global _ENGINE
+    if _ENGINE is None:
+        from safety_gateway.pii.analyzer import build_analyzer_engine
+
+        _ENGINE = build_analyzer_engine()
+    return _ENGINE
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "黃種人和白種人有什麼差別",
+        "謝謝你的幫忙",
+        "請用簡單的方法說明",
+        "把這段文字改成英文",
+        "成為一個更好的人",
+        "你的方式很特別",
+        "江蘇和蘇北是哪裡",
+        "請寫一段話介紹高雄",
+    ],
+)
+def test_ordinary_words_are_not_people(text: str) -> None:
+    assert _persons(text) == []
+
+
+@pytest.mark.parametrize(
+    ("text", "name"),
+    [
+        ("請問呂豪這樣寫對嗎？", "呂豪"),
+        ("我姓張，電話是0912345678", "張"),
+        ("請問陳先生在家嗎？", "陳先生"),
+        ("林爸爸您好，我想應徵伴讀", "林爸爸"),
+        ("我是研發部的周子瑜，員編RD109022", "周子瑜"),
+        ("退貨單上的聯絡人是填王大明", "王大明"),
+        ("洪承倫 這是我的", "洪承倫"),
+    ],
+)
+def test_real_names_survive_the_precision_filter(text: str, name: str) -> None:
+    assert any(name in found or found in name for found in _persons(text))
+
+
+def test_address_without_city_does_not_swallow_the_sentence() -> None:
+    engine = _engine_for_precision()
+    for text, expected in (
+        ("聯絡我的方式是中山區中華路376號喔", "中山區中華路376號"),
+        ("我家在光復路245號", "光復路245號"),
+        ("寄到中山北路二段100號", "中山北路二段100號"),
+    ):
+        found = [text[r.start : r.end] for r in engine.analyze(text=text, language="zh") if r.entity_type == "LOCATION"]
+        assert expected in found, (text, found)
+
+
+@pytest.mark.parametrize(
+    ("text", "school"),
+    [("我讀和平國小", "和平國小"), ("我在上林國小上課", "上林國小")],
+)
+def test_school_names_that_start_with_a_connective(text: str, school: str) -> None:
+    engine = _engine_for_precision()
+    found = [text[r.start : r.end] for r in engine.analyze(text=text, language="zh") if r.entity_type == "SCHOOL"]
+    assert school in found, (text, found)

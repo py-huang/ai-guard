@@ -34,6 +34,7 @@ _PAINT_ENTITY_TYPES = frozenset(
         "SCHOOL_CLASS",
         "STUDENT_ID",
         "IG_HANDLE",
+        "LINE_ID",
         "TW_PASSPORT",
         "TW_DRIVER_LICENSE",
         "TW_BANK_ACCOUNT",

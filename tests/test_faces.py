@@ -24,10 +24,23 @@ def test_injected_face_boxes_are_blacked_out() -> None:
         engine=_PassthroughEngine(),
         face_detector=lambda _image: [(20, 20, 80, 80)],
     )
-    result = redactor.redact_image_in_memory(buffer.getvalue())
+    result, entities = redactor.redact_image_with_entities(buffer.getvalue())
+    # Policy since "block faces on the child image card": a detected face is reported as
+    # FACE and the whole frame is blacked out, not just the face box.
+    assert "FACE" in entities
     with Image.open(io.BytesIO(result)) as redacted:
         assert redacted.getpixel((50, 50)) == (0, 0, 0)
-        assert redacted.getpixel((2, 2)) != (0, 0, 0)
+        assert redacted.getpixel((2, 2)) == (0, 0, 0)
+
+
+def test_face_box_alone_does_not_black_out_other_pixels() -> None:
+    """The box painter itself is still local; only the image-level policy is global."""
+    from safety_gateway.pii.faces import redact_face_boxes
+
+    image = Image.new("RGB", (120, 120), color=(200, 180, 160))
+    painted = redact_face_boxes(image, [(20, 20, 80, 80)])
+    assert painted.getpixel((50, 50)) == (0, 0, 0)
+    assert painted.getpixel((2, 2)) == (200, 180, 160)
 
 
 def test_nametag_card_hides_classmate_name() -> None:

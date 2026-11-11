@@ -17,8 +17,10 @@ from safety_gateway.pii.checksum import is_valid_tw_national_id
 from safety_gateway.pii.taiwan_names import (
     COMPOUND_SURNAMES,
     SINGLE_SURNAMES,
+    is_everyday_word,
     resolved_person_span,
     surname_prefix,
+    vet_uncued_given,
 )
 
 _CJK = r"\u4e00-\u9fa5"
@@ -78,6 +80,10 @@ class TaiwanNationalIDRecognizer(EntityRecognizer):
 
     _ID = re.compile(rf"{_ASCII_BOUND_LEFT}([A-Z][1289]\d{{8}}){_ASCII_BOUND_RIGHT}")
     _CUE = re.compile(r"身分證|身份證|統號|身分證字號")
+    # "A 123 456 789", "a-123456789", lowercase: kids and speech-to-text do not type it cleanly.
+    _LOOSE_ID = re.compile(
+        rf"{_ASCII_BOUND_LEFT}([A-Za-z])[ \-]?([1289])(?:[ \-]?\d){{8}}{_ASCII_BOUND_RIGHT}"
+    )
 
     def __init__(self) -> None:
         super().__init__(
@@ -116,6 +122,22 @@ class TaiwanNationalIDRecognizer(EntityRecognizer):
                     score=score,
                 )
             )
+        seen = {(hit.start, hit.end) for hit in results}
+        for match in self._LOOSE_ID.finditer(text):
+            span = (match.start(), match.end())
+            if span in seen:
+                continue
+            compact = re.sub(r"[ \-]", "", match.group(0)).upper()
+            window = text[max(0, match.start() - 12) : match.end() + 4]
+            if is_valid_tw_national_id(compact):
+                score = 0.85
+            elif self._CUE.search(window):
+                score = 0.55
+            else:
+                continue
+            results.append(
+                RecognizerResult(entity_type="TW_ID", start=span[0], end=span[1], score=score)
+            )
         return results
 
 
@@ -145,6 +167,24 @@ class TaiwanSchoolRecognizer(EntityRecognizer):
         )
         self._suffix_re = re.compile("|".join(re.escape(item) for item in self.SUFFIXES))
 
+    _PLACE_CONNECTIVES = frozenset("和上來到及")
+    _PRONOUNS = frozenset("我你他她它們咱您")
+
+    def _scan_prefix(self, text: str, end: int, *, lenient: bool) -> tuple[int, int]:
+        start, taken, cursor = end, 0, end
+        while cursor > 0 and taken < self._PREFIX_MAX:
+            previous = text[cursor - 1]
+            if not re.match(rf"[{_CJK}]", previous):
+                break
+            if previous in self._STOP and not (lenient and previous in self._PLACE_CONNECTIVES):
+                break
+            if lenient and previous in self._PRONOUNS:
+                break
+            cursor -= 1
+            taken += 1
+            start = cursor
+        return start, taken
+
     def load(self) -> None:
         return None
 
@@ -159,16 +199,11 @@ class TaiwanSchoolRecognizer(EntityRecognizer):
         results: list[RecognizerResult] = []
         seen: set[tuple[int, int]] = set()
         for match in self._suffix_re.finditer(text):
-            prefix_start = match.start()
-            taken = 0
-            cursor = match.start()
-            while cursor > 0 and taken < self._PREFIX_MAX:
-                previous = text[cursor - 1]
-                if previous in self._STOP or not re.match(rf"[{_CJK}]", previous):
-                    break
-                cursor -= 1
-                taken += 1
-                prefix_start = cursor
+            prefix_start, taken = self._scan_prefix(text, match.start(), lenient=False)
+            if taken < self._PREFIX_MIN:
+                # 和平國小, 上林國小: the place name itself starts with a connective. Retry once,
+                # still refusing pronouns so "我和國小的同學" is not read as a school.
+                prefix_start, taken = self._scan_prefix(text, match.start(), lenient=True)
             if taken < self._PREFIX_MIN:
                 continue
             span = (prefix_start, match.end())
@@ -195,6 +230,9 @@ class TaiwanLocationRecognizer(PatternRecognizer):
     )
     _DISTRICT = rf"[{_CJK}]{{1,4}}(?:區|鄉|鎮|市)"
     _ROAD = rf"[{_CJK}0-9]{{1,10}}(?:路|街|大道)"
+    # Without a city or district to anchor it, a road name is short ("復興路", "中山北路"); the
+    # long form would swallow the carrier sentence ("聯絡我的方式是中華路376號").
+    _ROAD_SHORT = rf"[{_CJK}0-9]{{1,4}}(?:路|街|大道)"
     _SECTION = r"[一二三四五六七八九十0-9]+段"
     _LANE = r"[0-9]+巷(?:[0-9]+弄)?"
     _NUMBER = r"[0-9]+(?:號|号)(?:之[0-9]+)?"
@@ -208,6 +246,15 @@ class TaiwanLocationRecognizer(PatternRecognizer):
                 rf"(?:{_LANE})?(?:{_NUMBER})?(?:{_FLOOR})?"
             ),
             score=0.7,
+        ),
+        # Children often leave the city out: "中正區復興路371號", "光復路245號".
+        Pattern(
+            name="tw_address_no_city",
+            regex=(
+                rf"(?![在是住家的我你他她有到寄去來])(?:[{_CJK}]{{2,3}}(?:區|鄉|鎮))?{_ROAD_SHORT}(?:{_SECTION})?(?:{_LANE})?"
+                rf"{_NUMBER}(?:{_FLOOR})?"
+            ),
+            score=0.65,
         ),
         Pattern(
             name="tw_english_address",
@@ -262,10 +309,23 @@ class ChinesePersonRecognizer(EntityRecognizer):
             re.compile(rf"(?:同學|小朋友)\s*{name}"),
             re.compile(rf"{name}\s*(?=同學|小朋友|老師|先生|小姐|女士)"),
             re.compile(rf"(?:我跟|我和|我與|跟|和|與)\s*{name}(?=先生|小姐|女士|老師|同學)"),
-            # 姓＋名 after a start, comma, space, or 請問／是 — no dictionary, no verb list.
+        )
+        # "我叫約翰，今年十歲": announced as a name but with no Taiwan surname (foreign or given-only).
+        # Ends at punctuation or a following clause so "我叫媽媽來" is not read as a name.
+        self._announced = re.compile(
+            rf"(?:我叫|我的名字是|我的名字叫|名字叫|我的英文名字是)\s*(?P<name>[{_CJK}]{{2,3}})"
+            rf"(?=$|[，,。！？!?\s、；;]|今年|我是|我在|我住|我喜歡|我有|我讀|我念)"
+        )
+        # A surname with a title, or announced as one's surname, is a naming cue in itself.
+        self._surname_cues = (
             re.compile(
-                rf"(?:^|(?<=[\s，,。！？；;：:\n、問請是有跟和與給把被對向找幫讓叫在到從用看聽說的])){name}"
+                rf"(?P<name>{surname}(?:先生|小姐|女士|經理|副理|主任|老闆娘|老闆|醫師|律師|教授|校長|董事長|總經理|老師|同學|爸爸|媽媽|阿姨|叔叔|伯伯|伯母|舅舅|阿嬤|奶奶|爺爺))"
             ),
+            re.compile(rf"(?:我姓|敝姓|免貴姓|本姓)(?P<name>{surname})"),
+        )
+        # 姓＋名 after a start, comma, space, or 請問／是: no naming cue, so it is vetted like the sweep.
+        self._loose = re.compile(
+            rf"(?:^|(?<=[\s，,。！？；;：:\n、問請是有跟和與給把被對向找幫讓叫在到從用看聽說的])){name}"
         )
 
     def load(self) -> None:
@@ -297,6 +357,33 @@ class ChinesePersonRecognizer(EntityRecognizer):
                         score=0.85,
                     )
                 )
+        for match in self._announced.finditer(text):
+            span = match.span("name")
+            if span in seen or not _is_announceable_name(match.group("name")):
+                continue
+            seen.add(span)
+            results.append(RecognizerResult(entity_type="PERSON", start=span[0], end=span[1], score=0.8))
+        for pattern in self._surname_cues:
+            for match in pattern.finditer(text):
+                span = match.span("name")
+                if span in seen:
+                    continue
+                seen.add(span)
+                results.append(
+                    RecognizerResult(entity_type="PERSON", start=span[0], end=span[1], score=0.85)
+                )
+        for match in self._loose.finditer(text):
+            raw = match.span("name")
+            span = resolved_person_span(text, raw[0], raw[1])
+            if span is None or span[0] == span[1]:
+                continue
+            span = _vet_uncued(text, span)
+            if span is None or span in seen:
+                continue
+            seen.add(span)
+            results.append(
+                RecognizerResult(entity_type="PERSON", start=span[0], end=span[1], score=0.85)
+            )
         for start, end in _scan_plausible_names(text):
             span = (start, end)
             if span in seen:
@@ -313,6 +400,42 @@ class ChinesePersonRecognizer(EntityRecognizer):
         return results
 
 
+# Words that can follow 我叫 without being anyone's name: people to address, pronouns, roles.
+_NOT_ANNOUNCED = frozenset(
+    {
+        "爸爸", "媽媽", "爸媽", "哥哥", "姊姊", "姐姐", "弟弟", "妹妹", "爺爺", "奶奶", "阿嬤", "阿公", "阿姨",
+        "叔叔", "伯伯", "舅舅", "老師", "同學", "大家", "你們", "我們", "他們", "她們", "小狗", "小貓", "機器人",
+        "警察", "醫生", "助理", "老闆", "朋友", "小朋友", "外送", "計程車",
+    }
+)
+
+
+def _is_announceable_name(word: str) -> bool:
+    return (
+        word not in _NOT_ANNOUNCED
+        and word[0] not in "你我他她它這那"
+        and not any(char in "的了是在不有和與為嗎呢吧來去幫給請" for char in word)
+    )
+
+
+def _vet_uncued(text: str, span: tuple[int, int]) -> tuple[int, int] | None:
+    """Vet a candidate that had no naming cue around it (the sweep and the loose pattern).
+
+    Returns the (possibly trimmed) span, or ``None`` when the given-name part is not name-like.
+    """
+    if is_everyday_word(text, span[0], span[1]):
+        return None
+    segment = text[span[0] : span[1]]
+    chars = "".join(ch for ch in segment if "\u4e00" <= ch <= "\u9fa5")
+    surname = surname_prefix(chars)
+    if not surname or len(chars) != len(segment):
+        return None
+    kept = vet_uncued_given(surname, chars[len(surname) :])
+    if kept is None:
+        return None
+    return span[0], span[0] + len(surname) + len(kept)
+
+
 def _scan_plausible_names(text: str) -> list[tuple[int, int]]:
     """High-recall sweep: any 姓＋1–2 名 window, prefer the longer span."""
     found: list[tuple[int, int]] = []
@@ -325,6 +448,7 @@ def _scan_plausible_names(text: str) -> list[tuple[int, int]]:
             continue
         max_end = min(index + len(prefix) + 2, length)
         span = resolved_person_span(text, index, max_end)
+        span = _vet_uncued(text, span) if span is not None else None
         if span is not None:
             found.append(span)
         index += 1
@@ -351,6 +475,8 @@ class EnglishPersonRecognizer(EntityRecognizer):
             re.compile(rf"(?:我是)(?P<name>小[{_CJK}])(?=的媽媽|的爸爸|的家長)"),
             re.compile(rf"(?:傳統姓名|英文姓名)[，,是為]*\s*{full}"),
             re.compile(rf"(?P<name>{given}\s+{given})(?=，|。|和Lee|和)"),
+            # "Hi, I'm Jessica" / "call me Tom": an introduction, whatever the surrounding script.
+            re.compile(rf"(?i:\bI['’]m|\bI am|\bIm|\bcall me|\bmy name['’]s)\s+{full}\b"),
         )
 
     def load(self) -> None:
@@ -550,6 +676,61 @@ class InstagramHandleRecognizer(_LabeledValueRecognizer):
         )
 
 
+class LineIdRecognizer(_LabeledValueRecognizer):
+    """LINE ID. Needs an explicit ``ID``/``帳號``/colon so "line up" or "Line is" is left alone."""
+
+    def __init__(self) -> None:
+        ident = r"(?P<value>[A-Za-z0-9][A-Za-z0-9._-]{3,19})"
+        marker = r"(?:\s*(?:ID|id|Id|帳號)\s*[:：是為]?|\s*[:：是為])"
+        super().__init__(
+            entity_type="LINE_ID",
+            name="LineIdRecognizer",
+            score=0.92,
+            patterns=(re.compile(rf"(?<![A-Za-z])(?:LINE|Line|line){marker}\s*{ident}"),),
+        )
+
+
+class ObfuscatedEmailRecognizer(_LabeledValueRecognizer):
+    """``name at gmail dot com`` / ``name＠gmail.com`` / ``name小老鼠gmail點com``."""
+
+    def __init__(self) -> None:
+        local = r"[A-Za-z0-9][A-Za-z0-9._%+-]{1,40}"
+        at = r"\s*(?:＠|\(at\)|\[at\]|小老鼠|(?<![A-Za-z])at(?![A-Za-z]))\s*"
+        dot = r"\s*(?:\(dot\)|\[dot\]|點|(?<![A-Za-z])dot(?![A-Za-z])|\.)\s*"
+        label = r"[A-Za-z0-9-]{1,30}"
+        tld = r"(?:com|net|org|edu|gov|tw|io|co|info|me)(?![A-Za-z])"
+        super().__init__(
+            entity_type="EMAIL_ADDRESS",
+            name="ObfuscatedEmailRecognizer",
+            score=0.9,
+            patterns=(
+                re.compile(
+                    rf"(?<![A-Za-z0-9._%+-])(?P<value>{local}{at}{label}(?:{dot}{label})*{dot}{tld})",
+                    re.IGNORECASE,
+                ),
+            ),
+        )
+
+
+_CN_DIGIT = r"[零〇洞一幺二兩三四五六七八九]"
+
+
+class ChineseNumeralPhoneRecognizer(_LabeledValueRecognizer):
+    """Mobile numbers written or dictated as 零九一二三四五六七八 (洞=0, 幺=1 when spoken)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            entity_type="PHONE_NUMBER",
+            name="ChineseNumeralPhoneRecognizer",
+            score=0.85,
+            patterns=(
+                re.compile(
+                    rf"(?<!{_CN_DIGIT})(?P<value>[零〇洞]\s?九(?:\s?{_CN_DIGIT}){{8}})(?!{_CN_DIGIT})"
+                ),
+            ),
+        )
+
+
 class TaiwanStudentIdRecognizer(_LabeledValueRecognizer):
     """學號／座號. Label required so homework numbers are not swallowed."""
 
@@ -721,7 +902,10 @@ def build_taiwan_recognizers() -> list[EntityRecognizer]:
         TaiwanSchoolClassRecognizer(),
         TaiwanStudentIdRecognizer(),
         InstagramHandleRecognizer(),
+        LineIdRecognizer(),
         CuedEmailRecognizer(),
+        ObfuscatedEmailRecognizer(),
+        ChineseNumeralPhoneRecognizer(),
         TaiwanLocationRecognizer(),
         ChinesePersonRecognizer(),
         EnglishPersonRecognizer(),
