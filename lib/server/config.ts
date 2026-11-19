@@ -38,6 +38,7 @@ function loadConfig() {
   const production = process.env.NODE_ENV === "production";
   return {
     production,
+    parentApprovalDemo: readBool("PARENT_APPROVAL_DEMO", !production),
     gateway: {
       url: (process.env.SAFETY_GATEWAY_URL?.trim() || "http://127.0.0.1:8765").replace(/\/+$/, ""),
       token: process.env.SAFETY_GATEWAY_TOKEN?.trim() ?? "",

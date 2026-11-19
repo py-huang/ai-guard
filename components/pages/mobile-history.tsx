@@ -332,7 +332,7 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
                   <h2 className="text-[14px] font-bold leading-[22px] tracking-[0.1px]">AI 評估</h2>
                 </div>
                 <p className="text-[12px] leading-5 text-[#506058]">
-                  {hasProtectedMessages ? "已移除個資，改用適齡安全內容回覆。" : "這則 AI 回覆已通過安全檢查。"}
+                  {hasProtectedMessages ? "部分訊息已使用個資保護；AI 回覆已通過安全檢查。" : "這則 AI 回覆已通過安全檢查。"}
                 </p>
                 <p className="text-[12px] leading-5 text-[#506058]">
                   這是對提問與回答的判斷，不是對孩子的評分。

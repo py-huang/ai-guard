@@ -23,8 +23,8 @@ const reviewResults: Record<ReviewDecision, {
   artwork: string;
 }> = {
   approved: {
-    header: "審核已完成", subtitle: "本次審核已完成", title: "已同意安全版本", badge: "已同意安全版本",
-    description: "孩子可以使用不含個資的問題繼續提問。", background: "bg-[#ecf9f3]",
+    header: "審核已完成", subtitle: "本次審核已完成", title: "已同意繼續", badge: "已同意",
+    description: "孩子按下繼續後，原始問題及其中的個人資料會送給 AI。", background: "bg-[#ecf9f3]",
     badgeStyle: "bg-[#ddf5ea] text-[#177049]", artwork: "/mobile/review-result-approved.svg",
   },
   revision: {
@@ -168,6 +168,7 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
 
   function decide(status: ReviewDecision) {
     if (current && current.status === "pending") {
+      if (status === "approved" && current.category !== "image" && !current.originalText) return;
       setOutcome({ item: current, decision: status });
       scrollRef.current?.scrollTo({ top: 0 });
       updateSafetyEvent(current.conversationId, current.id, { status, read: true });
@@ -226,9 +227,9 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
             <section className={`flex flex-col gap-2 rounded-[20px] p-4 ${activeOutcome.decision === "approved" ? "bg-[#ecf9f3]" : "bg-[#fff8d9]"}`}>
               <h3 className={`flex items-center gap-2 text-[14px] font-medium leading-5 ${activeOutcome.decision === "approved" ? "text-[#177049]" : "text-[#13221b]"}`}>
                 <img src={activeOutcome.decision === "approved" ? "/mobile/review-result-safe.svg" : activeOutcome.decision === "revision" ? "/mobile/review-result-revision-info.svg" : "/mobile/review-result-declined-info.svg"} alt="" width="18" height="18" />
-                {activeOutcome.decision === "approved" ? activeOutcome.item.category === "image" ? "只會使用安全圖片" : "只會送出這個安全版本" : "資料保護持續生效"}
+                {activeOutcome.decision === "approved" ? activeOutcome.item.category === "image" ? "只會使用安全圖片" : "將送出原始問題" : "資料保護持續生效"}
               </h3>
-              <p className="text-[14px] leading-[22px] text-[#506058]">{activeOutcome.decision === "approved" ? activeOutcome.item.safeText || (activeOutcome.item.category === "image" ? "圖片不會儲存在紀錄中；返回對話後可能需要重新上傳並檢查。" : "此紀錄沒有可顯示的安全版本。") : "原始個資未送出 AI，也不會因審核操作而繞過安全檢查。"}</p>
+              <p className="text-[14px] leading-[22px] text-[#506058]">{activeOutcome.decision === "approved" ? activeOutcome.item.category === "image" ? "圖片不會儲存在紀錄中；返回對話後可能需要重新上傳並檢查。" : activeOutcome.item.originalText : "原始個資未送出 AI；修改後仍會重新進行安全檢查。"}</p>
             </section>
             <Link href="/mobile/" className="flex h-12 items-center justify-center rounded-[16px] bg-[#d63a37] text-[15px] font-medium text-white">完成</Link>
             <button type="button" onClick={returnToList} className="flex h-12 items-center justify-center rounded-[16px] border border-[#d63a37] bg-white text-[15px] font-medium text-[#c02d32]">返回待確認</button>
@@ -239,7 +240,7 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
               <div className="min-w-0 flex-1">
                 <p className={`text-[11px] font-bold ${config.color}`}>{current.type === "critical" ? "需要你的關注" : current.type === "pending" ? "家長審核" : "一般安全提醒"}</p>
                 <h2 className="mt-1 text-[18px] font-bold leading-7">{current.type === "critical" ? "偵測到高風險安全訊息" : current.type === "pending" ? `${sourceLabel(current)}｜${statusLabels[current.status ?? "pending"]}` : "個資已受保護"}</h2>
-                {current.type !== "protected" && <p className="mt-1 text-[13px] leading-5 text-[#506058]">{current.type === "critical" ? "已採取安全處理，請先確認孩子安全。" : "個資已自動保護，請確認是否繼續。"}</p>}
+                {current.type !== "protected" && <p className="mt-1 text-[13px] leading-5 text-[#506058]">{current.type === "critical" ? "已採取安全處理，請先確認孩子安全。" : current.category === "image" ? "請確認是否使用安全圖片繼續。" : "請確認是否同意將原始問題及個資送給 AI。"}</p>}
               </div>
               <img src={config.hero} width={current.type === "protected" ? 88 : 112} height={current.type === "protected" ? 88 : 112} alt="" className="shrink-0" />
             </div>
@@ -253,11 +254,11 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
             ) : (
               <>
                 {current.type === "protected" && <Panel title="事件類型 · 個人資料保護" tone="peach" icon="/mobile/detail-protected-alert.svg">偵測到{current.fields?.length ? [...new Set(current.fields)].join("、") : "需要保護的資料"}，已使用安全版本。</Panel>}
-                <Panel title={current.type === "pending" ? "1 · 孩子的問題（已遮蔽）" : "孩子的提問（已遮蔽）"} icon={current.type === "pending" ? "/mobile/detail-pending-original.svg" : "/mobile/detail-protected-message.svg"}>{current.maskedOriginal || (current.category === "image" ? "圖片不會儲存在通知紀錄中。" : "此紀錄沒有保存遮蔽後的原始提問。")}</Panel>
+                <Panel title={current.type === "pending" ? "1 · 孩子的原始問題" : "孩子的原始提問"} icon={current.type === "pending" ? "/mobile/detail-pending-original.svg" : "/mobile/detail-protected-message.svg"}>{current.category === "image" ? "圖片不會儲存在通知紀錄中。" : current.originalText || (current.type === "pending" ? "這筆舊紀錄沒有保存原文，請孩子重新輸入並送出確認。" : "這筆舊紀錄沒有保存原文。")}</Panel>
                 {current.type === "pending" ? (
                   <>
-                    <Panel title="2 · 系統偵測風險" icon="/mobile/detail-pending-alert.svg">請確認是否適合繼續；個人資料不會因家長同意而解除遮蔽。</Panel>
-                    <Panel title="3 · 將使用的安全版本" tone="green" icon="/mobile/detail-pending-safe.svg">{current.safeText || "圖片需重新進行安全檢查。"}</Panel>
+                    <Panel title="2 · 系統偵測風險" icon="/mobile/detail-pending-alert.svg">{current.category === "image" ? "請確認是否適合使用安全圖片繼續。" : "同意後，孩子可將原始問題及其中的個人資料送給 AI。"}</Panel>
+                    <Panel title="3 · 建議的安全版本" tone="green" icon="/mobile/detail-pending-safe.svg">{current.safeText || "圖片需重新進行安全檢查。"}</Panel>
                   </>
                 ) : (
                   <>
@@ -268,7 +269,7 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
               </>
             )}
             {current.type === "pending" && current.status !== "pending" && <Link href={`/chat/${current.conversationId}`} className="rounded-2xl border border-[#d63a37] bg-white px-4 py-3 text-center text-[15px] font-medium text-[#c02d32]">返回孩子的對話</Link>}
-            <p className="text-xs leading-5 text-[#506058]">本機示範：通知與審核結果僅儲存在同一瀏覽器，不會跨裝置同步。</p>
+            <p className="text-xs leading-5 text-[#506058]">本機示範：原始問題及審核結果儲存在同一瀏覽器，未驗證家長身分，不會跨裝置同步。</p>
           </div>
         ) : confirmationsOnly && ready && items.length === 0 ? (
           <div className="flex flex-col gap-4 px-4 pb-6 pt-4">
@@ -327,7 +328,7 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
         )}
       </div>
       {!showAdvice && !activeOutcome && (current?.type === "critical" || current?.type === "protected") && <div className="flex shrink-0 flex-col gap-2 bg-white p-4">{current.type === "critical" && <button type="button" onClick={() => { setShowAdvice(true); scrollRef.current?.scrollTo({ top: 0 }); }} className="h-12 rounded-2xl bg-[#d63a37] text-[15px] font-medium text-white">查看協助建議</button>}<button type="button" onClick={acknowledgeNotification} className="h-12 rounded-2xl border border-[#d63a37] text-[15px] font-medium text-[#c02d32]">我已查看</button></div>}
-      {!activeOutcome && current?.type === "pending" && current.status === "pending" && <div className="flex shrink-0 flex-col gap-2 border border-[#dde3df] bg-white p-4">{([["approved", "同意並繼續"], ["revision", "退回修改"], ["declined", "拒絕本次內容"]] as const).map(([status, label], index) => <button key={status} type="button" onClick={() => decide(status)} className={`h-12 rounded-2xl text-[15px] font-medium ${index === 0 ? "bg-[#d63a37] text-white" : "border border-[#d63a37] text-[#c02d32]"}`}>{label}</button>)}</div>}
+      {!activeOutcome && current?.type === "pending" && current.status === "pending" && <div className="flex shrink-0 flex-col gap-2 border border-[#dde3df] bg-white p-4">{([["approved", "同意並繼續"], ["revision", "退回修改"], ["declined", "拒絕本次內容"]] as const).map(([status, label], index) => <button key={status} type="button" onClick={() => decide(status)} disabled={status === "approved" && current.category !== "image" && !current.originalText} className={`h-12 rounded-2xl text-[15px] font-medium disabled:opacity-50 ${index === 0 ? "bg-[#d63a37] text-white" : "border border-[#d63a37] text-[#c02d32]"}`}>{label}</button>)}</div>}
     </section>
   );
 }

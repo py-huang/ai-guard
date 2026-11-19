@@ -140,6 +140,7 @@ export function PiiRewriteCard({ preview, onPutBack, onAskParent, onEditSelf }: 
 
 export function ParentPendingCard({
   safeText,
+  canApprove,
   onUseSafe,
   onEdit,
   onAskElse,
@@ -148,6 +149,7 @@ export function ParentPendingCard({
   onDemoDecline,
 }: {
   safeText: string;
+  canApprove: boolean;
   onUseSafe: () => void;
   onEdit: () => void;
   onAskElse: () => void;
@@ -187,7 +189,7 @@ export function ParentPendingCard({
         </button>
       </div>
       <div className="flex flex-wrap gap-3">
-        <button className="self-start text-xs text-[#8a968f] underline" onClick={onDemoApprove} type="button">
+        <button className="self-start text-xs text-[#8a968f] underline disabled:opacity-50" onClick={onDemoApprove} disabled={!canApprove} type="button">
           示範：家長同意
         </button>
         <button className="self-start text-xs text-[#8a968f] underline" onClick={onDemoRevise} type="button">
@@ -201,33 +203,32 @@ export function ParentPendingCard({
   );
 }
 
-export function ParentApprovedCard({ safeText, onContinue, onEdit, onAskElse }: { safeText: string; onContinue: () => void; onEdit: () => void; onAskElse: () => void }) {
+export function ParentApprovedCard({ originalText, busy, onContinue, onEdit, onAskElse }: { originalText?: string; busy: boolean; onContinue: () => void; onEdit: () => void; onAskElse: () => void }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
         <p className="rounded-full bg-[#ddf5ea] px-4 py-2 text-sm text-[#177049]">✓ 家長確認好了</p>
       </div>
       <div className="ml-auto max-w-[520px] rounded-[24px] bg-[#eee6ff] px-5 py-4">
-        <ProtectedBadge />
-        <p className="mt-2 text-[17px] leading-8">{safeText}</p>
+        <p className="text-[17px] leading-8">{originalText || "這筆舊紀錄沒有保存原文，請重新輸入並請家長確認。"}</p>
       </div>
       <div className="flex gap-3">
         <ChatAiAvatar />
         <div>
-          <p className="font-bold">我們會使用安全版本。</p>
-          <p className="mt-1 text-sm text-[#506058]">按下「繼續」後才會送出；原始姓名與學校不會傳給 AI。</p>
+          <p className="font-bold">家長同意送出原本的問題。</p>
+          <p className="mt-1 text-sm text-[#506058]">按下「繼續」後，原文中的個人資料也會送給 AI。</p>
         </div>
       </div>
       <section className="rounded-[28px] bg-[#ecf9f3] p-6">
         <p className="font-bold">準備好了嗎？</p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <button className="h-12 rounded-full bg-[#d63a37] px-6 text-[15px] font-medium text-white" onClick={onContinue} type="button">
+          <button className="h-12 rounded-full bg-[#d63a37] px-6 text-[15px] font-medium text-white disabled:opacity-50" onClick={onContinue} disabled={!originalText || busy} type="button">
             繼續
           </button>
-          <button className="h-12 rounded-full border border-[#d63a37] px-5 text-[15px] font-medium text-[#d63a37]" onClick={onEdit} type="button">
+          <button className="h-12 rounded-full border border-[#d63a37] px-5 text-[15px] font-medium text-[#d63a37] disabled:opacity-50" onClick={onEdit} disabled={busy} type="button">
             修改問題
           </button>
-          <button className="h-12 text-[15px] font-medium text-[#d63a37]" onClick={onAskElse} type="button">
+          <button className="h-12 text-[15px] font-medium text-[#d63a37] disabled:opacity-50" onClick={onAskElse} disabled={busy} type="button">
             先問別的問題
           </button>
         </div>

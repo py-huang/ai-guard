@@ -17,7 +17,7 @@ dependencies = [
   "numpy>=1.26",
   "rapidocr-onnxruntime>=1.4.4",
   "spacy>=3.8,<3.9",
-  "zh-core-web-md==3.8.0",
+  "zh-core-web-md @ https://github.com/explosion/spacy-models/releases/download/zh_core_web_md-3.8.0/zh_core_web_md-3.8.0-py3-none-any.whl",
   "pypinyin>=0.51",
 ]
 

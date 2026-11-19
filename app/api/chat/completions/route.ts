@@ -22,9 +22,9 @@ import { getWritingSystemPrompt } from "@/lib/writing-prompts";
  * Chat endpoint for the child chat page and the writing coach.
  *
  * Trust model: the browser is not trusted. The system prompt is chosen here, every user
- * message is re-checked by the safety gateway here (including older turns, which the
- * browser stores in their original, un-tokenized form), an image is only accepted if this
- * server produced it, and the model's reply is moderated here before it is returned.
+ * message is re-checked by the safety gateway here. The optional local parent-approval
+ * demo can forward the latest checked turn without PII tokenization; it is not authentication.
+ * Images must be server-redacted, and model replies are moderated before being returned.
  */
 
 type Profile = "chat" | "writing";
@@ -37,6 +37,7 @@ type ChatCompletionRequest = {
   sessionId?: unknown;
   profile?: unknown;
   writingStage?: unknown;
+  parentApprovedDemo?: unknown;
 };
 
 type TurnMessage = { role: "user" | "assistant"; content: string };
@@ -86,6 +87,10 @@ export async function POST(request: Request) {
   }
 
   const profile: Profile = body?.profile === "writing" ? "writing" : "chat";
+  const parentApprovedDemo = body?.parentApprovedDemo === true;
+  if (parentApprovedDemo && (!config.parentApprovalDemo || profile !== "chat")) {
+    return jsonError("目前無法使用家長同意原文的示範功能。", 403);
+  }
   // Old clients that send no session id still get consistent placeholders within this request.
   const suppliedSessionId = parseSessionId(body?.sessionId);
   const sessionId = suppliedSessionId || ephemeralSessionId();
@@ -115,12 +120,12 @@ export async function POST(request: Request) {
     // Re-check every user turn. Older turns are stored in the browser as typed (with
     // names, schools...), so only the newest one has been tokenized by the browser's flow.
     const checked = await Promise.all(
-      turns.map(async (turn) => {
+      turns.map(async (turn, index) => {
         if (turn.role === "assistant") {
           return { turn: { role: turn.role, content: turn.content.slice(0, limits.maxAssistantTextChars) }, blocked: false, childMessage: null as string | null };
         }
         const verdict = await sanitizeForModel(sessionId, turn.content);
-        return { turn: { role: turn.role, content: verdict.text }, blocked: verdict.blocked, childMessage: verdict.childMessage };
+        return { turn: { role: turn.role, content: parentApprovedDemo && index === turns.length - 1 ? turn.content : verdict.text }, blocked: verdict.blocked, childMessage: verdict.childMessage };
       }),
     );
 

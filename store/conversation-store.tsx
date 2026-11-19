@@ -218,7 +218,14 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
   function updateSafetyEvent(id: string, eventId: string, changes: Partial<Pick<SafetyEvent, "status" | "read" | "acknowledged">>) {
     setConversations((current) => current.map((conversation) =>
       conversation.id === id
-        ? { ...conversation, safetyEvents: conversation.safetyEvents?.map((event) => event.id === eventId ? { ...event, ...changes } : event) }
+        ? { ...conversation, safetyEvents: conversation.safetyEvents?.map((event) => {
+          if (event.id !== eventId) return event;
+          if (changes.status === "cancelled" || changes.status === "completed") {
+            const { originalText: _originalText, ...rest } = event;
+            return { ...rest, ...changes };
+          }
+          return { ...event, ...changes };
+        }) }
         : conversation
     ));
   }

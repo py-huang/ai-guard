@@ -69,7 +69,7 @@ export function Chat({ conversationId }: ChatProps) {
   const pendingEventId = useRef<string | null>(null);
   const restoredConversationId = useRef<string | null>(null);
 
-  function recordEvent(type: SafetyEvent["type"], details: Partial<Pick<SafetyEvent, "maskedOriginal" | "safeText" | "fields" | "category" | "status">> = {}) {
+  function recordEvent(type: SafetyEvent["type"], details: Partial<Pick<SafetyEvent, "originalText" | "maskedOriginal" | "safeText" | "fields" | "category" | "status">> = {}) {
     if (!conversation) return "";
     const id = typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
@@ -89,6 +89,7 @@ export function Chat({ conversationId }: ChatProps) {
     if (pendingEventId.current) resolvePending("cancelled");
     pendingEventId.current = recordEvent("pending", {
       category: isImage ? "image" : conversation?.category,
+      originalText: isImage ? undefined : rawDraft,
       maskedOriginal: !isImage && preview ? maskPiiOriginal(rawDraft, preview.hits) : undefined,
       safeText: isImage ? undefined : preview?.safeText,
       fields: isImage ? imageFields : preview?.hits.map((hit) => hit.kind),
@@ -113,7 +114,7 @@ export function Chat({ conversationId }: ChatProps) {
           setError("圖片不會儲存在紀錄中。回到對話後，請重新上傳圖片並再次進行安全檢查。");
         } else if (event.safeText) {
           setPreview({ safeText: event.safeText, hits: [], highlighted: [{ text: event.safeText, sensitive: false }] });
-          setRawDraft(event.safeText);
+          setRawDraft(event.originalText ?? event.safeText);
         }
       }
     }
@@ -184,38 +185,43 @@ export function Chat({ conversationId }: ChatProps) {
 
   async function sendSafeText(
     text: string,
-    options?: { protected?: boolean; hasImage?: boolean; llmText?: string; imageBase64?: string; imagePreview?: string },
+    options?: { protected?: boolean; hasImage?: boolean; llmText?: string; imageBase64?: string; imagePreview?: string; parentApprovedDemo?: boolean },
   ) {
     if (!conversation) {
       return;
     }
 
+    const currentConversation = conversation;
     const promptForModel = options?.llmText?.trim() || llmPrompt.trim() || text;
     const imageBase64 = options?.imageBase64 || redactedImageBase64;
     const visibleText = stripSocraticInboundPrefix(text);
     const userMessage: ConversationMessage = {
       role: "user",
       content: visibleText,
-      protected: Boolean(options?.protected || safetyTouched || imageBase64),
+      protected: !options?.parentApprovedDemo && Boolean(options?.protected || safetyTouched || imageBase64),
       hasImage: options?.hasImage || Boolean(imageBase64),
       imagePreview: options?.imagePreview || (imageBase64 ? pngDataUrl(imageBase64) : undefined),
     };
-    appendMessage(conversation.id, userMessage);
-    if (conversation.title === "新對話") {
-      renameConversation(conversation.id, visibleText.slice(0, 24));
+    function finishUserMessage() {
+      appendMessage(currentConversation.id, userMessage);
+      if (currentConversation.title === "新對話") {
+        renameConversation(currentConversation.id, visibleText.slice(0, 24));
+      }
+      setDraft("");
+      setGuard("none");
+      setPreview(null);
+      setRawDraft("");
+      setLlmPrompt("");
+      setSafetyTouched(false);
+      clearImage();
     }
-    setDraft("");
-    setGuard("none");
-    setPreview(null);
-    setRawDraft("");
-    setLlmPrompt("");
-    setSafetyTouched(false);
-    clearImage();
+    if (!options?.parentApprovedDemo) finishUserMessage();
     setBusy(true);
     setError("");
 
     const blocked = classifyUnsafeText(text);
     if (blocked) {
+      if (options?.parentApprovedDemo) finishUserMessage();
       recordEvent("critical");
       resolvePending("completed");
       appendMessage(conversation.id, { role: "assistant", content: CHILD_BLOCK_REPLY, blocked: true });
@@ -223,16 +229,17 @@ export function Chat({ conversationId }: ChatProps) {
       return;
     }
 
-    if (options?.protected || (safetyTouched && (preview || imageChanged || imageFields.length > 0))) {
+    if (!options?.parentApprovedDemo && (options?.protected || (safetyTouched && (preview || imageChanged || imageFields.length > 0)))) {
       const pendingEvent = conversation.safetyEvents?.find((event) => event.id === pendingEventId.current);
       recordEvent("protected", {
         category: options?.hasImage ? "image" : conversation.category,
+        originalText: options?.hasImage ? undefined : pendingEvent?.originalText ?? (preview?.hits.length ? rawDraft : undefined),
         maskedOriginal: options?.hasImage ? undefined : (preview ? maskPiiOriginal(rawDraft, preview.hits) : undefined) ?? pendingEvent?.maskedOriginal,
         safeText: options?.hasImage ? undefined : visibleText,
         fields: options?.hasImage ? imageFields : preview?.hits.map((hit) => hit.kind),
       });
     }
-    resolvePending("completed");
+    if (!options?.parentApprovedDemo) resolvePending("completed");
 
     try {
       const history = [...conversation.messages, userMessage]
@@ -247,6 +254,7 @@ export function Chat({ conversationId }: ChatProps) {
           // The server owns the system prompt and re-checks every message; we only send turns.
           sessionId: conversation.id,
           messages: history,
+          ...(options?.parentApprovedDemo ? { parentApprovedDemo: true } : {}),
           ...(imageBase64 ? { image: { mimeType: "image/png", data: imageBase64 } } : {}),
         }),
       });
@@ -258,6 +266,10 @@ export function Chat({ conversationId }: ChatProps) {
       const content = data?.choices?.[0]?.message?.content?.trim();
       if (!response.ok || !content) {
         throw new Error(data?.error || "暫時無法回覆。");
+      }
+      if (options?.parentApprovedDemo) {
+        finishUserMessage();
+        resolvePending("completed");
       }
       const sources = (data?.grounding?.sources ?? [])
         .map((source) => source.title?.trim())
@@ -448,7 +460,7 @@ export function Chat({ conversationId }: ChatProps) {
     );
   }
 
-  const composerLocked = guard === "detected" || guard === "rewritten" || guard === "parent-pending" || guard === "parent-revision" || guard === "parent-declined" || guard === "image-review" || guard === "image-blocked";
+  const composerLocked = guard === "detected" || guard === "rewritten" || guard === "parent-pending" || guard === "parent-approved" || guard === "parent-revision" || guard === "parent-declined" || guard === "image-review" || guard === "image-blocked";
 
   return (
     <section className="flex min-h-[calc(100dvh-72px)] flex-col px-5 py-6 sm:px-10 lg:px-16">
@@ -456,7 +468,7 @@ export function Chat({ conversationId }: ChatProps) {
         {conversation.messages.length === 0 && guard === "none" && !imageScanning ? (
           <div className="pt-6">
             <h1 className="text-[28px] font-bold">想問什麼都可以先打字</h1>
-            <p className="mt-2 text-[16px] font-normal leading-[26px] text-[#506058]">送出前會先檢查個人資料。紀錄裡只會留下安全版本。</p>
+            <p className="mt-2 text-[16px] font-normal leading-[26px] text-[#506058]">送出前會先檢查個人資料。家長同意後，也可以送出原始問題。</p>
           </div>
         ) : null}
 
@@ -606,6 +618,7 @@ export function Chat({ conversationId }: ChatProps) {
           {guard === "parent-pending" && preview && !redactedImageUrl ? (
             <ParentPendingCard
               safeText={preview.safeText}
+              canApprove={Boolean(conversation.safetyEvents?.find((event) => event.id === pendingEventId.current)?.originalText)}
               onUseSafe={() => { resolvePending("cancelled"); setGuard("rewritten"); }}
               onEdit={() => {
                 resolvePending("cancelled");
@@ -638,8 +651,9 @@ export function Chat({ conversationId }: ChatProps) {
 
           {guard === "parent-approved" && preview && !redactedImageUrl ? (
             <ParentApprovedCard
-              safeText={preview.safeText}
-              onContinue={() => void sendSafeText(preview.safeText, { protected: true })}
+              originalText={conversation.safetyEvents?.find((event) => event.id === pendingEventId.current)?.originalText}
+              busy={busy}
+              onContinue={() => void sendSafeText(rawDraft, { llmText: rawDraft, parentApprovedDemo: true })}
               onEdit={() => {
                 resolvePending("completed");
                 setDraft(rawDraft);
@@ -753,7 +767,7 @@ export function Chat({ conversationId }: ChatProps) {
                     ? "圖片已加入，送出前我會先幫你檢查"
                     : guard === "none" && redactedImageBase64
                       ? "圖片已加入，可以直接問"
-                    : guard === "image-review" || guard === "parent-approved"
+                    : guard === "image-review" || (guard === "parent-approved" && redactedImageUrl)
                     ? "圖片已加入，送出前我會先幫你檢查"
                     : guard === "image-blocked"
                       ? "這張圖片沒有送出，可以換一張再問"
@@ -781,7 +795,7 @@ export function Chat({ conversationId }: ChatProps) {
                 <img className="size-6 brightness-0 invert" src="/discover/composer-send.svg" alt="" />
               </button>
             </form>
-            <p className="mt-1 pl-1 text-[11px] font-medium text-[#177049]">分享前會先保護你的個人資料；對話紀錄不保存原始姓名與照片。</p>
+            <p className="mt-1 pl-1 text-[11px] font-medium text-[#177049]">分享前會先檢查個人資料；家長同意後的原文會保存在對話紀錄中，原始照片不會保存。</p>
           </>
         )}
       </div>

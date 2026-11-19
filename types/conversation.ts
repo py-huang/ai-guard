@@ -11,6 +11,7 @@ export type SafetyEvent = {
   type: "critical" | "pending" | "protected";
   createdAt: number;
   category: ConversationCategory | "image";
+  originalText?: string;
   maskedOriginal?: string;
   safeText?: string;
   fields?: string[];
