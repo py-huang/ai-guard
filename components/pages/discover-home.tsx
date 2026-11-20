@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { ComposerAttach } from "@/components/composer-attach";
@@ -139,6 +140,16 @@ export function DiscoverHome() {
               </span>
             </button>
           ))}
+        </div>
+        <div className="mt-9 flex flex-wrap items-center gap-3">
+          <Link
+            className="inline-flex h-[46px] items-center gap-2 rounded-[15px] border border-[#d63a37] bg-white px-4 text-sm font-medium text-[#d63a37] transition-colors hover:bg-[#fff0ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d63a37]"
+            href="/watch"
+          >
+            <img className="size-6" src="/discover/composer-microphone.svg" alt="" aria-hidden="true" />
+            AI 語音直播
+          </Link>
+          <p className="text-xs font-medium text-[#177049]">用手錶撥打專線，開口就能提問。</p>
         </div>
       </div>
     </section>

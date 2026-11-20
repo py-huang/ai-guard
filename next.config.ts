@@ -16,11 +16,15 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "same-origin" },
           // Voice features need the microphone; everything else is switched off.
           { key: "Permissions-Policy", value: "microphone=(self), camera=(), geolocation=(), payment=()" },
         ],
+      },
+      {
+        source: "/demo",
+        headers: [{ key: "X-Frame-Options", value: "DENY" }],
       },
     ];
   },
