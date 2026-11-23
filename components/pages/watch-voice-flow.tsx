@@ -42,8 +42,8 @@ type WatchStep = {
 
 const steps: Record<WatchStepId, WatchStep> = {
   ready: {
-    title: "撥打遠傳智靈",
-    scenario: "展示入口｜使用既有手錶通話能力。服務名稱為示意，不代表短碼已啟用。",
+    title: "撥打 AI 心守護",
+    scenario: "點一下螢幕就能開始通話",
     badge: "服務已啟用",
     tone: "mint",
     headline: "準備撥號",
@@ -60,7 +60,7 @@ const steps: Record<WatchStepId, WatchStep> = {
   },
   dialing: {
     title: "撥號中",
-    scenario: "裝置原生操作概念；等待連線。",
+    scenario: "正在打給 AI 心守護…",
     badge: "正在撥號",
     tone: "sky",
     headline: "撥號中…",
@@ -76,7 +76,7 @@ const steps: Record<WatchStepId, WatchStep> = {
   },
   connecting: {
     title: "正在連線",
-    scenario: "通話接通前的等待狀態。",
+    scenario: "快接通了，請等一下",
     badge: "正在連線",
     tone: "sky",
     headline: "連線中…",
@@ -90,8 +90,8 @@ const steps: Record<WatchStepId, WatchStep> = {
     ],
   },
   connected: {
-    title: "已接通",
-    scenario: "語音引導：嗨！我是智靈，你今天想知道什麼呢？",
+    title: "已接通，請說話",
+    scenario: "語音引導：嗨！我是 AI 心守護，你今天想知道什麼呢？",
     badge: "正在聆聽",
     tone: "mint",
     headline: "00:00",
@@ -106,7 +106,7 @@ const steps: Record<WatchStepId, WatchStep> = {
     ],
   },
   question: {
-    title: "孩子說話中",
+    title: "我在聽你說",
     scenario: "孩子：恐龍為什麼會滅絕？此為語音狀態示意，非真實 STT。",
     badge: "正在聆聽",
     tone: "mint",
@@ -121,8 +121,8 @@ const steps: Record<WatchStepId, WatchStep> = {
     ],
   },
   processing: {
-    title: "AI 處理中",
-    scenario: "PII 與安全分類後產生適齡回答；後端流程見工程區。",
+    title: "正在想答案",
+    scenario: "我先檢查一下這句話，再來回答你",
     badge: "正在安全處理",
     tone: "mint",
     headline: "00:20",
@@ -169,7 +169,7 @@ const steps: Record<WatchStepId, WatchStep> = {
   },
   ended: {
     title: "通話結束",
-    scenario: "示範通話 05:42｜自然探索。系統建立 Session Record 並同步家長端。",
+    scenario: "點擊螢幕即可開始通話",
     badge: "通話已結束",
     tone: "mint",
     headline: "05:42",
@@ -235,7 +235,7 @@ const steps: Record<WatchStepId, WatchStep> = {
   },
   unreachable: {
     title: "無法接通",
-    scenario: "通話未建立；可重試或返回手錶入口。",
+    scenario: "沒有取得麥克風，請允許使用麥克風後再試一次",
     badge: "連線失敗",
     tone: "coral",
     headline: "請重試",
@@ -250,7 +250,7 @@ const steps: Record<WatchStepId, WatchStep> = {
   },
   dropped: {
     title: "通話中斷",
-    scenario: "通話已中斷；AI 不再持續回答。",
+    scenario: "通話中斷了，可以重新撥打",
     badge: "通話中斷",
     tone: "coral",
     headline: "請重試",
@@ -264,8 +264,8 @@ const steps: Record<WatchStepId, WatchStep> = {
     ],
   },
   unavailable: {
-    title: "AI 暫時無法回應",
-    scenario: "請稍後再試，或先結束通話。",
+    title: "我暫時答不出來",
+    scenario: "請再試一次，或先結束通話",
     badge: "暫無回應",
     tone: "coral",
     headline: "請重試",
@@ -301,7 +301,7 @@ export function WatchVoiceFlow() {
       <div className="flex w-[min(430px,calc(100vw-2rem))] flex-col items-center gap-3">
         <div className="max-h-28 w-full overflow-y-auto text-center">
           <p className="text-sm leading-5 font-bold text-[#333852]">{title}</p>
-          <p className="mt-1 text-xs leading-5 text-[#506058]">{scenario}</p>
+          <p className="mt-1 text-xs leading-5 whitespace-pre-line text-[#506058]">{scenario}</p>
         </div>
         <div className="w-[min(430px,calc(100vw-2rem),calc((100dvh-9rem)*430/592))]">
           <WatchVoiceCall

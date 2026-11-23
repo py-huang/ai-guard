@@ -15,7 +15,7 @@ import {
   sanitizeForModel,
 } from "@/lib/server/safety";
 import { toSpokenLine } from "@/lib/speak-text";
-import { replaceVaultTokensForChild } from "@/lib/vault-tokens";
+import { maskVaultTokensForParent, replaceVaultTokensForChild } from "@/lib/vault-tokens";
 
 type RememberTurn = {
   role: "user" | "assistant";
@@ -29,7 +29,7 @@ type TurnBody = {
 };
 
 const VOICE_PROMPT = `這是兒童手錶上的語音通話。
-- 用兩到四句口語，適合直接念出來。
+- 用一到兩句口語，最多兩句話，適合直接念出來。
 - 不要用項目符號、編號、星號、表格或網址。
 - 不要複述小朋友剛說的姓名、學校、電話、地址或其他個資。`;
 
@@ -70,6 +70,8 @@ export async function POST(request: Request) {
         blocked: true,
         protected: inbound.protected,
         remember: null,
+        // Blocked wording is never kept: the parent only learns that something was stopped.
+        record: { user: "", safeUser: "", assistant: speak, status: "critical" },
       });
     }
 
@@ -102,6 +104,13 @@ export async function POST(request: Request) {
       remember: {
         user: inbound.processedText,
         assistant: modelReply,
+      },
+      // What the parent pages keep: masked text only, never the child's original words.
+      record: {
+        user: maskVaultTokensForParent(inbound.processedText),
+        safeUser: replaceVaultTokensForChild(inbound.processedText),
+        assistant: speak,
+        status: unsafe ? "critical" : inbound.protected ? "protected" : "safe",
       },
     });
   } catch (error) {

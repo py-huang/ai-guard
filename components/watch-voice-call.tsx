@@ -38,6 +38,16 @@ export function WatchVoiceCall({
 }: WatchVoiceCallProps) {
   const live = waveform === "live";
   const driven = waveform === "levels";
+  // The oval at the top of the microphone fills from the bottom as the child's voice gets louder
+  // (hollow when quiet, solid when loud). Only the open microphone reacts; while the AI speaks it stays empty.
+  const micLevel =
+    micOpen && driven && levels && levels.length > 0
+      ? // Take off a small noise floor so room hiss stays empty and the fill swings with each syllable.
+        Math.max(0, Math.min(1, (levels.reduce((sum, value) => sum + value, 0) / levels.length - 0.1) * 1.8))
+      : 0;
+  // The oval's centre line runs from y = 8.96 to 35.84 inside the 56 x 56 icon. The fill rises from the
+  // bottom of it, so the part of the box above the fill is hidden.
+  const micFillTop = ((35.84 - micLevel * 26.88) / 56) * 100;
 
   return (
     <div className="relative aspect-[430/592] w-full [container-type:inline-size]">
@@ -64,13 +74,18 @@ export function WatchVoiceCall({
             <p className="absolute top-[138px] left-7 w-[190px] text-left text-[36px] leading-[44px] font-bold text-white tabular-nums">
               {headline}
             </p>
-            <img
-              alt=""
-              className={cn("absolute top-[127px] left-[270px] size-14", micOpen ? "opacity-100" : "opacity-45")}
-              height={56}
-              src="/watch/microphone.svg"
-              width={56}
-            />
+            <div className={cn("absolute top-[127px] left-[270px] size-14", micOpen ? "opacity-100" : "opacity-45")}>
+              <img alt="" className="size-14" height={56} src="/watch/microphone.svg" width={56} />
+              <svg
+                aria-hidden="true"
+                className="absolute inset-0 size-14"
+                fill="white"
+                style={{ clipPath: `inset(${micFillTop.toFixed(2)}% 0 0 0)`, transition: "clip-path 150ms ease-out" }}
+                viewBox="0 0 56 56"
+              >
+                <rect height="26.88" rx="7.84" width="15.68" x="20.16" y="8.96" />
+              </svg>
+            </div>
             <div
               className={cn(
                 "absolute top-[198px] left-7 h-28 w-[306px] overflow-hidden rounded-[20px] bg-[#111821]",

@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { WatchBadgeTone } from "@/components/watch-voice-call";
 import { speakTextAsync, stopSpeaking } from "@/lib/speak-text";
 import { transcribeVoice } from "@/lib/voice-transcribe";
+import { buildWatchConversation, submitWatchConversation, type WatchTurnRecord } from "@/lib/voice-records";
 import { WATCH_WAVE_BARS, openWatchMic } from "@/lib/watch-mic";
+import { useConversationStore } from "@/store/conversation-store";
 
-const GREETING = "嗨！我是智靈，你今天想知道什麼呢？";
+// Child-facing wording for each stage of the call. Keep lines short: the watch screen is small.
+const GREETING = "嗨！我是 AI 心守護，你今天想知道什麼呢？";
+const DIALING_HINT = "正在打給 AI 心守護…";
+const CONNECTING_HINT = "快接通了，請等一下";
+const LISTEN_HINT = "請說話，說完停一下就好";
+const NOT_HEARD_HINT = "我沒有聽清楚，可以再說一次";
+const PROCESSING_HINT = "我先檢查一下這句話，再來回答你";
+const NO_MIC_HINT = "沒有取得麥克風，請允許使用麥克風後再試一次";
+const UNAVAILABLE_HINT = "請再試一次，或先結束通話";
 const SILENCE_MS = 2400;
 const MIN_SPEECH_MS = 450;
 const MAX_SPEECH_MS = 18000;
@@ -49,10 +59,36 @@ export function useWatchLiveCall(onHangup: Hangup) {
   const micRef = useRef<Awaited<ReturnType<typeof openWatchMic>> | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const lineRef = useRef("");
+  const recordsRef = useRef<WatchTurnRecord[]>([]);
+  const { importConversations } = useConversationStore();
+  const importRef = useRef(importConversations);
 
   useEffect(() => {
     onHangupRef.current = onHangup;
-  }, [onHangup]);
+    importRef.current = importConversations;
+  }, [onHangup, importConversations]);
+
+  // Keeps the masked record of this call. The server decides whether it is stored on the server
+  // (sqlite) or stays in this browser; if the server cannot take it, it stays here too.
+  // It only reads refs, so it is stable and safe to call from the unmount cleanup.
+  const saveRecord = useCallback(() => {
+    const turns = recordsRef.current;
+    recordsRef.current = [];
+    const conversation = buildWatchConversation({
+      sessionId: sessionRef.current,
+      startedAt: startedAtRef.current || Date.now(),
+      endedAt: Date.now(),
+      turns,
+    });
+    if (!conversation) {
+      return;
+    }
+    void submitWatchConversation(conversation).then((result) => {
+      if (result !== "sqlite") {
+        importRef.current([conversation]);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     lineRef.current = line;
@@ -63,8 +99,10 @@ export function useWatchLiveCall(onHangup: Hangup) {
       generationRef.current += 1;
       stopSpeaking();
       micRef.current?.close();
+      // Leaving the page mid-call must not lose what was already said.
+      saveRecord();
     };
-  }, []);
+  }, [saveRecord]);
 
   useEffect(() => {
     if (!phase || phase === "dialing" || phase === "connecting" || phase === "unreachable") {
@@ -121,7 +159,13 @@ export function useWatchLiveCall(onHangup: Hangup) {
     let cancelled = false;
     const paint = () => {
       frame += 1;
-      setLevels(barsFromSpeech(energyRef.current, frame));
+      // Some voices never fire onstart/onboundary, so the reported energy stays 0 and the bars
+      // would sit flat while the audio plays. While the browser still says it is speaking, fall
+      // back to a gentle pulse; real events (energyRef > 0) take over as soon as they arrive.
+      const reported = energyRef.current;
+      const speaking = typeof window !== "undefined" && Boolean(window.speechSynthesis?.speaking);
+      const energy = reported > 0 ? reported : speaking ? 0.32 + 0.68 * Math.abs(Math.sin(performance.now() / 150)) : 0;
+      setLevels(barsFromSpeech(energy, frame));
       raf = window.requestAnimationFrame(paint);
     };
     raf = window.requestAnimationFrame(paint);
@@ -134,7 +178,7 @@ export function useWatchLiveCall(onHangup: Hangup) {
       }
       setLevels(null);
       setHeard(false);
-      setScenario("說完停一下，智靈會先檢查再回答。");
+      setScenario(LISTEN_HINT);
       setPhase("listening");
     });
     return () => {
@@ -173,13 +217,13 @@ export function useWatchLiveCall(onHangup: Hangup) {
         return;
       }
       if (blob.size < 1000) {
-        setScenario("我沒有聽清楚，可以再說一次。");
+        setScenario(NOT_HEARD_HINT);
         setHeard(false);
         setListenNonce((value) => value + 1);
         return;
       }
       blobRef.current = blob;
-      setScenario("正在檢查這句話，再請智靈回答。");
+      setScenario(PROCESSING_HINT);
       setLevels(null);
       setPhase("processing");
     };
@@ -267,7 +311,7 @@ export function useWatchLiveCall(onHangup: Hangup) {
           return;
         }
         if (!text || looksLikeEcho(text, lineRef.current)) {
-          setScenario(text ? "說完停一下，智靈會先檢查再回答。" : "我沒有聽清楚，可以再說一次。");
+          setScenario(text ? LISTEN_HINT : NOT_HEARD_HINT);
           setHeard(false);
           setPhase("listening");
           return;
@@ -287,6 +331,7 @@ export function useWatchLiveCall(onHangup: Hangup) {
           blocked?: boolean;
           protected?: boolean;
           remember?: { user?: string; assistant?: string } | null;
+          record?: { user?: string; safeUser?: string; assistant?: string; status?: string };
           error?: string;
         };
         if (generation !== generationRef.current) {
@@ -296,6 +341,16 @@ export function useWatchLiveCall(onHangup: Hangup) {
           setPhase("unavailable");
           return;
         }
+        const record = payload.record;
+        if (record?.assistant && (record.status === "safe" || record.status === "protected" || record.status === "critical")) {
+          recordsRef.current.push({
+            user: record.user ?? "",
+            safeUser: record.safeUser ?? "",
+            assistant: record.assistant,
+            status: record.status,
+            at: Date.now(),
+          });
+        }
         const remember = payload.remember;
         if (remember?.user && remember.assistant) {
           const userTurn: ModelTurn = { role: "user", content: remember.user };
@@ -304,7 +359,8 @@ export function useWatchLiveCall(onHangup: Hangup) {
         }
         setKind(payload.blocked ? "guard" : "answer");
         setLine(payload.speak);
-        setScenario(payload.protected && !payload.blocked ? `個資已先保護。${payload.speak}` : payload.speak);
+        // The masked-data notice gets its own line; only `payload.speak` is read aloud.
+        setScenario(payload.protected && !payload.blocked ? `個資已先保護\n${payload.speak}` : payload.speak);
         setPhase("speaking");
       } catch (error) {
         if (controller.signal.aborted || generation !== generationRef.current) {
@@ -324,6 +380,7 @@ export function useWatchLiveCall(onHangup: Hangup) {
     micRef.current?.close();
     micRef.current = null;
     const clockValue = startedAtRef.current ? formatClock(Date.now() - startedAtRef.current) : "00:00";
+    saveRecord();
     startedAtRef.current = 0;
     historyRef.current = [];
     setPhase(null);
@@ -338,13 +395,14 @@ export function useWatchLiveCall(onHangup: Hangup) {
     micRef.current?.close();
     micRef.current = null;
     historyRef.current = [];
+    recordsRef.current = [];
     sessionRef.current = crypto.randomUUID();
     startedAtRef.current = 0;
     setClock("00:00");
     setLine("");
     setKind("greeting");
     setHeard(false);
-    setScenario("裝置原生操作概念；等待連線。");
+    setScenario(DIALING_HINT);
     setLevels(null);
     setPhase("dialing");
   }
@@ -371,20 +429,20 @@ export function useWatchLiveCall(onHangup: Hangup) {
 function titleFor(phase: LivePhase, kind: SpeakKind, heard: boolean) {
   if (phase === "dialing") return "撥號中";
   if (phase === "connecting") return "正在連線";
-  if (phase === "listening") return heard ? "孩子說話中" : "已接通";
-  if (phase === "processing") return "AI 處理中";
-  if (phase === "speaking") return kind === "guard" ? "需要關注的語音情境" : "AI 回答中";
+  if (phase === "listening") return heard ? "我在聽你說" : "已接通，請說話";
+  if (phase === "processing") return "正在想答案";
+  if (phase === "speaking") return kind === "guard" ? "我們先聊別的" : "AI 回答中";
   if (phase === "unreachable") return "無法接通";
-  return "AI 暫時無法回應";
+  return "我暫時答不出來";
 }
 
 function scenarioFor(phase: LivePhase, scenario: string) {
-  if (phase === "dialing") return "裝置原生操作概念；等待連線。";
-  if (phase === "connecting") return "通話接通前的等待狀態。";
-  if (phase === "listening") return scenario || "說完停一下，智靈會先檢查再回答。";
-  if (phase === "processing") return "正在檢查這句話，再請智靈回答。";
-  if (phase === "unreachable") return "沒有取得麥克風。可以重試，或返回入口。";
-  if (phase === "unavailable") return "請稍後再試，或先結束通話。";
+  if (phase === "dialing") return DIALING_HINT;
+  if (phase === "connecting") return CONNECTING_HINT;
+  if (phase === "listening") return scenario || LISTEN_HINT;
+  if (phase === "processing") return PROCESSING_HINT;
+  if (phase === "unreachable") return NO_MIC_HINT;
+  if (phase === "unavailable") return UNAVAILABLE_HINT;
   return scenario;
 }
 

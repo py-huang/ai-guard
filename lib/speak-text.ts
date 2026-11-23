@@ -52,10 +52,9 @@ export function speakTextAsync(source: string, onEnergy?: (energy: number) => vo
       window.speechSynthesis.removeEventListener("voiceschanged", start);
       stopSpeaking();
       const utterance = createUtterance(text);
-      let energy = 0;
+      let boost = 0;
       let raf = 0;
       let settled = false;
-      let boundarySeen = false;
       const keepAlive = window.setInterval(() => {
         if (window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
@@ -71,22 +70,21 @@ export function speakTextAsync(source: string, onEnergy?: (energy: number) => vo
         onEnergy?.(0);
         resolve(ok);
       };
+      // Some voices fire only one or two word boundaries for a whole sentence, so the bars must
+      // never die out between them: a steady pulse runs the whole time and each boundary adds a
+      // short spike on top of it.
       const pump = () => {
-        if (boundarySeen) {
-          energy *= 0.84;
-        } else {
-          energy = 0.32 + 0.68 * Math.abs(Math.sin(performance.now() / 150));
-        }
-        onEnergy?.(energy);
+        boost *= 0.84;
+        const pulse = 0.32 + 0.68 * Math.abs(Math.sin(performance.now() / 150));
+        onEnergy?.(Math.max(boost, pulse));
         raf = window.requestAnimationFrame(pump);
       };
       utterance.onstart = () => {
-        energy = 0.7;
+        boost = 0.7;
         raf = window.requestAnimationFrame(pump);
       };
       utterance.onboundary = () => {
-        boundarySeen = true;
-        energy = 1;
+        boost = 1;
       };
       utterance.onend = () => finish(true);
       utterance.onerror = () => finish(false);
