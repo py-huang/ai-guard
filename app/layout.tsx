@@ -20,9 +20,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // Translation extensions (e.g. Immersive Translate) add attributes to <html> before React
+    // hydrates. This only silences attribute differences on this one element, not its children.
     <html
       lang="zh-Hant"
       className={`${notoSansTc.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         <ReadingAssistProvider>
