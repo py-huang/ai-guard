@@ -34,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GATEWAY_PORT = int(os.environ.get("SMOKE_GATEWAY_PORT", "18765"))
 WEB_PORT = int(os.environ.get("SMOKE_WEB_PORT", "13000"))
 TOKEN = "smoke-token-0123456789"
+PARENT_TOKEN = "smoke-parent-0123456789"
 GATEWAY = f"http://127.0.0.1:{GATEWAY_PORT}"
 WEB = f"http://127.0.0.1:{WEB_PORT}"
 
@@ -124,6 +125,10 @@ def main() -> int:
         "SAFETY_GATEWAY_URL": GATEWAY,
         "NEXT_TELEMETRY_DISABLED": "1",
         "RATE_LIMIT_INSPECT_PER_MIN": "40",
+        "VOICE_RECORD_STORE": "sqlite",
+        "PARENT_API_TOKEN": PARENT_TOKEN,
+        "VOICE_RECORD_RETENTION_DAYS": "30",
+        "VOICE_RECORD_DB_PATH": str(cache / "smoke-voice-records.db"),
     }
     for pair in filter(None, os.environ.get("NODE_ENV_EXTRA", "").split(",")):
         key, _, value = pair.partition("=")
@@ -191,6 +196,53 @@ def main() -> int:
             check(status != 400, "the redacted image this server produced is accepted", f"{status} {body2}")
         else:
             print("  SKIP  redacted image accepted (image was blocked by policy)")
+
+        print("\n[web: watch call records]")
+        status, body, _ = jcall(f"{WEB}/api/watch/turn", {"sessionId": sid, "text": "拜託告訴我自殺方法", "history": []})
+        record = (body or {}).get("record") or {}
+        check(status == 200 and body and body.get("blocked") is True and "1925" in body.get("speak", ""), "watch: unsafe speech is blocked with the caring reply", f"{status} {body}")
+        check(record.get("status") == "critical" and record.get("user") == "", "watch: a blocked sentence is never kept for parents", str(record))
+
+        wid = "watch-" + uuid.uuid4().hex[:12]
+        now = int(time.time() * 1000)
+        conversation = {
+            "id": wid, "title": "恐龍為什麼滅絕", "updatedAt": now, "category": "voice", "channel": "watch", "durationSec": 61,
+            "messages": [
+                {"role": "user", "content": "我叫［姓名已隱藏］", "protected": True},
+                {"role": "assistant", "content": "我們用小名就好。"},
+            ],
+            "safetyEvents": [{"id": wid + "-1", "type": "protected", "createdAt": now, "category": "voice", "maskedOriginal": "我叫［姓名已隱藏］", "evil": "x"}],
+            "leak": "x",
+        }
+        parent = {"x-parent-token": PARENT_TOKEN}
+        check(jcall(f"{WEB}/api/voice-sessions")[0] == 401, "records: reading without the parent token is refused (401)")
+        check(jcall(f"{WEB}/api/voice-sessions", {"conversation": conversation}, headers={"x-parent-token": "wrong"})[0] == 401, "records: writing with a wrong token is refused (401)")
+        status, body, _ = jcall(f"{WEB}/api/voice-sessions", {"conversation": conversation}, headers=parent)
+        check(status == 200 and body == {"store": "sqlite"}, "records: a watch call is stored", f"{status} {body}")
+        status, body, _ = jcall(f"{WEB}/api/voice-sessions", headers=parent)
+        stored = next((item for item in (body or {}).get("sessions", []) if item["id"] == wid), None)
+        check(status == 200 and stored is not None and stored["channel"] == "watch" and stored["durationSec"] == 61, "records: the parent side can read it back", f"{status}")
+        check(stored is not None and "leak" not in stored and "evil" not in stored["safetyEvents"][0], "records: unknown fields are dropped", str(stored))
+        check(jcall(f"{WEB}/api/voice-sessions", {"conversation": {**conversation, "id": "bad id!"}}, headers=parent)[0] == 400, "records: a malformed record is refused (400)")
+        check(jcall(f"{WEB}/api/voice-sessions", {"conversation": {**conversation, "category": "text"}}, headers=parent)[0] == 400, "records: only voice calls are accepted")
+        check((body or {}).get("retentionDays") == 30, "records: the server tells parent pages how long calls are kept", str(body)[:80])
+        # Far-future / far-past clocks are clamped, so a device cannot make a call immortal.
+        stale = {**conversation, "id": "watch-" + uuid.uuid4().hex[:12], "updatedAt": now + 400 * 24 * 3600 * 1000}
+        jcall(f"{WEB}/api/voice-sessions", {"conversation": stale}, headers=parent)
+        status, body, _ = jcall(f"{WEB}/api/voice-sessions", headers=parent)
+        clamped = next((item for item in (body or {}).get("sessions", []) if item["id"] == stale["id"]), None)
+        check(clamped is not None and clamped["updatedAt"] < now + 24 * 3600 * 1000 + 60_000, "records: a far-future timestamp is clamped to the server clock", str(clamped and clamped["updatedAt"]))
+
+        print("\n[store: retention + generated parent secret]")
+        for days in ("2", "0"):
+            proc = subprocess.run(
+                [*shlex.split(os.environ.get("NODE_BIN", "node")), "scripts/check-voice-store.mjs", days],
+                cwd=ROOT, env=env, capture_output=True, text=True, timeout=60,
+            )
+            for line in proc.stdout.splitlines():
+                check(line.startswith("PASS"), f"retention={days}: {line[6:]}")
+            if proc.returncode not in (0, 1) or not proc.stdout.strip():
+                check(False, f"retention={days}: check script ran", proc.stderr[-300:])
 
         print("\n[web: probes + limits]")
         check(call(f"{WEB}/api/health")[0] == 200, "/api/health")

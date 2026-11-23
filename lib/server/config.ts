@@ -25,6 +25,11 @@ function readInt(name: string, fallback: number, min: number) {
   return Number.isFinite(value) && value >= min ? Math.floor(value) : fallback;
 }
 
+function readChoice<T extends string>(name: string, choices: readonly T[], fallback: T): T {
+  const raw = process.env[name]?.trim().toLowerCase();
+  return choices.find((choice) => choice === raw) ?? fallback;
+}
+
 function readList(name: string, fallback: string) {
   return (process.env[name] ?? fallback)
     .split(",")
@@ -59,6 +64,28 @@ function loadConfig() {
       searchTimeoutMs: readInt("GEMINI_SEARCH_TIMEOUT_MS", 8_000, 1_000),
       transcribeTimeoutMs: readInt("GEMINI_TRANSCRIBE_TIMEOUT_MS", 30_000, 1_000),
     },
+    voiceRecords: {
+      /**
+       * Where watch call records live. "local" keeps them in the browser (same browser as the
+       * parent pages only); "sqlite" keeps them in a file on this server so a parent on another
+       * device can read them. Read on the server at runtime, so changing it only needs a restart.
+       */
+      store: readChoice("VOICE_RECORD_STORE", ["local", "sqlite"] as const, "local"),
+      dbPath: process.env.VOICE_RECORD_DB_PATH?.trim() || "data/voice-records.db",
+      /**
+       * Optional. The shared secret the parent and watch pages send. When it is empty (or too
+       * short to be safe) the server makes a random one itself and keeps it next to the database,
+       * see lib/server/parent-token.ts.
+       */
+      parentToken: process.env.PARENT_API_TOKEN?.trim() ?? "",
+      maxSessions: readInt("VOICE_RECORD_MAX_SESSIONS", 500, 10),
+      /** Calls older than this many days are deleted. 0 keeps them until the row limit pushes them out. */
+      retentionDays: readInt("VOICE_RECORD_RETENTION_DAYS", 30, 0),
+      /** Address parents open, used only to print the pairing link / QR code at start-up. */
+      pairBaseUrl: process.env.PARENT_PAIR_BASE_URL?.trim().replace(/\/+$/, "") ?? "",
+      /** Production logs are shared, so the pairing secret is only printed there when asked for. */
+      printPairing: !production || readBool("PARENT_PAIR_PRINT", false),
+    },
     limits: {
       /** Matches the gateway's own cap so an over-long message is refused, not bypassed. */
       maxUserTextChars: 4_000,
@@ -79,6 +106,8 @@ function loadConfig() {
       chat: { max: readInt("RATE_LIMIT_CHAT_PER_MIN", 30, 1), windowMs: 60_000 },
       voice: { max: readInt("RATE_LIMIT_VOICE_PER_MIN", 20, 1), windowMs: 60_000 },
       writing: { max: readInt("RATE_LIMIT_WRITING_PER_MIN", 30, 1), windowMs: 60_000 },
+      // The parent pages poll every few seconds, so this is higher than the others.
+      records: { max: readInt("RATE_LIMIT_RECORDS_PER_MIN", 120, 1), windowMs: 60_000 },
     },
   };
 }
