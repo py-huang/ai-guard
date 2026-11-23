@@ -25,3 +25,30 @@ export function replaceVaultTokensForChild(text: string) {
     .replace(/\s{2,}/g, " ")
     .trim();
 }
+
+const PARENT_TOKEN_LABEL: Record<string, string> = {
+  PERSON: "姓名",
+  SCHOOL: "學校",
+  SCHOOL_CLASS: "班級",
+  STUDENT_ID: "學號",
+  IG_HANDLE: "社群帳號",
+  LINE_ID: "社群帳號",
+  PHONE_NUMBER: "電話",
+  LOCATION: "詳細位置",
+  EMAIL_ADDRESS: "信箱",
+  EMAIL: "信箱",
+  TW_ID: "證件號碼",
+  TW_PASSPORT: "護照號碼",
+  TW_DRIVER_LICENSE: "駕照號碼",
+  TW_BANK_ACCOUNT: "帳號",
+  ORGANIZATION: "機構",
+  FACE: "人臉",
+};
+
+/** What a parent reads: 「我叫［姓名已隱藏］」. Never contains the original value. */
+export function maskVaultTokensForParent(text: string) {
+  return text
+    .replace(TOKEN_RE, (_match, entityType: string) => `［${PARENT_TOKEN_LABEL[entityType] ?? "個人資料"}已隱藏］`)
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}

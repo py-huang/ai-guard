@@ -4,6 +4,9 @@ export type ConversationSource = {
 
 export type ConversationCategory = "text" | "voice";
 
+/** Where the conversation happened. Missing means the web chat (older saved data). */
+export type ConversationChannel = "web" | "watch";
+
 export type SafetyEventStatus = "pending" | "approved" | "revision" | "declined" | "cancelled" | "completed";
 
 export type SafetyEvent = {
@@ -35,6 +38,9 @@ export type Conversation = {
   title: string;
   updatedAt: number;
   category: ConversationCategory;
+  channel?: ConversationChannel;
+  /** Length of a voice call in seconds. Only set for watch calls. */
+  durationSec?: number;
   topic?: string;
   messages: ConversationMessage[];
   safetyEvents?: SafetyEvent[];
