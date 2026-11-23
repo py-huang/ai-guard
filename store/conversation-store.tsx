@@ -1,7 +1,9 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
+import { fetchRemoteSessions, isExpiredRecord, parentToken } from "@/lib/voice-records";
 import type { Conversation, ConversationCategory, ConversationMessage, SafetyEvent } from "@/types/conversation";
 
 const STORAGE_KEY = "ai-guard-conversations";
@@ -29,7 +31,11 @@ type ConversationStoreValue = {
   renameConversation: (id: string, title: string) => void;
   removeConversation: (id: string) => void;
   getConversation: (id: string) => Conversation | undefined;
+  /** Adds conversations that arrived from elsewhere (a watch call). Known ids are left alone. */
+  importConversations: (incoming: Conversation[]) => void;
 };
+
+const REMOTE_POLL_MS = 5_000;
 
 function findNewestNotification(
   previous: Conversation[],
@@ -140,8 +146,12 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [newSafetyNotification, setNewSafetyNotification] = useState<NewSafetyNotification | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
+  const pathname = usePathname();
+  const onParentPages = pathname.startsWith("/mobile");
 
   useEffect(() => {
+    // A pairing link (#token=...) is saved and removed from the address bar as soon as any page opens.
+    parentToken();
     const storedConversations = readStoredConversations();
     conversationsRef.current = storedConversations;
     setConversations(storedConversations);
@@ -207,6 +217,67 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
     ));
   }
 
+  const importConversations = useCallback((incoming: Conversation[]) => {
+    const known = new Set(conversationsRef.current.map((conversation) => conversation.id));
+    const fresh = incoming.filter((conversation) => conversation && !known.has(conversation.id));
+    if (fresh.length === 0) {
+      return;
+    }
+
+    const previous = conversationsRef.current;
+    const next = [...fresh, ...previous];
+    const notification = findNewestNotification(previous, next);
+    conversationsRef.current = next;
+    setConversations(next);
+    if (notification) {
+      setNewSafetyNotification(notification);
+    }
+  }, []);
+
+  // Watch calls expire on the server after VOICE_RECORD_RETENTION_DAYS; the copies kept in this
+  // browser expire on the same schedule. Typed chats are not touched.
+  const dropExpiredWatchCalls = useCallback((retentionDays: number) => {
+    const current = conversationsRef.current;
+    const kept = current.filter((conversation) => !(conversation.channel === "watch" && isExpiredRecord(conversation.updatedAt, retentionDays)));
+    if (kept.length !== current.length) {
+      conversationsRef.current = kept;
+      setConversations(kept);
+    }
+  }, []);
+
+  // With the sqlite store, calls made on the watch show up here by polling the server. Anything
+  // else (local store, no token, server refusing) ends the polling after the first answer.
+  useEffect(() => {
+    if (!ready || !onParentPages) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let timer: number | undefined;
+
+    const poll = async () => {
+      const result = await fetchRemoteSessions(controller.signal);
+      if (controller.signal.aborted) {
+        return;
+      }
+      if (result.kind === "sessions" || result.kind === "local") {
+        dropExpiredWatchCalls(result.retentionDays);
+      }
+      if (result.kind === "sessions") {
+        importConversations(result.conversations);
+      }
+      if (result.kind === "sessions" || result.kind === "error") {
+        timer = window.setTimeout(poll, REMOTE_POLL_MS);
+      }
+    };
+
+    void poll();
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [ready, onParentPages, importConversations, dropExpiredWatchCalls]);
+
   const dismissSafetyNotification = useCallback((notification: NewSafetyNotification) => {
     setNewSafetyNotification((current) =>
       current?.conversationId === notification.conversationId && current.event.id === notification.event.id
@@ -263,7 +334,7 @@ export function ConversationStoreProvider({ children }: { children: ReactNode })
   }
 
   return (
-    <ConversationStoreContext.Provider value={{ ready, conversations, newSafetyNotification, dismissSafetyNotification, createConversation, appendMessage, addSafetyEvent, updateSafetyEvent, replaceMessages, setConversationCategory, renameConversation, removeConversation, getConversation }}>
+    <ConversationStoreContext.Provider value={{ ready, conversations, newSafetyNotification, dismissSafetyNotification, createConversation, appendMessage, addSafetyEvent, updateSafetyEvent, replaceMessages, setConversationCategory, renameConversation, removeConversation, getConversation, importConversations }}>
       {children}
     </ConversationStoreContext.Provider>
   );

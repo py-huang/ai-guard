@@ -305,7 +305,7 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
         ) : (
           <div className="flex flex-col gap-[14px] px-4 py-4">
             <div className="flex items-center gap-3"><img src="/mobile/notify-bell.svg" width="32" height="32" alt="" /><div><h2 className="text-base font-bold">重要的時刻，一起守護</h2><p className="mt-0.5 text-[11px] text-[#506058]">安全提醒與待確認事件，清楚分開</p></div></div>
-            <p className="text-xs text-[#506058]">本機示範：只顯示此瀏覽器的紀錄。</p>
+            <p className="text-xs text-[#506058]">示範版：通知來自此瀏覽器收到的紀錄（含手錶語音）。</p>
             {!ready ? <p className="text-sm text-[#506058]">正在載入通知…</p> : items.length === 0 ? <p className="rounded-2xl bg-white p-4 text-sm text-[#506058]">{confirmationsOnly ? "目前沒有待確認事項。" : "目前沒有新通知。"}</p> : items.map((item, index) => {
               const style = styles[item.type];
               const previous = items[index - 1];

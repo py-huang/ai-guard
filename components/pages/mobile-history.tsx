@@ -27,6 +27,8 @@ type HistoryRecord = {
   status: "待確認" | "處理中" | "已回覆" | "已保護";
   statusTone: "safe" | "pending";
   description?: string;
+  /** "05:42" for a watch call. */
+  durationLabel?: string;
 };
 
 const filters: Array<{ id: HistoryFilter; label: string }> = [
@@ -112,10 +114,13 @@ function conversationRecord(conversation: Conversation): HistoryRecord {
   const hasReply = conversation.messages.some((message) => message.role === "assistant");
   const category: ConversationCategory = conversation.category === "voice" ? "voice" : "text";
 
+  const isWatch = conversation.channel === "watch";
+
   return {
     id: conversation.id,
-    title: conversation.title,
+    title: isWatch ? `${conversation.title} · 手錶語音` : conversation.title,
     updatedAt: conversation.updatedAt,
+    durationLabel: isWatch && typeof conversation.durationSec === "number" ? formatDuration(conversation.durationSec) : undefined,
     category,
     metadataCategory: hasImage ? "圖片" : category === "voice" ? "語音" : "文字",
     href: `/mobile/history/${conversation.id}`,
@@ -130,6 +135,11 @@ function conversationRecord(conversation: Conversation): HistoryRecord {
         ? "個資已自動保護，無需家長核准。"
         : undefined,
   };
+}
+
+function formatDuration(totalSeconds: number) {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
 function formatRecordTime(timestamp: number) {
@@ -224,7 +234,7 @@ export function MobileHistoryPage() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-medium leading-5 tracking-[0.1px] text-black">{record.title}</span>
                       <span className="mt-2 flex items-center gap-2">
-                        <span className="min-w-0 flex-1 truncate text-[11px] font-medium leading-[18px] tracking-[0.2px] text-[#506058]">小宇 · {record.metadataCategory} · {formatRecordTime(record.updatedAt)}</span>
+                        <span className="min-w-0 flex-1 truncate text-[11px] font-medium leading-[18px] tracking-[0.2px] text-[#506058]">小宇 · {record.metadataCategory} · {formatRecordTime(record.updatedAt)}{record.durationLabel ? ` · ${record.durationLabel}` : ""}</span>
                         <span className={`shrink-0 rounded-full px-3 py-2 text-[12px] font-medium leading-[18px] tracking-[0.2px] ${record.statusTone === "safe" ? "bg-[#ddf5ea] text-[#177049]" : "bg-[#fff8d9] text-[#8a6400]"}`}>{record.status}</span>
                       </span>
                       {record.description ? <span className="mt-2 block text-[13px] leading-[18px] tracking-[0.2px] text-[#506058]">{record.description}</span> : null}
@@ -259,7 +269,14 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
   const hasBlockedContent = messages.some((message) => "blocked" in message && message.blocked)
     || (conversation?.safetyEvents ?? []).some((event) => event.type === "critical");
   const hasAssistantReply = messages.some((message) => message.role === "assistant");
-  const conversationType = conversation?.category === "voice" ? "Web 語音" : "Web 文字";
+  const isWatch = conversation?.channel === "watch";
+  const watchDuration = isWatch && typeof conversation?.durationSec === "number" ? formatDuration(conversation.durationSec) : "";
+  const conversationType = isWatch ? "兒童手錶語音" : conversation?.category === "voice" ? "Web 語音" : "Web 文字";
+  const watchSafety = hasBlockedContent
+    ? "有內容被安全機制攔下"
+    : hasProtectedMessages
+      ? "個資已自動保護"
+      : "安心通話";
   const topic = conversation?.topic || (draft ? "作業" : "");
   const detailTime = timestamp
     ? `${timestampDate(timestamp)} ${timestampTime(timestamp)}`
@@ -272,9 +289,11 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
           <ArrowLeft aria-hidden="true" size={24} strokeWidth={2} />
         </Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[18px] font-bold leading-7">對話詳情</h1>
+          <h1 className="truncate text-[18px] font-bold leading-7">{isWatch ? "語音通話詳情" : "對話詳情"}</h1>
           <p className="truncate text-[12px] font-medium leading-[18px] tracking-[0.2px] text-[#506058]">
-            {detailTime}{detailTime && topic ? " · " : ""}{topic}
+            {isWatch
+              ? `${detailTime} · 兒童手錶${watchDuration ? ` · ${watchDuration}` : ""}`
+              : `${detailTime}${detailTime && topic ? " · " : ""}${topic}`}
           </p>
         </div>
         <Link className="grid size-10 shrink-0 place-items-center rounded-full" href="/mobile/notify/" aria-label="通知">
@@ -284,9 +303,23 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="px-4 pt-3">
           <p className="text-[12px] leading-[19px] text-[#13221b]">
-            小宇 · {conversationType} · {detailTime}{hasProtectedMessages || hasBlockedContent ? " · 已保護" : ""}
+            小宇 · {conversationType} · {detailTime}{watchDuration ? ` · ${watchDuration}` : ""}{!isWatch && (hasProtectedMessages || hasBlockedContent) ? " · 已保護" : ""}
           </p>
         </div>
+        {isWatch ? (
+          <div className="flex flex-col gap-2 px-4 pt-3 text-[12px] leading-[19px] text-[#13221b]">
+            <p>摘要：{messages.filter((message) => message.role === "user").length} 輪問答</p>
+            <p>來源：兒童手錶語音</p>
+            <p>時間：{detailTime}{watchDuration ? ` · ${watchDuration}` : ""}</p>
+            <p>安全狀態：{watchSafety}</p>
+            <section className="mt-1 rounded-[20px] border border-[#dde3df] bg-white p-4" aria-label="通話錄音">
+              <h2 className="text-[14px] font-bold leading-[22px] tracking-[0.1px]">通話錄音</h2>
+              <p className="mt-1 text-[12px] leading-5 text-[#506058]">為了保護孩子的隱私，這通電話不保存錄音，只保留遮蔽個資後的文字稿。</p>
+            </section>
+            <h2 className="mt-1 text-[12px] font-medium leading-[18px] tracking-[0.2px] text-[#506058]">逐字稿</h2>
+            <p className="text-[11px] leading-[18px] text-[#506058]">文字稿由語音轉文字自動產生，可能因環境噪音、口音或收音品質而不完全準確。</p>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-4 px-4 pb-6 pt-4">
           {!ready ? <p className="text-[13px] leading-5 text-[#506058]">載入對話中…</p> : null}
           {ready && !conversation && !draft ? <p className="text-[13px] leading-5 text-[#506058]">找不到這筆對話。</p> : null}
@@ -311,6 +344,16 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
                     </p>
                   </div>
                 </div>
+                {isWatch && isUser && "blocked" in message && message.blocked ? (
+                  <div className="flex flex-col items-start gap-2">
+                    <span className="rounded-full bg-[#ffe7d7] px-3 py-2 text-[12px] font-medium leading-[18px] tracking-[0.2px] text-[#8a3d00]">
+                      已攔截 · 內容不保存
+                    </span>
+                    <p className="text-[14px] leading-[22px] text-[#506058]">
+                      安全機制已攔下這句話，沒有送給 AI，原話也不會保存。
+                    </p>
+                  </div>
+                ) : null}
                 {isProtected ? (
                   <div className="flex flex-col items-start gap-2">
                     <span className="rounded-full bg-[#ddf5ea] px-3 py-2 text-[12px] font-medium leading-[18px] tracking-[0.2px] text-[#177049]">
