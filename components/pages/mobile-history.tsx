@@ -194,7 +194,7 @@ export function MobileHistoryPage() {
           <img src="/mobile/nav-notification-action.svg" width="20" height="20" alt="" aria-hidden="true" />
         </Link>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex flex-col gap-3 px-4 py-4">
           <section className="flex flex-col gap-[10px]" aria-label="紀錄分類篩選">
             <p className="text-[14px] font-medium leading-5 tracking-[0.1px] text-black">{week.label} · {filteredRecords.length} 筆互動紀錄</p>
@@ -300,7 +300,7 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
           <img src="/mobile/nav-notification-action.svg" width="20" height="20" alt="" aria-hidden="true" />
         </Link>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="px-4 pt-3">
           <p className="text-[12px] leading-[19px] text-[#13221b]">
             小宇 · {conversationType} · {detailTime}{watchDuration ? ` · ${watchDuration}` : ""}{!isWatch && (hasProtectedMessages || hasBlockedContent) ? " · 已保護" : ""}
@@ -344,13 +344,13 @@ export function MobileHistoryDetail({ conversationId }: { conversationId: string
                     </p>
                   </div>
                 </div>
-                {isWatch && isUser && "blocked" in message && message.blocked ? (
+                {isUser && "blocked" in message && message.blocked ? (
                   <div className="flex flex-col items-start gap-2">
                     <span className="rounded-full bg-[#ffe7d7] px-3 py-2 text-[12px] font-medium leading-[18px] tracking-[0.2px] text-[#8a3d00]">
-                      已攔截 · 內容不保存
+                      已攔截 · 未送給 AI
                     </span>
                     <p className="text-[14px] leading-[22px] text-[#506058]">
-                      安全機制已攔下這句話，沒有送給 AI，原話也不會保存。
+                      安全機制已攔下這句話，沒有送給 AI。上方是孩子說的內容（個資已遮蔽），只有家長看得到。
                     </p>
                   </div>
                 ) : null}

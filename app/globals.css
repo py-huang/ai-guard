@@ -132,6 +132,28 @@
   html {
     @apply font-sans;
   }
+  /* No rubber-band bounce or scroll chaining when the page reaches the top or bottom. */
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+  /* Tailwind v4 preflight resets buttons to the default arrow cursor; restore the pointer on anything clickable. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="menuitem"],
+  [role="switch"],
+  a[href],
+  summary,
+  select,
+  label[for],
+  input:is([type="checkbox"], [type="radio"], [type="range"], [type="file"]):not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 /* cmex-30/Bopomofo_on_Web — tone-mark font + W3C ruby

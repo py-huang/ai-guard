@@ -14,7 +14,7 @@ const topics = [
     title: "自然探索",
     description: "從恐龍、植物到火山",
     color: "bg-[#ddf5ea]",
-    icon: "/discover/topic-dinosaur.svg",
+    icon: "/discover/topic-dinosaur-clean.svg",
   },
   {
     title: "數學挑戰",
@@ -26,7 +26,7 @@ const topics = [
     title: "故事與寫作",
     description: "把想法整理成自己的話",
     color: "bg-[#ffe7d7]",
-    icon: "/discover/topic-writing.svg",
+    icon: "/discover/topic-writing-clean.svg",
   },
   {
     title: "英文練習",
@@ -38,13 +38,13 @@ const topics = [
     title: "數位安全",
     description: "保護帳號與個人資料",
     color: "bg-[#ecf9f3]",
-    icon: "/discover/safety-shield.svg",
+    icon: "/discover/safety-shield-clean.svg",
   },
   {
     title: "太空世界",
     description: "星星、月亮與行星",
     color: "bg-[#eae1ff]",
-    icon: "/discover/topic-planet.svg",
+    icon: "/discover/topic-planet-clean.svg",
   },
 ];
 
@@ -123,22 +123,20 @@ export function DiscoverHome() {
         <h2 className="mt-[27px] text-xl leading-[30px] font-bold">今天想探索哪一個？</h2>
         <div className="mt-5 grid max-w-[854px] grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 xl:gap-x-[22px] xl:gap-y-[22px]">
           {topics.map((topic) => (
-            <button
-              className={`flex h-[104px] items-start gap-[11px] rounded-[18px] px-[13px] pt-[15px] text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049] ${topic.color}`}
+            <Link
+              className={`flex h-[104px] items-start gap-[11px] rounded-[20px] border border-[#dde3df] px-[13px] pt-[15px] text-left shadow-[0_8px_24px_-8px_rgba(20,33,26,0.08)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049] ${topic.color}`}
+              href="/theme"
               key={topic.title}
-              onClick={() => setMessage(`我想探索${topic.title}`)}
-              type="button"
             >
-              <span className="grid size-12 shrink-0 place-items-center overflow-hidden">
-                <span className="grid size-[42px] place-items-center overflow-hidden rounded-[14px] bg-white">
-                  <img className="size-11 drop-shadow-[0_2px_3px_rgba(20,33,26,0.06)]" src={topic.icon} alt="" aria-hidden="true" />
-                </span>
+              {/* Same icon tile as the /theme page cards. */}
+              <span className="grid size-[54px] shrink-0 place-items-center rounded-[17px] bg-white">
+                <img className="size-[50px] drop-shadow-[0_2px_3px_rgba(20,33,26,0.06)]" src={topic.icon} alt="" aria-hidden="true" />
               </span>
               <span className="min-w-0 pt-0.5">
                 <span className="block text-[15px] leading-[23px] font-bold">{topic.title}</span>
                 <span className="mt-2 block text-xs leading-[19px] text-[#506058]">{topic.description}</span>
               </span>
-            </button>
+            </Link>
           ))}
         </div>
         <div className="mt-9 flex flex-wrap items-center gap-3">

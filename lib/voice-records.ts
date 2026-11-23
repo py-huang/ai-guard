@@ -11,7 +11,7 @@ import type { Conversation, ConversationMessage, SafetyEvent } from "@/types/con
 export type WatchTurnStatus = "safe" | "protected" | "critical";
 
 export type WatchTurnRecord = {
-  /** Masked for parents, e.g. 「我叫［姓名已隱藏］」. Empty when the sentence was blocked. */
+  /** Masked for parents, e.g. 「我叫［姓名已隱藏］」. Kept for blocked sentences too, for parents only. */
   user: string;
   /** Child-friendly masked wording, used as the "safe version" shown to parents. */
   safeUser: string;
@@ -21,6 +21,9 @@ export type WatchTurnRecord = {
 };
 
 const TOKEN_KEY = "ai-guard-parent-token";
+
+/** What child-facing screens show instead of a sentence the safety check stopped. */
+export const BLOCKED_USER_PLACEHOLDER = "（這句話已被安全機制攔下）";
 
 /**
  * The shared secret for the sqlite store. The server prints a link (and QR code) such as
@@ -80,7 +83,7 @@ export function buildWatchConversation(options: {
     const critical = turn.status === "critical";
     messages.push({
       role: "user",
-      content: critical && !turn.user ? "（這句話已被安全機制攔下，內容不保存）" : turn.user,
+      content: critical && !turn.user ? BLOCKED_USER_PLACEHOLDER : turn.user,
       ...(turn.status === "protected" ? { protected: true } : {}),
       ...(critical ? { blocked: true } : {}),
     });
@@ -93,6 +96,7 @@ export function buildWatchConversation(options: {
         createdAt: turn.at,
         category: "voice",
         ...(turn.status === "protected" ? { maskedOriginal: turn.user, safeText: turn.safeUser } : {}),
+        ...(critical && turn.user ? { maskedOriginal: turn.user } : {}),
         read: false,
         acknowledged: false,
       });

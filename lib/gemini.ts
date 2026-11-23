@@ -62,11 +62,19 @@ function getGeminiModels() {
   return models;
 }
 
+const TRADITIONAL_CHINESE_RULE = `語言硬性規定（優先於其他指示）
+- 所有回覆一律使用台灣的繁體中文與台灣慣用詞，絕對不可出現簡體字。
+- 即使使用者用簡體字、英文或其他語言提問，或搜尋結果是簡體，也要用繁體中文回答。
+- 用台灣用語，例如「影片」不說「視頻」、「軟體」不說「軟件」、「網路」不說「網絡」、「品質」不說「質量」、「記憶體」不說「內存」。
+- 專有名詞、程式碼、使用者提供的英文可保留原文。`;
+
 export async function generateGeminiText({ messages, responseMimeType, temperature, image, googleSearch }: GenerateGeminiTextOptions): Promise<GenerateGeminiResult> {
-  const systemInstruction = messages
-    .filter((message) => message.role === "system")
-    .map((message) => message.content)
-    .join("\n\n");
+  const systemInstruction = [
+    ...messages.filter((message) => message.role === "system").map((message) => message.content),
+    // Applied to every caller (chat, voice, writing, image) so replies never drift into simplified Chinese,
+    // even when the child's question or search results are in another script.
+    TRADITIONAL_CHINESE_RULE,
+  ].join("\n\n");
   const contents = messages
     .filter((message) => message.role !== "system")
     .map((message, index, list) => {

@@ -57,7 +57,7 @@ export function MobileDashboard() {
         </Link>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-none">
         <div className="flex flex-col gap-4 px-4 py-4">
           <section
             className={`flex h-[222px] shrink-0 flex-col gap-[14px] overflow-hidden rounded-[24px] border p-[18px] ${

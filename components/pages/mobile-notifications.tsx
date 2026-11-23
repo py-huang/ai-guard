@@ -213,7 +213,7 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
         <Link href="/mobile/notify/" onClick={confirmationsOnly ? undefined : returnToList} aria-label="通知" className="grid size-10 shrink-0 place-items-center"><img src="/mobile/nav-notification-action.svg" width="20" height="20" alt="" /></Link>
       </header>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {showAdvice && current?.type === "critical" ? (
           <SupportGuidance onBack={returnToCriticalDetail} />
         ) : activeOutcome && result ? (
@@ -248,13 +248,17 @@ export function MobileNotifications({ confirmationsOnly = false }: { confirmatio
             {current.type === "critical" ? (
               <>
                 <Panel title="事件類型 · 安全內容攔截" tone="red" icon="/mobile/detail-critical-alert.svg">{formatTime(current.createdAt)} · 系統已攔截這次內容。這是安全提醒，不是診斷。</Panel>
-                <Panel title="經處理的事件摘要" icon="/mobile/detail-critical-message.svg">敏感原文不會顯示在通知中。請關心孩子的狀況。</Panel>
+                <Panel title="孩子的原始提問" icon="/mobile/detail-critical-message.svg">
+                  {current.category === "image"
+                    ? "圖片不會儲存在通知紀錄中。請關心孩子的狀況。"
+                    : current.originalText || current.maskedOriginal || "這筆舊紀錄沒有保存原文。請關心孩子的狀況。"}
+                </Panel>
                 <Panel title="系統已採取的安全措施" tone="green" icon="/mobile/detail-critical-safe.svg">{current.category === "image" ? "已阻擋圖片，並提示孩子換一張圖片。" : "已阻擋內容，並提示孩子尋求可信任的大人協助。"}</Panel>
               </>
             ) : (
               <>
                 {current.type === "protected" && <Panel title="事件類型 · 個人資料保護" tone="peach" icon="/mobile/detail-protected-alert.svg">偵測到{current.fields?.length ? [...new Set(current.fields)].join("、") : "需要保護的資料"}，已使用安全版本。</Panel>}
-                <Panel title={current.type === "pending" ? "1 · 孩子的原始問題" : "孩子的原始提問"} icon={current.type === "pending" ? "/mobile/detail-pending-original.svg" : "/mobile/detail-protected-message.svg"}>{current.category === "image" ? "圖片不會儲存在通知紀錄中。" : current.originalText || (current.type === "pending" ? "這筆舊紀錄沒有保存原文，請孩子重新輸入並送出確認。" : "這筆舊紀錄沒有保存原文。")}</Panel>
+                <Panel title={current.type === "pending" ? "1 · 孩子的原始問題" : "孩子的原始提問"} icon={current.type === "pending" ? "/mobile/detail-pending-original.svg" : "/mobile/detail-protected-message.svg"}>{current.category === "image" ? "圖片不會儲存在通知紀錄中。" : current.originalText || current.maskedOriginal || (current.type === "pending" ? "這筆舊紀錄沒有保存原文，請孩子重新輸入並送出確認。" : "這筆舊紀錄沒有保存原文。")}</Panel>
                 {current.type === "pending" ? (
                   <>
                     <Panel title="2 · 系統偵測風險" icon="/mobile/detail-pending-alert.svg">{current.category === "image" ? "請確認是否適合使用安全圖片繼續。" : "同意後，孩子可將原始問題及其中的個人資料送給 AI。"}</Panel>

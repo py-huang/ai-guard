@@ -70,8 +70,9 @@ export async function POST(request: Request) {
         blocked: true,
         protected: inbound.protected,
         remember: null,
-        // Blocked wording is never kept: the parent only learns that something was stopped.
-        record: { user: "", safeUser: "", assistant: speak, status: "critical" },
+        // Parents see what was said (PII still masked) so they know what happened; the child's
+        // own screens show a placeholder instead.
+        record: { user: maskVaultTokensForParent(inbound.processedText), safeUser: "", assistant: speak, status: "critical" },
       });
     }
 

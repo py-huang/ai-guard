@@ -196,16 +196,18 @@ export function Chat({ conversationId }: ChatProps) {
     const promptForModel = options?.llmText?.trim() || llmPrompt.trim() || text;
     const imageBase64 = options?.imageBase64 || redactedImageBase64;
     const visibleText = stripSocraticInboundPrefix(text);
+    const blocked = classifyUnsafeText(text);
     const userMessage: ConversationMessage = {
       role: "user",
       content: visibleText,
+      ...(blocked ? { blocked: true } : {}),
       protected: !options?.parentApprovedDemo && Boolean(options?.protected || safetyTouched || imageBase64),
       hasImage: options?.hasImage || Boolean(imageBase64),
       imagePreview: options?.imagePreview || (imageBase64 ? pngDataUrl(imageBase64) : undefined),
     };
     function finishUserMessage() {
       appendMessage(currentConversation.id, userMessage);
-      if (currentConversation.title === "新對話") {
+      if (currentConversation.title === "新對話" && !blocked) {
         renameConversation(currentConversation.id, visibleText.slice(0, 24));
       }
       setDraft("");
@@ -220,10 +222,9 @@ export function Chat({ conversationId }: ChatProps) {
     setBusy(true);
     setError("");
 
-    const blocked = classifyUnsafeText(text);
     if (blocked) {
       if (options?.parentApprovedDemo) finishUserMessage();
-      recordEvent("critical");
+      recordEvent("critical", { originalText: visibleText, maskedOriginal: visibleText });
       resolvePending("completed");
       appendMessage(conversation.id, { role: "assistant", content: CHILD_BLOCK_REPLY, blocked: true });
       setBusy(false);
@@ -300,8 +301,11 @@ export function Chat({ conversationId }: ChatProps) {
     try {
       const result = await inspectSafety(conversation.id, text);
       if (result.blocked) {
-        recordEvent("critical");
-        appendMessage(conversation.id, { role: "user", content: result.safeText || "這個問題先不要繼續。" });
+        const maskedText = maskPiiOriginal(text, result.hits) ?? text;
+        recordEvent("critical", { originalText: text, maskedOriginal: maskedText });
+        // Stored for the parent pages; the child's own screens show a placeholder for blocked lines.
+        appendMessage(conversation.id, { role: "user", content: maskedText, blocked: true });
+        if (conversation.title === text.slice(0, 24)) renameConversation(conversation.id, "新對話");
         appendMessage(conversation.id, {
           role: "assistant",
           content: result.childMessage || CHILD_BLOCK_REPLY,
@@ -464,7 +468,7 @@ export function Chat({ conversationId }: ChatProps) {
   const composerLocked = guard === "detected" || guard === "rewritten" || guard === "parent-pending" || guard === "parent-approved" || guard === "parent-revision" || guard === "parent-declined" || guard === "image-review" || guard === "image-blocked";
 
   return (
-    <section className="flex min-h-[calc(100dvh-72px)] flex-col px-5 py-6 sm:px-10 lg:px-16">
+    <section className="flex min-h-[calc(100dvh-72px)] flex-col px-5 pt-6 pb-0 sm:px-10 lg:px-16">
       <div className="mx-auto flex w-full max-w-[860px] flex-1 flex-col">
         {conversation.messages.length === 0 && guard === "none" && !imageScanning ? (
           <div className="pt-6">
@@ -490,7 +494,7 @@ export function Chat({ conversationId }: ChatProps) {
                 ) : message.hasImage ? (
                   <p className="mb-2 rounded-[16px] bg-white/70 px-3 py-2 text-sm text-[#177049]">已用安全圖片（紀錄不保存原圖）</p>
                 ) : null}
-                <p className="text-[17px] leading-8">{stripSocraticInboundPrefix(message.content)}</p>
+                <p className="text-[17px] leading-8">{message.blocked ? "[BLOCKED]" : stripSocraticInboundPrefix(message.content)}</p>
               </div>
             ) : (
               <div className="flex max-w-[640px] gap-3" key={`${message.content}-${index}`}>
@@ -733,7 +737,7 @@ export function Chat({ conversationId }: ChatProps) {
         </div>
 
         {guard === "parent-pending" ? (
-          <p className="mt-8 text-xs font-medium leading-[19px] text-[#c02d32]">等待中的原問題不會送出；你仍可繼續探索其他內容。</p>
+          <p className="mt-8 pb-6 text-xs font-medium leading-[19px] text-[#c02d32]">等待中的原問題不會送出；你仍可繼續探索其他內容。</p>
         ) : (
           <>
             {guard === "none" && originalImageUrl && redactedImageBase64 ? (
@@ -745,7 +749,9 @@ export function Chat({ conversationId }: ChatProps) {
                 </button>
               </div>
             ) : null}
-            <form className="sticky bottom-4 mt-8 flex h-[66px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" noValidate onSubmit={submitComposer}>
+            {/* Bottom dock (matches Figma "Composer/Bottom Dock"): composer plus the privacy note stay pinned together. */}
+            <div className="sticky bottom-0 z-10 mt-8 bg-[#fffcf7] pb-9 pt-1">
+            <form className="flex h-[66px] items-center gap-2 rounded-full border border-[#dde3df] bg-white py-[9px] pl-2 pr-[10px]" noValidate onSubmit={submitComposer}>
               <input
                 ref={fileRef}
                 className="hidden"
@@ -797,6 +803,7 @@ export function Chat({ conversationId }: ChatProps) {
               </button>
             </form>
             <p className="mt-1 pl-1 text-[11px] font-medium text-[#177049]">分享前會先檢查個人資料；家長同意後的原文會保存在對話紀錄中，原始照片不會保存。</p>
+            </div>
           </>
         )}
       </div>

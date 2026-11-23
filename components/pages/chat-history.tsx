@@ -46,7 +46,8 @@ export function ChatHistory() {
         id: conversation.id,
         title: conversation.title,
         updatedAt: conversation.updatedAt,
-        messages: conversation.messages,
+        // Blocked sentences are kept for parents only, so the child's search must not find them.
+        messages: conversation.messages.filter((message) => !(message.role === "user" && message.blocked)),
         href: `/chat/${conversation.id}`,
         mode: "chat" as const,
         category: conversation.category,
