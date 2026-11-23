@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { childSafeErrorMessage, isDisasterRumor, needsLiveSearch } from "@/lib/disaster-rumor";
 import { looksLikeWriting } from "@/lib/writing-intent";
 import { CHILD_BLOCK_REPLY, classifyUnsafeText } from "@/lib/content-safety";
+import { IMAGE_ONLY_PROMPT } from "@/lib/image-prompt";
 import { inspectSafety, maskPiiOriginal, toPiiPreview } from "@/lib/safety-inspect";
 import { applyOutboundSocraticHint, stripSocraticInboundPrefix } from "@/lib/socratic";
 import { replaceVaultTokensForChild } from "@/lib/vault-tokens";
@@ -549,7 +550,7 @@ export function Chat({ conversationId }: ChatProps) {
               changed={imageChanged}
               fields={imageFields}
               onUseSafe={() => {
-                const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
+                const text = draft.trim() || IMAGE_ONLY_PROMPT;
                 void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
               }}
               onAskParent={() => askParent(true)}
@@ -593,7 +594,7 @@ export function Chat({ conversationId }: ChatProps) {
             <ImageParentPendingCard
               fields={imageFields}
               onUseSafe={() => {
-                const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
+                const text = draft.trim() || IMAGE_ONLY_PROMPT;
                 void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
               }}
               onReplace={() => {
@@ -643,7 +644,7 @@ export function Chat({ conversationId }: ChatProps) {
               fields={imageFields}
               question={draft.trim() || undefined}
               onContinue={() => {
-                const text = draft.trim() || "請看這張已遮罩的圖片，幫我看看可以怎麼問。";
+                const text = draft.trim() || IMAGE_ONLY_PROMPT;
                 void sendSafeText(text, { protected: true, hasImage: true, imageBase64: redactedImageBase64 });
               }}
             />

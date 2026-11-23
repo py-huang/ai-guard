@@ -59,6 +59,12 @@ CHILD_MESSAGES: dict[str, str] = {
         "這個問題不適合在這裡討論。我們不能提供騙人、偷東西或違法的做法。"
         "如果你遇到被欺負或被騙的事，請告訴爸爸媽媽或老師。"
     ),
+    # Used when only the learned model flagged a message: it knows the text is unsafe but not why,
+    # so the reply must not accuse the child of asking for something specific.
+    "general": (
+        "這件事我沒辦法幫忙。如果你覺得不舒服或有點擔心，"
+        "請告訴身邊的大人。我們可以改聊功課或你喜歡的事。"
+    ),
 }
 
 # High-recall catalog: short slang is included. Bare 「性」/「戰爭」still omitted
@@ -106,8 +112,13 @@ DEFAULT_CATALOG: dict[str, tuple[str, ...]] = {
         "怎麼自殺",
         "如何自殺",
         "我想死",
-        "不想活",
+        # Whole phrases only: a bare 「不想活」 also matches 「我不想活動」.
         "不想活了",
+        "不想活下去",
+        "不想活著",
+        "不想再活",
+        "不想繼續活",
+        "不想要活",
         "割腕",
         "結束生命",
         "自我了結",
@@ -439,6 +450,45 @@ def fold(text: str) -> str:
     """Normalize for matching: NFKC, case-fold, drop spacing/punctuation noise."""
     return _NOISE.sub("", unicodedata.normalize("NFKC", text).casefold())
 
+
+# Wording that means a child may be thinking about hurting themselves. Only consulted when the
+# learned model blocked a message the phrase rules did not recognise, to pick the caring reply.
+# Phrases are kept whole on purpose: 「不想活」 alone would also match 「我不想活動」, and
+# 「想死你了」 is affection, so 「想死」 must not be followed by a person pronoun.
+_SELF_HARM_CUES = re.compile(
+    "|".join(
+        (
+            r"不想活了",
+            r"不想活下去",
+            r"不想再活",
+            r"不想繼續活",
+            r"不想要活",
+            r"活著(?:好)?(?:沒意思|沒有意義|沒意義|好累|很累)",
+            r"想去死",
+            r"想要去死",
+            r"想死(?![你他她牠它們])",
+            r"我(?:就)?去死(?:算了|好了)",
+            r"輕生",
+            r"尋死",
+            r"自殺",
+            r"自殘",
+            r"自我了結",
+            r"結束(?:自己的)?生命",
+            r"了結(?:自己|生命)",
+            r"傷害自己",
+            r"弄傷自己",
+            r"割自己",
+            r"割腕",
+            r"從這個世界(?:上)?消失",
+        )
+    )
+)
+
+
+def mentions_self_harm(text: str) -> bool:
+    """True when the text contains wording that suggests the speaker may hurt themselves."""
+    return _SELF_HARM_CUES.search(fold(text)) is not None
+
 # Only when a face was found on an attached photo: refuse likeness edit / generation.
 # Bare 「這張照片」or「上廁所」are omitted so homework and identity questions can pass.
 IMAGE_ABUSE_WITH_FACE: tuple[str, ...] = (
@@ -483,6 +533,12 @@ HOMEWORK_ALLOWLIST = (
 
 # Help-seeking about abuse ("同學罵我笨，怎麼辦") quotes the abuse; that is not abuse.
 _MODEL_PROTECTIVE_EXEMPT = frozenset({"toxic", "unsafe"})
+
+# Our own picture protection hides names and faces, so children say 「已遮罩的圖片」 and 「遮住名字」.
+# The learned model reads "cover / hide" wording as concealment and flags sentences like
+# 「請看這張已遮罩的圖片，幫我看看可以怎麼做」. When it does, the verdict is re-checked without
+# these words, so they can neither cause a block nor be used to talk the model out of one.
+_MASKING_WORDS = re.compile(r"遮罩|遮住|遮起來|遮蓋|遮掉|遮蔽|馬賽克|塗黑|打碼")
 
 
 @dataclass(frozen=True)
@@ -559,6 +615,9 @@ class ContentSafetyStep(BaseGuardStep):
                         continue
                     if protective and not outbound and phrase in _CONTEXTUAL_PHRASES:
                         continue
+                    if category == "hate_speech" and mentions_self_harm(text):
+                        # 「我想去死」 contains the insult 「去死」, but it is a child in distress.
+                        category = "self_harm"
                     return SafetyMatch(category=category, phrase=phrase)
         if self._intent:
             for key, patterns in self._intent.items():
@@ -576,9 +635,19 @@ class ContentSafetyStep(BaseGuardStep):
         if self._model is not None and not outbound:
             # The model reads short child messages; model replies are moderated by rules only.
             verdict = self._model.predict(text)
-            if verdict.blocked and not (protective and verdict.label in _MODEL_PROTECTIVE_EXEMPT):
+            if verdict.blocked and _MASKING_WORDS.search(text):
+                remainder = _MASKING_WORDS.sub("", text).strip()
+                # Nothing left but masking words (「遮住」) cannot be a harmful request.
+                verdict = self._model.predict(remainder) if remainder else None
+            if verdict is not None and verdict.blocked and not (protective and verdict.label in _MODEL_PROTECTIVE_EXEMPT):
+                category = verdict.category or "general"
+                if verdict.label == "unsafe":
+                    # "unsafe" covers many kinds of harm, so it must not default to the
+                    # "illegal" reply: a child who says they feel hopeless would be told they
+                    # asked for something unlawful.
+                    category = "self_harm" if mentions_self_harm(text) else "general"
                 return SafetyMatch(
-                    category=verdict.category or "illegal",
+                    category=category,
                     phrase=f"ml:{verdict.label}:{verdict.block_score:.2f}",
                 )
         return None
