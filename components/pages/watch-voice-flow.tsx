@@ -1,5 +1,7 @@
 "use client";
 
+import { House } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { WatchVoiceCall, type WatchBadgeTone } from "@/components/watch-voice-call";
@@ -297,7 +299,14 @@ export function WatchVoiceFlow() {
   const scenario = screen?.scenario ?? step.scenario;
 
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#f7f8fc] px-4 py-6">
+    <div className="relative grid min-h-dvh place-items-center bg-[#f7f8fc] px-4 py-6">
+      <Link
+        href="/"
+        className="fixed bottom-4 right-4 z-10 flex h-10 items-center gap-1.5 rounded-full border border-[#dde3df] bg-white pl-3 pr-4 text-sm font-medium text-[#333852] shadow-[0_4px_12px_-6px_rgba(20,33,26,0.15)] hover:bg-[#eef0f6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177049]"
+      >
+        <House aria-hidden="true" className="size-4" />
+        回到首頁
+      </Link>
       <div className="flex w-[min(430px,calc(100vw-2rem))] flex-col items-center gap-3">
         <div className="max-h-28 w-full overflow-y-auto text-center">
           <p className="text-sm leading-5 font-bold text-[#333852]">{title}</p>
